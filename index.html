@@ -437,7 +437,7 @@
             <th class="col-head"><div class="head-pill"><div class="letter">B</div><div class="name">value2</div></div></th>
             <th class="col-head"><div class="head-pill"><div class="letter">C</div><div class="name">value3</div></div></th>
             <th class="col-head"><div class="head-pill"><div class="letter">D</div><div class="name">unused</div></div></th>
-            <th class="col-head result-head"><div class="head-pill"><div class="letter">Result</div><div class="name">&nbsp;</div></div></th>
+            <th class="col-head result-head" role="button" tabindex="0" aria-label="Compute results"><div class="head-pill"><div class="letter">Result</div><div class="name">&nbsp;</div></div></th>
           </tr>
         </thead>
         <tbody>
@@ -497,6 +497,7 @@
         const rightKey = keys.find((key) => key.textContent.trim() === '>');
         const resultKey = keys.find((key) => key.textContent.trim() === '=');
         const sheetNavButtons = [...document.querySelectorAll('.nav .arrow')];
+        const resultHeaderTrigger = document.querySelector('th.result-head');
 
         const formulaInput = document.querySelector('.formula-input');
         const constantInputs = [...document.querySelectorAll('.const-cell input')];
@@ -992,9 +993,55 @@
           target.addEventListener('pointerup', () => activateTarget(target));
         });
 
+        const handleKeyPress = (key) => {
+          const label = key.textContent.trim();
+
+          if (key === minimizeKey) {
+            keypad.classList.toggle('minimized');
+            return;
+          }
+          if (key === undoKey) {
+            if (!activeTarget) return;
+            setText(activeTarget, initialValueOnFocus);
+            setSelection(activeTarget, getText(activeTarget).length);
+            return;
+          }
+          if (key === backspaceKey) {
+            deleteBackward();
+            return;
+          }
+          if (key === leftKey) {
+            moveCursor(-1);
+            return;
+          }
+          if (key === rightKey) {
+            moveCursor(1);
+            return;
+          }
+          if (key === resultKey) {
+            blurActiveTarget();
+            computeAllRows();
+            return;
+          }
+          if (label === '⌨︎') {
+            return;
+          }
+
+          const insertText = label === '−' ? '-' : label;
+          insertIntoTarget(insertText);
+        };
+
         keys.forEach((key) => {
+          let pointerTriggered = false;
           key.addEventListener('pointerdown', (event) => {
             event.preventDefault();
+            pointerTriggered = true;
+            handleKeyPress(key);
+          });
+          key.addEventListener('click', (event) => {
+            event.preventDefault();
+            if (pointerTriggered) {
+              pointerTriggered = false;
             const label = key.textContent.trim();
 
             if (key === minimizeKey) {
@@ -1027,9 +1074,7 @@
             if (label === '⌨︎') {
               return;
             }
-
-            const insertText = label === '−' ? '-' : label;
-            insertIntoTarget(insertText);
+            handleKeyPress(key);
           });
         });
 
@@ -1039,6 +1084,31 @@
           });
         });
 
+        if (resultHeaderTrigger) {
+          let headerPointerTriggered = false;
+          resultHeaderTrigger.addEventListener('pointerdown', (event) => {
+            event.preventDefault();
+            headerPointerTriggered = true;
+            blurActiveTarget();
+            computeAllRows();
+          });
+          resultHeaderTrigger.addEventListener('click', (event) => {
+            event.preventDefault();
+            if (headerPointerTriggered) {
+              headerPointerTriggered = false;
+              return;
+            }
+            blurActiveTarget();
+            computeAllRows();
+          });
+          resultHeaderTrigger.addEventListener('keydown', (event) => {
+            if (event.key !== 'Enter' && event.key !== ' ') return;
+            event.preventDefault();
+            blurActiveTarget();
+            computeAllRows();
+          });
+        }
+
         editableTargets.forEach((target) => {
           target.addEventListener('blur', () => {
             if (activeTarget === target) {
@@ -1047,6 +1117,14 @@
               initialValueOnFocus = '';
             }
           });
+        });
+
+        document.addEventListener('keydown', (event) => {
+          if (event.key !== 'Enter') return;
+          if (!activeTarget || !editableTargets.includes(activeTarget)) return;
+          event.preventDefault();
+          blurActiveTarget();
+          computeAllRows();
         });
 
         statCells.forEach((cell) => {
