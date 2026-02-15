@@ -335,6 +335,7 @@
         background: #7082a7;
         border-top: 1px solid #5d6f97;
         z-index: 41;
+        transition: height 0.2s ease;
       }
 
       .keys {
@@ -361,6 +362,36 @@
 
       .key.enter {
         background: #7f88a0;
+      }
+
+      .keypad.minimized {
+        height: 56px;
+      }
+
+      .keypad.minimized .keys {
+        grid-template-rows: 1fr;
+      }
+
+      .keypad.minimized .key:nth-child(n + 7) {
+        display: none;
+      }
+
+      .editable-cell {
+        padding: 0;
+      }
+
+      .cell-input {
+        width: 100%;
+        height: 100%;
+        border: 0;
+        background: transparent;
+        padding: 0 8px;
+        font-size: 15px;
+      }
+
+      .is-active-target {
+        outline: 2px solid var(--active-soft);
+        outline-offset: -2px;
       }
     </style>
   </head>
@@ -454,5 +485,235 @@
         <button class="key light">NOT</button><button class="key light">MIN</button><button class="key">0</button><button class="key">.</button><button class="key">,</button><button class="key enter">=</button>
       </div>
     </section>
+
+    <script>
+      (() => {
+        const keypad = document.querySelector('.keypad');
+        const keys = [...document.querySelectorAll('.keypad .key')];
+        const minimizeKey = keys.find((key) => key.textContent.trim() === '↕');
+        const undoKey = keys.find((key) => key.textContent.trim() === '↺');
+        const backspaceKey = keys.find((key) => key.textContent.trim() === '⌫');
+        const leftKey = keys.find((key) => key.textContent.trim() === '<');
+        const rightKey = keys.find((key) => key.textContent.trim() === '>');
+        const resultKey = keys.find((key) => key.textContent.trim() === '=');
+        const sheetNavButtons = [...document.querySelectorAll('.nav .arrow')];
+
+        const formulaInput = document.querySelector('.formula-input');
+        const constantInputs = [...document.querySelectorAll('.const-cell input')];
+        const titleFields = [
+          document.querySelector('.title-line'),
+          document.querySelector('.sheet-name')
+        ].filter(Boolean);
+
+        document.querySelectorAll('tbody tr').forEach((row) => {
+          [...row.children].forEach((cell, index) => {
+            if (index === 0 || cell.classList.contains('result-cell')) {
+              return;
+            }
+            cell.classList.add('editable-cell');
+            cell.innerHTML = '<input class="cell-input" inputmode="none" readonly value="" aria-label="Grid cell value" />';
+          });
+        });
+
+        const cellInputs = [...document.querySelectorAll('.cell-input')];
+        const numericTargets = [...constantInputs, formulaInput, ...cellInputs];
+        const editableTargets = [...numericTargets, ...titleFields];
+
+        let activeTarget = null;
+        let initialValueOnFocus = '';
+
+        const isInput = (el) => el instanceof HTMLInputElement;
+        const getText = (el) => (isInput(el) ? el.value : (el.textContent || ''));
+
+        const setText = (el, value) => {
+          if (isInput(el)) {
+            el.value = value;
+            return;
+          }
+          el.textContent = value;
+        };
+
+        const getSelection = (el) => {
+          if (isInput(el)) {
+            return {
+              start: el.selectionStart ?? el.value.length,
+              end: el.selectionEnd ?? el.value.length
+            };
+          }
+
+          const selection = window.getSelection();
+          if (!selection || selection.rangeCount === 0 || !el.contains(selection.anchorNode)) {
+            const end = getText(el).length;
+            return { start: end, end };
+          }
+
+          const range = selection.getRangeAt(0);
+          const preRange = range.cloneRange();
+          preRange.selectNodeContents(el);
+          preRange.setEnd(range.startContainer, range.startOffset);
+          const start = preRange.toString().length;
+
+          const postRange = range.cloneRange();
+          postRange.selectNodeContents(el);
+          postRange.setEnd(range.endContainer, range.endOffset);
+          const end = postRange.toString().length;
+
+          return { start, end };
+        };
+
+        const setSelection = (el, start, end = start) => {
+          if (isInput(el)) {
+            el.setSelectionRange(start, end);
+            return;
+          }
+
+          const textNode = el.firstChild || el.appendChild(document.createTextNode(getText(el)));
+          const range = document.createRange();
+          const safeStart = Math.max(0, Math.min(start, textNode.textContent.length));
+          const safeEnd = Math.max(0, Math.min(end, textNode.textContent.length));
+          range.setStart(textNode, safeStart);
+          range.setEnd(textNode, safeEnd);
+          const selection = window.getSelection();
+          selection.removeAllRanges();
+          selection.addRange(range);
+        };
+
+        const activateTarget = (target) => {
+          if (!target || activeTarget === target) {
+            return;
+          }
+
+          if (activeTarget) {
+            activeTarget.classList.remove('is-active-target');
+          }
+
+          activeTarget = target;
+          activeTarget.classList.add('is-active-target');
+          initialValueOnFocus = getText(target);
+        };
+
+        const blurActiveTarget = () => {
+          if (!activeTarget) return;
+          activeTarget.classList.remove('is-active-target');
+          if (document.activeElement instanceof HTMLElement) {
+            document.activeElement.blur();
+          }
+          activeTarget = null;
+          initialValueOnFocus = '';
+        };
+
+        const insertIntoTarget = (text) => {
+          if (!activeTarget) return;
+          const value = getText(activeTarget);
+          const { start, end } = getSelection(activeTarget);
+          const nextValue = value.slice(0, start) + text + value.slice(end);
+          setText(activeTarget, nextValue);
+          const nextCursor = start + text.length;
+          setSelection(activeTarget, nextCursor);
+        };
+
+        const deleteBackward = () => {
+          if (!activeTarget) return;
+          const value = getText(activeTarget);
+          const { start, end } = getSelection(activeTarget);
+
+          if (start !== end) {
+            const nextValue = value.slice(0, start) + value.slice(end);
+            setText(activeTarget, nextValue);
+            setSelection(activeTarget, start);
+            return;
+          }
+
+          if (start === 0) return;
+          const nextValue = value.slice(0, start - 1) + value.slice(start);
+          setText(activeTarget, nextValue);
+          setSelection(activeTarget, start - 1);
+        };
+
+        const moveCursor = (delta) => {
+          if (!activeTarget) return;
+          const { start, end } = getSelection(activeTarget);
+          const base = delta < 0 ? start : end;
+          const next = Math.max(0, Math.min(base + delta, getText(activeTarget).length));
+          setSelection(activeTarget, next);
+        };
+
+        const suppressNativeTyping = (event) => {
+          event.preventDefault();
+        };
+
+        numericTargets.forEach((target) => {
+          target.setAttribute('inputmode', 'none');
+          target.readOnly = true;
+          target.addEventListener('focus', () => activateTarget(target));
+          target.addEventListener('pointerdown', () => activateTarget(target));
+          target.addEventListener('keydown', suppressNativeTyping);
+          target.addEventListener('beforeinput', suppressNativeTyping);
+          target.addEventListener('paste', suppressNativeTyping);
+        });
+
+        titleFields.forEach((target) => {
+          target.setAttribute('contenteditable', 'true');
+          target.addEventListener('focus', () => activateTarget(target));
+          target.addEventListener('pointerup', () => activateTarget(target));
+        });
+
+        keys.forEach((key) => {
+          key.addEventListener('pointerdown', (event) => {
+            event.preventDefault();
+            const label = key.textContent.trim();
+
+            if (key === minimizeKey) {
+              keypad.classList.toggle('minimized');
+              return;
+            }
+            if (key === undoKey) {
+              if (!activeTarget) return;
+              setText(activeTarget, initialValueOnFocus);
+              setSelection(activeTarget, getText(activeTarget).length);
+              return;
+            }
+            if (key === backspaceKey) {
+              deleteBackward();
+              return;
+            }
+            if (key === leftKey) {
+              moveCursor(-1);
+              return;
+            }
+            if (key === rightKey) {
+              moveCursor(1);
+              return;
+            }
+            if (key === resultKey) {
+              blurActiveTarget();
+              return;
+            }
+            if (label === '⌨︎') {
+              return;
+            }
+
+            const insertText = label === '−' ? '-' : label;
+            insertIntoTarget(insertText);
+          });
+        });
+
+        sheetNavButtons.forEach((button) => {
+          button.addEventListener('click', () => {
+            blurActiveTarget();
+          });
+        });
+
+        editableTargets.forEach((target) => {
+          target.addEventListener('blur', () => {
+            if (activeTarget === target) {
+              target.classList.remove('is-active-target');
+              activeTarget = null;
+              initialValueOnFocus = '';
+            }
+          });
+        });
+      })();
+    </script>
   </body>
 </html>
