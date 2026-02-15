@@ -1310,6 +1310,7 @@
           target.setAttribute('contenteditable', 'true');
           target.addEventListener('focus', () => activateTarget(target));
           target.addEventListener('pointerup', () => activateTarget(target));
+          target.addEventListener('click', () => activateTarget(target));
         });
 
         const handleKeyPress = (key) => {
