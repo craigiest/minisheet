@@ -973,10 +973,337 @@
           recomputeStats();
         };
 
+        const toNumericOrZero = (rawValue) => {
+          const value = String(rawValue ?? '').trim();
+          if (!value) return 0;
+          const numeric = Number(value);
+          if (!Number.isFinite(numeric)) {
+            throw new Error('NON_NUMERIC');
+          }
+          return numeric;
+        };
+
+        const tokenize = (source) => {
+          const tokens = [];
+          const text = String(source ?? '');
+          let index = 0;
+
+          while (index < text.length) {
+            const char = text[index];
+
+            if (/\s/.test(char)) {
+              index += 1;
+              continue;
+            }
+
+            if ((char >= '0' && char <= '9') || char === '.') {
+              let end = index;
+              let dotCount = 0;
+              while (end < text.length && ((text[end] >= '0' && text[end] <= '9') || text[end] === '.')) {
+                if (text[end] === '.') dotCount += 1;
+                end += 1;
+              }
+              if (dotCount > 1) throw new SyntaxError('Invalid number');
+              const literal = text.slice(index, end);
+              if (literal === '.') throw new SyntaxError('Invalid number');
+              tokens.push({ type: 'number', value: Number(literal) });
+              index = end;
+              continue;
+            }
+
+            const normalized = char === '−' ? '-' : char;
+            if ('+-*/^'.includes(normalized)) {
+              tokens.push({ type: 'operator', value: normalized });
+              index += 1;
+              continue;
+            }
+
+            if (normalized === '(' || normalized === ')') {
+              tokens.push({ type: 'paren', value: normalized });
+              index += 1;
+              continue;
+            }
+
+            if (normalized === ',') {
+              tokens.push({ type: 'comma', value: ',' });
+              index += 1;
+              continue;
+            }
+
+            if (normalized === '√') {
+              tokens.push({ type: 'root', value: '√' });
+              index += 1;
+              continue;
+            }
+
+            if (/[A-Za-z]/.test(normalized)) {
+              const upper = normalized.toUpperCase();
+              if (!'ABCDVWXYZ'.includes(upper)) {
+                throw new SyntaxError('Unknown variable');
+              }
+              tokens.push({ type: 'variable', value: upper });
+              index += 1;
+              continue;
+            }
+
+            throw new SyntaxError('Unexpected token');
+          }
+
+          return tokens;
+        };
+
+        const parse = (tokens) => {
+          let cursor = 0;
+          const peek = () => tokens[cursor];
+          const consume = () => tokens[cursor++];
+
+          const parsePrimary = () => {
+            const token = peek();
+            if (!token) {
+              throw new SyntaxError('Unexpected end');
+            }
+
+            if (token.type === 'number') {
+              consume();
+              return { type: 'number', value: token.value };
+            }
+
+            if (token.type === 'variable') {
+              consume();
+              return { type: 'variable', name: token.value };
+            }
+
+            if (token.type === 'paren' && token.value === '(') {
+              consume();
+              const expression = parseExpression();
+              const close = consume();
+              if (!close || close.type !== 'paren' || close.value !== ')') {
+                throw new SyntaxError('Missing close paren');
+              }
+              return expression;
+            }
+
+            if (token.type === 'root') {
+              consume();
+              const open = consume();
+              if (!open || open.type !== 'paren' || open.value !== '(') {
+                throw new SyntaxError('Root call requires parenthesis');
+              }
+
+              const first = parseExpression();
+              const next = peek();
+              if (next && next.type === 'comma') {
+                consume();
+                const second = parseExpression();
+                const close = consume();
+                if (!close || close.type !== 'paren' || close.value !== ')') {
+                  throw new SyntaxError('Missing close paren');
+                }
+                return { type: 'root', degree: first, radicand: second };
+              }
+
+              const close = consume();
+              if (!close || close.type !== 'paren' || close.value !== ')') {
+                throw new SyntaxError('Missing close paren');
+              }
+              return { type: 'root', degree: null, radicand: first };
+            }
+
+            throw new SyntaxError('Unexpected token');
+          };
+
+          const parseUnary = () => {
+            const token = peek();
+            if (token && token.type === 'operator' && (token.value === '+' || token.value === '-')) {
+              consume();
+              return { type: 'unary', operator: token.value, argument: parseUnary() };
+            }
+            return parsePrimary();
+          };
+
+          const parsePower = () => {
+            let left = parseUnary();
+            const token = peek();
+            if (token && token.type === 'operator' && token.value === '^') {
+              consume();
+              const right = parsePower();
+              left = { type: 'binary', operator: '^', left, right };
+            }
+            return left;
+          };
+
+          const parseTerm = () => {
+            let left = parsePower();
+            while (true) {
+              const token = peek();
+              if (!token || token.type !== 'operator' || !'*/'.includes(token.value)) {
+                return left;
+              }
+              consume();
+              left = { type: 'binary', operator: token.value, left, right: parsePower() };
+            }
+          };
+
+          const parseExpression = () => {
+            let left = parseTerm();
+            while (true) {
+              const token = peek();
+              if (!token || token.type !== 'operator' || !'+-'.includes(token.value)) {
+                return left;
+              }
+              consume();
+              left = { type: 'binary', operator: token.value, left, right: parseTerm() };
+            }
+          };
+
+          const ast = parseExpression();
+          if (cursor < tokens.length) {
+            throw new SyntaxError('Trailing tokens');
+          }
+          return ast;
+        };
+
+        const evaluateAst = (node, scope) => {
+          switch (node.type) {
+            case 'number':
+              return node.value;
+            case 'variable':
+              return scope[node.name] ?? 0;
+            case 'unary': {
+              const value = evaluateAst(node.argument, scope);
+              return node.operator === '-' ? -value : value;
+            }
+            case 'binary': {
+              const left = evaluateAst(node.left, scope);
+              const right = evaluateAst(node.right, scope);
+              if (node.operator === '+') return left + right;
+              if (node.operator === '-') return left - right;
+              if (node.operator === '*') return left * right;
+              if (node.operator === '/') {
+                if (right === 0) throw new Error('DIV_0');
+                return left / right;
+              }
+              if (node.operator === '^') return left ** right;
+              throw new Error('EVAL');
+            }
+            case 'root': {
+              const radicand = evaluateAst(node.radicand, scope);
+              if (!node.degree) {
+                return Math.sqrt(radicand);
+              }
+              const degree = evaluateAst(node.degree, scope);
+              if (degree === 0) throw new Error('DIV_0');
+              return radicand ** (1 / degree);
+            }
+            default:
+              throw new Error('EVAL');
+          }
+        };
+
+        const mapErrorToCellText = (error) => {
+          if (error instanceof SyntaxError) {
+            return 'Syntax';
+          }
+          if (error?.message === 'DIV_0') {
+            return 'DIV/0';
+          }
+          return 'Error';
+        };
+
+        const formatNumber = (value) => {
+          if (!Number.isFinite(value)) return 'Error';
+          const normalized = Object.is(value, -0) ? 0 : value;
+          if (Number.isInteger(normalized)) return String(normalized);
+          return normalized.toFixed(8).replace(/\.?0+$/, '');
+        };
+
+        const getColumnNumbers = (columnIndex) => {
+          if (columnIndex < 4) {
+            return rowBindings
+              .map((row) => Number(row.inputs[columnIndex]?.value))
+              .filter((value) => Number.isFinite(value));
+          }
+
+          return rowBindings
+            .map((row) => Number(row.resultCell.textContent))
+            .filter((value) => Number.isFinite(value));
+        };
+
+        const applyStat = (values, statName) => {
+          if (!values.length) return '—';
+          if (statName === 'Sum') return formatNumber(values.reduce((total, value) => total + value, 0));
+          if (statName === 'Avg') return formatNumber(values.reduce((total, value) => total + value, 0) / values.length);
+          if (statName === 'Min') return formatNumber(Math.min(...values));
+          if (statName === 'Max') return formatNumber(Math.max(...values));
+          if (statName === 'Count') return String(values.length);
+          return '—';
+        };
+
+        const recomputeStats = () => {
+          statCells.forEach((statCell, index) => {
+            const select = statCell.querySelector('select');
+            const output = statCell.querySelector('output');
+            const statName = select?.value ?? '--';
+            if (statName === '--') {
+              output.textContent = '—';
+              return;
+            }
+            const values = getColumnNumbers(index);
+            output.textContent = applyStat(values, statName);
+          });
+        };
+
+        const computeAllRows = () => {
+          let ast;
+          try {
+            ast = parse(tokenize(formulaInput.value));
+          } catch (error) {
+            rowBindings.forEach((row) => {
+              row.resultCell.textContent = mapErrorToCellText(error);
+            });
+            recomputeStats();
+            return;
+          }
+
+          let constants;
+          try {
+            constants = {
+              V: toNumericOrZero(constantInputs[0]?.value),
+              W: toNumericOrZero(constantInputs[1]?.value),
+              X: toNumericOrZero(constantInputs[2]?.value),
+              Y: toNumericOrZero(constantInputs[3]?.value),
+              Z: toNumericOrZero(constantInputs[4]?.value)
+            };
+          } catch (error) {
+            rowBindings.forEach((row) => {
+              row.resultCell.textContent = mapErrorToCellText(error);
+            });
+            recomputeStats();
+            return;
+          }
+
+          rowBindings.forEach((row) => {
+            try {
+              const scope = {
+                ...constants,
+                A: toNumericOrZero(row.inputs[0]?.value),
+                B: toNumericOrZero(row.inputs[1]?.value),
+                C: toNumericOrZero(row.inputs[2]?.value),
+                D: toNumericOrZero(row.inputs[3]?.value)
+              };
+              const value = evaluateAst(ast, scope);
+              row.resultCell.textContent = formatNumber(value);
+            } catch (error) {
+              row.resultCell.textContent = mapErrorToCellText(error);
+            }
+          });
+
+          recomputeStats();
+        };
+
         numericTargets.forEach((target) => {
           target.addEventListener('focus', () => activateTarget(target));
           target.addEventListener('pointerdown', () => activateTarget(target));
-          target.addEventListener('click', () => activateTarget(target));
         });
 
         titleFields.forEach((target) => {
@@ -1035,6 +1362,36 @@
             event.preventDefault();
             if (pointerTriggered) {
               pointerTriggered = false;
+            const label = key.textContent.trim();
+
+            if (key === minimizeKey) {
+              keypad.classList.toggle('minimized');
+              return;
+            }
+            if (key === undoKey) {
+              if (!activeTarget) return;
+              setText(activeTarget, initialValueOnFocus);
+              setSelection(activeTarget, getText(activeTarget).length);
+              return;
+            }
+            if (key === backspaceKey) {
+              deleteBackward();
+              return;
+            }
+            if (key === leftKey) {
+              moveCursor(-1);
+              return;
+            }
+            if (key === rightKey) {
+              moveCursor(1);
+              return;
+            }
+            if (key === resultKey) {
+              blurActiveTarget();
+              computeAllRows();
+              return;
+            }
+            if (label === '⌨︎') {
               return;
             }
             handleKeyPress(key);
