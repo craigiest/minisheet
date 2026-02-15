@@ -1042,6 +1042,36 @@
             event.preventDefault();
             if (pointerTriggered) {
               pointerTriggered = false;
+            const label = key.textContent.trim();
+
+            if (key === minimizeKey) {
+              keypad.classList.toggle('minimized');
+              return;
+            }
+            if (key === undoKey) {
+              if (!activeTarget) return;
+              setText(activeTarget, initialValueOnFocus);
+              setSelection(activeTarget, getText(activeTarget).length);
+              return;
+            }
+            if (key === backspaceKey) {
+              deleteBackward();
+              return;
+            }
+            if (key === leftKey) {
+              moveCursor(-1);
+              return;
+            }
+            if (key === rightKey) {
+              moveCursor(1);
+              return;
+            }
+            if (key === resultKey) {
+              blurActiveTarget();
+              computeAllRows();
+              return;
+            }
+            if (label === '⌨︎') {
               return;
             }
             handleKeyPress(key);
