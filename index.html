@@ -2,8 +2,457 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>MiniSheet</title>
+    <style>
+      :root {
+        --bg: #ececef;
+        --panel: #f3f3f5;
+        --line: #d5d5da;
+        --text: #1d2029;
+        --active: #305596;
+        --active-soft: #6aa8f1;
+        --nav-h: 56px;
+        --const-h: 86px;
+        --formula-h: 56px;
+        --keypad-h: 238px;
+      }
+
+      * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+        background: var(--bg);
+        color: var(--text);
+      }
+
+      body {
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
+      }
+
+      button,
+      input,
+      select {
+        font: inherit;
+      }
+
+      .nav {
+        position: fixed;
+        top: env(safe-area-inset-top);
+        left: 0;
+        right: 0;
+        height: var(--nav-h);
+        background: var(--panel);
+        border-bottom: 1px solid var(--line);
+        display: grid;
+        grid-template-columns: 34px 1fr 34px;
+        gap: 6px;
+        align-items: center;
+        padding: 6px 8px;
+        z-index: 60;
+      }
+
+      .arrow {
+        width: 34px;
+        height: 30px;
+        border: 0;
+        background: transparent;
+        font-size: 18px;
+      }
+
+      .title-block {
+        display: grid;
+        gap: 1px;
+        min-width: 0;
+      }
+
+      .title-line {
+        font-size: 16px;
+        line-height: 1.1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .sheet-line {
+        display: flex;
+        gap: 8px;
+        align-items: baseline;
+        white-space: nowrap;
+      }
+
+      .sheet-index {
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      .sheet-name {
+        font-size: 12px;
+        color: #4f5466;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .constants-strip {
+        position: fixed;
+        top: calc(env(safe-area-inset-top) + var(--nav-h));
+        left: 0;
+        right: 0;
+        height: var(--const-h);
+        background: var(--panel);
+        border-bottom: 1px solid var(--line);
+        display: grid;
+        grid-template-columns: 52px repeat(5, minmax(0, 1fr));
+        z-index: 50;
+      }
+
+      .clear-cell,
+      .const-cell {
+        border-right: 1px solid var(--line);
+        padding: 6px 4px;
+        display: grid;
+        gap: 4px;
+        align-content: center;
+      }
+
+      .clear-cell {
+        place-items: center;
+      }
+
+      .key-active {
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 8px;
+        background: var(--active);
+        color: #fff;
+        display: grid;
+        place-items: center;
+        width: 42px;
+        height: 42px;
+        font-size: 16px;
+      }
+
+      .const-top {
+        border-radius: 8px;
+        background: var(--active);
+        color: #fff;
+        min-height: 34px;
+        display: grid;
+        align-content: center;
+        justify-items: center;
+        padding: 4px;
+      }
+
+      .const-top .letter {
+        font-size: 12px;
+        line-height: 1;
+      }
+
+      .const-top .name {
+        font-size: 11px;
+        font-weight: 600;
+      }
+
+      .const-cell input {
+        width: 100%;
+        height: 30px;
+        border: 1px solid #c7c7ce;
+        border-radius: 7px;
+        background: #efefef;
+        font-size: 14px;
+        padding: 2px 6px;
+      }
+
+      .formula-strip {
+        position: fixed;
+        top: calc(env(safe-area-inset-top) + var(--nav-h) + var(--const-h));
+        left: 0;
+        right: 0;
+        height: var(--formula-h);
+        background: var(--panel);
+        border-bottom: 1px solid var(--line);
+        display: grid;
+        grid-template-columns: 30px 1fr auto;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 8px;
+        z-index: 49;
+      }
+
+      .fx-eq {
+        font-size: 26px;
+        font-weight: 700;
+        text-align: center;
+      }
+
+      .formula-input {
+        width: 100%;
+        min-width: 0;
+        height: 42px;
+        border: 2px solid var(--active-soft);
+        border-radius: 10px;
+        box-shadow: 0 0 0 1px rgba(106, 168, 241, 0.35) inset;
+        background: #f0f0f2;
+        font-size: 14px;
+        padding: 6px 10px;
+      }
+
+      .toggle {
+        font-size: 12px;
+        white-space: nowrap;
+      }
+
+      .grid-wrap {
+        position: fixed;
+        top: calc(env(safe-area-inset-top) + var(--nav-h) + var(--const-h) + var(--formula-h));
+        left: 0;
+        right: 0;
+        bottom: calc(env(safe-area-inset-bottom) + var(--keypad-h));
+        overflow-y: auto;
+        overflow-x: hidden;
+        -webkit-overflow-scrolling: touch;
+        background: #f7f7f8;
+        z-index: 20;
+      }
+
+      table {
+        border-collapse: separate;
+        border-spacing: 0;
+        width: 100%;
+        table-layout: fixed;
+      }
+
+      col.col-num { width: 10%; }
+      col.col-main { width: 17%; }
+      col.col-result { width: 22%; }
+
+      th,
+      td {
+        border-right: 1px solid var(--line);
+        border-bottom: 1px solid var(--line);
+        height: 48px;
+        background: #f1f1f3;
+      }
+
+      th:last-child,
+      td:last-child {
+        border-right: 0;
+      }
+
+      thead th {
+        position: sticky;
+        top: 0;
+        z-index: 7;
+      }
+
+      .num-head,
+      .num {
+        text-align: center;
+        position: sticky;
+        left: 0;
+        background: #f1f1f3;
+        z-index: 8;
+        font-size: 15px;
+      }
+
+      .num-head {
+        font-size: 17px;
+        font-weight: 700;
+      }
+
+      .col-head {
+        padding: 4px;
+        background: #ececef;
+      }
+
+      .head-pill {
+        background: var(--active);
+        color: #fff;
+        border-radius: 8px;
+        min-height: 38px;
+        display: grid;
+        align-content: center;
+        justify-items: center;
+      }
+
+      .head-pill .letter { font-size: 14px; }
+      .head-pill .name { font-size: 11px; font-weight: 700; }
+
+      .result-head,
+      .result-cell {
+        position: sticky;
+        right: 0;
+        z-index: 6;
+      }
+
+      .result-head { z-index: 9; }
+
+      tfoot td {
+        position: sticky;
+        bottom: 0;
+        z-index: 10;
+        background: var(--panel);
+        padding: 4px;
+        height: 58px;
+      }
+
+      tfoot .num {
+        font-weight: 700;
+        font-size: 18px;
+      }
+
+      .stat-cell {
+        border: 1px solid #d8d8de;
+        border-radius: 14px;
+        background: #ececf1;
+        height: 48px;
+        display: grid;
+        grid-template-rows: 1fr 1fr;
+        align-items: center;
+        padding: 1px 6px;
+      }
+
+      .stat-cell select,
+      .stat-cell output {
+        border: 0;
+        background: transparent;
+        color: #2584e6;
+        font-size: 12px;
+        width: 100%;
+      }
+
+      .keypad {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: env(safe-area-inset-bottom);
+        height: var(--keypad-h);
+        padding: 6px;
+        background: #7082a7;
+        border-top: 1px solid #5d6f97;
+        z-index: 41;
+      }
+
+      .keys {
+        height: 100%;
+        display: grid;
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        grid-template-rows: repeat(6, minmax(0, 1fr));
+        gap: 6px;
+      }
+
+      .key {
+        border: 0;
+        border-radius: 8px;
+        background: var(--active);
+        color: #fff;
+        font-size: 18px;
+      }
+
+      .key.light {
+        background: transparent;
+        color: #f0f3fa;
+        border: 1px solid transparent;
+      }
+
+      .key.enter {
+        background: #7f88a0;
+      }
+    </style>
   </head>
-  <body>test</body>
+  <body>
+    <header class="nav">
+      <button class="arrow" aria-label="Previous sheet">◀</button>
+      <div class="title-block">
+        <div class="title-line" contenteditable="true" role="textbox" aria-label="Sheet title">Proportion: A/B = C/Result | A:B::C:Result</div>
+        <div class="sheet-line"><span class="sheet-index">2</span><span class="sheet-name">A:B::C:Result</span></div>
+      </div>
+      <button class="arrow" aria-label="Next sheet">▶</button>
+    </header>
+
+    <section class="constants-strip" aria-label="Constants strip">
+      <div class="clear-cell"><button class="key-active" aria-label="Clear">C</button></div>
+      <div class="const-cell"><div class="const-top"><div class="letter">V</div><div class="name">const1</div></div><input inputmode="decimal" value="" /></div>
+      <div class="const-cell"><div class="const-top"><div class="letter">W</div><div class="name">const2</div></div><input inputmode="decimal" value="" /></div>
+      <div class="const-cell"><div class="const-top"><div class="letter">X</div><div class="name">const3</div></div><input inputmode="decimal" value="" /></div>
+      <div class="const-cell"><div class="const-top"><div class="letter">Y</div><div class="name">const4</div></div><input inputmode="decimal" value="" /></div>
+      <div class="const-cell"><div class="const-top"><div class="letter">Z</div><div class="name">const5</div></div><input inputmode="decimal" value="" /></div>
+    </section>
+
+    <section class="formula-strip" aria-label="Formula editor strip">
+      <div class="fx-eq">=</div>
+      <input class="formula-input" value="(value2*value3)/value1+const4" aria-label="Formula editor" />
+      <div class="toggle">A / <strong>Name</strong></div>
+    </section>
+
+    <main class="grid-wrap" aria-label="Grid area">
+      <table>
+        <colgroup>
+          <col class="col-num" />
+          <col class="col-main" />
+          <col class="col-main" />
+          <col class="col-main" />
+          <col class="col-main" />
+          <col class="col-result" />
+        </colgroup>
+        <thead>
+          <tr>
+            <th class="num-head">#</th>
+            <th class="col-head"><div class="head-pill"><div class="letter">A</div><div class="name">value1</div></div></th>
+            <th class="col-head"><div class="head-pill"><div class="letter">B</div><div class="name">value2</div></div></th>
+            <th class="col-head"><div class="head-pill"><div class="letter">C</div><div class="name">value3</div></div></th>
+            <th class="col-head"><div class="head-pill"><div class="letter">D</div><div class="name">unused</div></div></th>
+            <th class="col-head result-head"><div class="head-pill"><div class="letter">Result</div><div class="name">&nbsp;</div></div></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="num">1</td><td></td><td></td><td></td><td></td><td class="result-cell"></td></tr>
+          <tr><td class="num">2</td><td></td><td></td><td></td><td></td><td class="result-cell"></td></tr>
+          <tr><td class="num">3</td><td></td><td></td><td></td><td></td><td class="result-cell"></td></tr>
+          <tr><td class="num">4</td><td></td><td></td><td></td><td></td><td class="result-cell"></td></tr>
+          <tr><td class="num">5</td><td></td><td></td><td></td><td></td><td class="result-cell"></td></tr>
+          <tr><td class="num">6</td><td></td><td></td><td></td><td></td><td class="result-cell"></td></tr>
+          <tr><td class="num">7</td><td></td><td></td><td></td><td></td><td class="result-cell"></td></tr>
+          <tr><td class="num">8</td><td></td><td></td><td></td><td></td><td class="result-cell"></td></tr>
+          <tr><td class="num">9</td><td></td><td></td><td></td><td></td><td class="result-cell"></td></tr>
+          <tr><td class="num">10</td><td></td><td></td><td></td><td></td><td class="result-cell"></td></tr>
+          <tr><td class="num">11</td><td></td><td></td><td></td><td></td><td class="result-cell"></td></tr>
+          <tr><td class="num">12</td><td></td><td></td><td></td><td></td><td class="result-cell"></td></tr>
+          <tr><td class="num">13</td><td></td><td></td><td></td><td></td><td class="result-cell"></td></tr>
+          <tr><td class="num">14</td><td></td><td></td><td></td><td></td><td class="result-cell"></td></tr>
+          <tr><td class="num">15</td><td></td><td></td><td></td><td></td><td class="result-cell"></td></tr>
+          <tr><td class="num">16</td><td></td><td></td><td></td><td></td><td class="result-cell"></td></tr>
+          <tr><td class="num">17</td><td></td><td></td><td></td><td></td><td class="result-cell"></td></tr>
+          <tr><td class="num">18</td><td></td><td></td><td></td><td></td><td class="result-cell"></td></tr>
+          <tr><td class="num">19</td><td></td><td></td><td></td><td></td><td class="result-cell"></td></tr>
+          <tr><td class="num">20</td><td></td><td></td><td></td><td></td><td class="result-cell"></td></tr>
+        </tbody>
+        <tfoot>
+          <tr>
+            <td class="num">#</td>
+            <td><div class="stat-cell"><select><option>--</option><option>Sum</option><option>Avg</option><option>Min</option><option>Max</option><option>Count</option></select><output>—</output></div></td>
+            <td><div class="stat-cell"><select><option>--</option><option>Sum</option><option>Avg</option><option>Min</option><option>Max</option><option>Count</option></select><output>—</output></div></td>
+            <td><div class="stat-cell"><select><option>--</option><option>Sum</option><option>Avg</option><option>Min</option><option>Max</option><option>Count</option></select><output>—</output></div></td>
+            <td><div class="stat-cell"><select><option>--</option><option>Sum</option><option>Avg</option><option>Min</option><option>Max</option><option>Count</option></select><output>—</output></div></td>
+            <td><div class="stat-cell"><select><option>--</option><option>Sum</option><option>Avg</option><option>Min</option><option>Max</option><option>Count</option></select><output>—</output></div></td>
+          </tr>
+        </tfoot>
+      </table>
+    </main>
+
+    <section class="keypad" aria-label="Bottom keypad">
+      <div class="keys">
+        <button class="key">↺</button><button class="key">⌨︎</button><button class="key">↕</button><button class="key">:</button><button class="key">√</button><button class="key">⌫</button>
+        <button class="key light">&lt;</button><button class="key light">&gt;</button><button class="key">(</button><button class="key">)</button><button class="key">^</button><button class="key">/</button>
+        <button class="key light">IF</button><button class="key light">AVG</button><button class="key">7</button><button class="key">8</button><button class="key">9</button><button class="key">*</button>
+        <button class="key light">AND</button><button class="key light">SUM</button><button class="key">4</button><button class="key">5</button><button class="key">6</button><button class="key">−</button>
+        <button class="key light">OR</button><button class="key light">MAX</button><button class="key">1</button><button class="key">2</button><button class="key">3</button><button class="key">+</button>
+        <button class="key light">NOT</button><button class="key light">MIN</button><button class="key">0</button><button class="key">.</button><button class="key">,</button><button class="key enter">=</button>
+      </div>
+    </section>
+  </body>
 </html>
