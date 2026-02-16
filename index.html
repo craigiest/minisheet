@@ -66,17 +66,7 @@
       }
 
       .title-block {
-        display: grid;
-        gap: 1px;
         min-width: 0;
-      }
-
-      .title-line {
-        font-size: 16px;
-        line-height: 1.1;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
       }
 
       .sheet-line {
@@ -92,8 +82,9 @@
       }
 
       .sheet-name {
-        font-size: 12px;
-        color: #4f5466;
+        font-size: 16px;
+        line-height: 1.1;
+        color: var(--text);
         overflow: hidden;
         text-overflow: ellipsis;
       }
@@ -399,8 +390,7 @@
     <header class="nav">
       <button class="arrow" aria-label="Previous sheet">◀</button>
       <div class="title-block">
-        <div class="title-line" contenteditable="true" role="textbox" aria-label="Sheet title">Proportion: A/B = C/Result | A:B::C:Result</div>
-        <div class="sheet-line"><span class="sheet-index">2</span><span class="sheet-name">A:B::C:Result</span></div>
+        <div class="sheet-line"><span class="sheet-index">1/2</span><span class="sheet-name">A:B::C:Result</span></div>
       </div>
       <button class="arrow" aria-label="Next sheet">▶</button>
     </header>
@@ -417,7 +407,7 @@
     <section class="formula-strip" aria-label="Formula editor strip">
       <div class="fx-eq">=</div>
       <input class="formula-input" value="(B*C)/A+Y" aria-label="Formula editor" />
-      <div class="toggle">A / <strong>Name</strong></div>
+      <button class="toggle" type="button" aria-label="Toggle formula labels">A / <strong>Name</strong></button>
     </section>
 
     <main class="grid-wrap" aria-label="Grid area">
@@ -488,6 +478,12 @@
 
     <script>
       (() => {
+        const ROW_COUNT = 20;
+        const KEY_ORDER = ['A', 'B', 'C', 'D'];
+        const CONST_ORDER = ['V', 'W', 'X', 'Y', 'Z'];
+        const ALL_LETTERS = [...KEY_ORDER, ...CONST_ORDER];
+        const STORAGE_KEY = 'minisheet-v2';
+
         const keypad = document.querySelector('.keypad');
         const keys = [...document.querySelectorAll('.keypad .key')];
         const minimizeKey = keys.find((key) => key.textContent.trim() === '↕');
@@ -498,606 +494,241 @@
         const resultKey = keys.find((key) => key.textContent.trim() === '=');
         const sheetNavButtons = [...document.querySelectorAll('.nav .arrow')];
         const resultHeaderTrigger = document.querySelector('th.result-head');
-
+        const clearButton = document.querySelector('.key-active');
+        const toggleButton = document.querySelector('.toggle');
+        const sheetIndexEl = document.querySelector('.sheet-index');
+        const sheetNameLine = document.querySelector('.sheet-name');
         const formulaInput = document.querySelector('.formula-input');
         const constantInputs = [...document.querySelectorAll('.const-cell input')];
+        const constTopEls = [...document.querySelectorAll('.const-top')];
         const dataRows = [...document.querySelectorAll('tbody tr')];
         const statCells = [...document.querySelectorAll('tfoot .stat-cell')];
-        const titleFields = [
-          document.querySelector('.title-line'),
-          document.querySelector('.sheet-name')
-        ].filter(Boolean);
+        const headerPills = [...document.querySelectorAll('thead .head-pill')];
+
+        const asyncStorage = {
+          async get() {
+            await Promise.resolve();
+            const raw = localStorage.getItem(STORAGE_KEY);
+            return raw ? JSON.parse(raw) : null;
+          },
+          async set(value) {
+            await Promise.resolve();
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(value));
+          }
+        };
+
+        const sheetTemplate = (idx) => {
+          if (idx === 0) return { title: 'Proportion: A/B = C/Result', name: 'A:B::C:Result', formula: '(B*C)/A+Y' };
+          if (idx === 1) return { title: 'Rule of three: A:B::C:Result', name: 'Rule of 3', formula: '(B*C)/A' };
+          return { title: 'Blank sheet', name: `Sheet ${idx + 1}`, formula: '' };
+        };
+
+        const baseNames = { A: 'value1', B: 'value2', C: 'value3', D: 'unused', V: 'const1', W: 'const2', X: 'const3', Y: 'const4', Z: 'const5' };
+        const makeBlankRows = () => Array.from({ length: ROW_COUNT }, () => ({ A: '', B: '', C: '', D: '', Result: '' }));
+        const makeSheet = (idx) => {
+          const t = sheetTemplate(idx);
+          return { title: t.title, name: t.name, formulaCanonical: t.formula, names: { ...baseNames }, constants: { V: '', W: '', X: '', Y: '', Z: '' }, rows: makeBlankRows(), stats: ['--', '--', '--', '--', '--'] };
+        };
+
+        const state = { sheets: [makeSheet(0), makeSheet(1)], currentSheetIndex: 0, formulaMode: 'name', clearStage: 0 };
+
+        let saveTimer = null;
+        const scheduleSave = () => {
+          if (saveTimer) clearTimeout(saveTimer);
+          saveTimer = setTimeout(() => asyncStorage.set({ sheets: state.sheets, currentSheetIndex: state.currentSheetIndex, formulaMode: state.formulaMode }), 250);
+        };
 
         dataRows.forEach((row) => {
           [...row.children].forEach((cell, index) => {
-            if (index === 0 || cell.classList.contains('result-cell')) {
-              return;
-            }
+            if (index === 0 || cell.classList.contains('result-cell')) return;
             cell.classList.add('editable-cell');
             cell.innerHTML = '<input class="cell-input" inputmode="none" value="" aria-label="Grid cell value" />';
           });
         });
 
         const cellInputs = [...document.querySelectorAll('.cell-input')];
-        const rowBindings = dataRows.map((row) => ({
-          inputs: [...row.querySelectorAll('.cell-input')],
-          resultCell: row.querySelector('.result-cell')
-        }));
-        const numericTargets = [...constantInputs, formulaInput, ...cellInputs];
-        const editableTargets = [...numericTargets, ...titleFields];
+        const rowBindings = dataRows.map((row) => ({ inputs: [...row.querySelectorAll('.cell-input')], resultCell: row.querySelector('.result-cell') }));
+        const headerNameEls = headerPills.slice(0, 4).map((pill) => pill.querySelector('.name'));
+        const headerLetterEls = headerPills.slice(0, 4).map((pill) => pill.querySelector('.letter'));
+        const constNameEls = constTopEls.map((pill) => pill.querySelector('.name'));
+        const constLetterEls = constTopEls.map((pill) => pill.querySelector('.letter'));
+
+        [...headerNameEls, ...constNameEls].forEach((el) => {
+          if (!el) return;
+          el.setAttribute('contenteditable', 'true');
+          el.setAttribute('role', 'textbox');
+        });
 
         let activeTarget = null;
         let initialValueOnFocus = '';
 
+        const resetClearStage = () => { state.clearStage = 0; clearButton.textContent = 'C'; };
+        const advanceClearStage = () => { state.clearStage = Math.min(3, state.clearStage + 1); clearButton.textContent = ['C', '#C', '#C', 'AC'][state.clearStage]; };
         const isInput = (el) => el instanceof HTMLInputElement;
         const getText = (el) => (isInput(el) ? el.value : (el.textContent || ''));
+        const setText = (el, value) => { if (isInput(el)) el.value = value; else el.textContent = value; };
 
-        const setText = (el, value) => {
-          if (isInput(el)) {
-            el.value = value;
-            return;
-          }
-          el.textContent = value;
+        const sanitizeNameMap = (sheet) => {
+          const out = {};
+          const seen = new Set();
+          const reserved = new Set(['RESULT', 'SUM', 'AVG', 'MIN', 'MAX', 'COUNT', ...ALL_LETTERS]);
+          ALL_LETTERS.forEach((letter) => {
+            const raw = String(sheet.names[letter] ?? '').trim();
+            let base = raw || letter;
+            if (reserved.has(base.toUpperCase()) || /[^A-Za-z0-9_]/.test(base)) base = `[${base}]`;
+            let next = base;
+            let n = 2;
+            while (seen.has(next.toUpperCase())) next = `${base}_${n++}`;
+            seen.add(next.toUpperCase());
+            out[letter] = next;
+          });
+          return out;
+        };
+        const buildNameToLetter = (sheet) => { const clean = sanitizeNameMap(sheet); const map = {}; Object.entries(clean).forEach(([k, v]) => { map[v] = k; }); return { clean, map }; };
+        const canonicalToDisplay = (canonical, sheet) => state.formulaMode === 'letter' ? canonical : String(canonical || '').replace(/[A-Za-z]/g, (m) => buildNameToLetter(sheet).clean[m.toUpperCase()] || m);
+        const displayToCanonical = (display, sheet) => {
+          let expr = String(display || '');
+          Object.entries(buildNameToLetter(sheet).map).sort((a, b) => b[0].length - a[0].length).forEach(([name, letter]) => { expr = expr.split(name).join(letter); });
+          return expr;
         };
 
         const getSelection = (el) => {
-          if (isInput(el)) {
-            return {
-              start: el.selectionStart ?? el.value.length,
-              end: el.selectionEnd ?? el.value.length
-            };
-          }
-
+          if (isInput(el)) return { start: el.selectionStart ?? 0, end: el.selectionEnd ?? 0 };
           const selection = window.getSelection();
-          if (!selection || selection.rangeCount === 0 || !el.contains(selection.anchorNode)) {
-            const end = getText(el).length;
-            return { start: end, end };
-          }
-
+          if (!selection || selection.rangeCount === 0 || !el.contains(selection.anchorNode)) { const end = getText(el).length; return { start: end, end }; }
           const range = selection.getRangeAt(0);
-          const preRange = range.cloneRange();
-          preRange.selectNodeContents(el);
-          preRange.setEnd(range.startContainer, range.startOffset);
-          const start = preRange.toString().length;
-
-          const postRange = range.cloneRange();
-          postRange.selectNodeContents(el);
-          postRange.setEnd(range.endContainer, range.endOffset);
-          const end = postRange.toString().length;
-
-          return { start, end };
+          const pre = range.cloneRange(); pre.selectNodeContents(el); pre.setEnd(range.startContainer, range.startOffset);
+          const post = range.cloneRange(); post.selectNodeContents(el); post.setEnd(range.endContainer, range.endOffset);
+          return { start: pre.toString().length, end: post.toString().length };
         };
-
         const setSelection = (el, start, end = start) => {
-          if (isInput(el)) {
-            el.setSelectionRange(start, end);
-            return;
-          }
-
+          if (isInput(el)) return el.setSelectionRange(start, end);
           const textNode = el.firstChild || el.appendChild(document.createTextNode(getText(el)));
           const range = document.createRange();
-          const safeStart = Math.max(0, Math.min(start, textNode.textContent.length));
-          const safeEnd = Math.max(0, Math.min(end, textNode.textContent.length));
-          range.setStart(textNode, safeStart);
-          range.setEnd(textNode, safeEnd);
-          const selection = window.getSelection();
-          selection.removeAllRanges();
-          selection.addRange(range);
+          range.setStart(textNode, Math.max(0, Math.min(start, textNode.textContent.length)));
+          range.setEnd(textNode, Math.max(0, Math.min(end, textNode.textContent.length)));
+          const selection = window.getSelection(); selection.removeAllRanges(); selection.addRange(range);
         };
 
-        const activateTarget = (target) => {
-          if (!target || activeTarget === target) {
-            return;
-          }
+        const activateTarget = (target) => { if (!target || activeTarget === target) return; if (activeTarget) activeTarget.classList.remove('is-active-target'); activeTarget = target; target.classList.add('is-active-target'); if (isInput(target) && document.activeElement !== target) target.focus({ preventScroll: true }); initialValueOnFocus = getText(target); };
+        const blurActiveTarget = () => { if (!activeTarget) return; activeTarget.classList.remove('is-active-target'); if (document.activeElement instanceof HTMLElement) document.activeElement.blur(); activeTarget = null; };
+        const insertIntoTarget = (text) => { if (!activeTarget) return; const value = getText(activeTarget); const { start, end } = getSelection(activeTarget); setText(activeTarget, value.slice(0, start) + text + value.slice(end)); setSelection(activeTarget, start + text.length); resetClearStage(); };
+        const deleteBackward = () => { if (!activeTarget) return; const value = getText(activeTarget); const { start, end } = getSelection(activeTarget); if (start !== end) { setText(activeTarget, value.slice(0, start) + value.slice(end)); setSelection(activeTarget, start); } else if (start > 0) { setText(activeTarget, value.slice(0, start - 1) + value.slice(start)); setSelection(activeTarget, start - 1); } resetClearStage(); };
+        const moveCursor = (delta) => { if (!activeTarget) return; const { start, end } = getSelection(activeTarget); const base = delta < 0 ? start : end; setSelection(activeTarget, Math.max(0, Math.min(base + delta, getText(activeTarget).length))); };
+        const toNumericOrZero = (rawValue) => { const value = String(rawValue ?? '').trim(); if (!value) return 0; const numeric = Number(value); if (!Number.isFinite(numeric)) throw new Error('NON_NUMERIC'); return numeric; };
 
-          if (activeTarget) {
-            activeTarget.classList.remove('is-active-target');
-          }
+        const tokenize = (source) => { const tokens = []; const text = String(source ?? ''); let index = 0; while (index < text.length) { const char = text[index]; if (/\s/.test(char)) { index += 1; continue; } if ((char >= '0' && char <= '9') || char === '.') { let end = index; while (end < text.length && /[0-9.]/.test(text[end])) end += 1; const literal = text.slice(index, end); if ((literal.match(/\./g) || []).length > 1 || literal === '.') throw new SyntaxError('Invalid number'); tokens.push({ type: 'number', value: Number(literal) }); index = end; continue; } const normalized = char === '−' ? '-' : char; if ('+-*/^'.includes(normalized)) { tokens.push({ type: 'operator', value: normalized }); index += 1; continue; } if (normalized === '(' || normalized === ')') { tokens.push({ type: 'paren', value: normalized }); index += 1; continue; } if (normalized === ',') { tokens.push({ type: 'comma', value: ',' }); index += 1; continue; } if (normalized === '√') { tokens.push({ type: 'root', value: '√' }); index += 1; continue; } if (/[A-Za-z]/.test(normalized)) { const upper = normalized.toUpperCase(); if (!ALL_LETTERS.includes(upper)) throw new SyntaxError('Unknown variable'); tokens.push({ type: 'variable', value: upper }); index += 1; continue; } throw new SyntaxError('Unexpected token'); } return tokens; };
+        const parse = (tokens) => { let cursor = 0; const peek = () => tokens[cursor]; const consume = () => tokens[cursor++]; const primary = () => { const token = peek(); if (!token) throw new SyntaxError('Unexpected end'); if (token.type === 'number') return consume(), { type: 'number', value: token.value }; if (token.type === 'variable') return consume(), { type: 'variable', name: token.value }; if (token.type === 'paren' && token.value === '(') { consume(); const expr = expression(); const close = consume(); if (!close || close.type !== 'paren' || close.value !== ')') throw new SyntaxError('Missing close paren'); return expr; } if (token.type === 'root') { consume(); const open = consume(); if (!open || open.type !== 'paren' || open.value !== '(') throw new SyntaxError('Root call requires parenthesis'); const first = expression(); if (peek()?.type === 'comma') { consume(); const second = expression(); const close = consume(); if (!close || close.type !== 'paren' || close.value !== ')') throw new SyntaxError('Missing close paren'); return { type: 'root', degree: first, radicand: second }; } const close = consume(); if (!close || close.type !== 'paren' || close.value !== ')') throw new SyntaxError('Missing close paren'); return { type: 'root', degree: null, radicand: first }; } throw new SyntaxError('Unexpected token'); }; const unary = () => peek()?.type === 'operator' && '+-'.includes(peek().value) ? { type: 'unary', operator: consume().value, argument: unary() } : primary(); const power = () => { let left = unary(); while (peek()?.type === 'operator' && peek().value === '^') left = { type: 'binary', operator: consume().value, left, right: unary() }; return left; }; const term = () => { let left = power(); while (peek()?.type === 'operator' && '*/'.includes(peek().value)) left = { type: 'binary', operator: consume().value, left, right: power() }; return left; }; const expression = () => { let left = term(); while (peek()?.type === 'operator' && '+-'.includes(peek().value)) left = { type: 'binary', operator: consume().value, left, right: term() }; return left; }; const ast = expression(); if (cursor < tokens.length) throw new SyntaxError('Trailing tokens'); return ast; };
+        const evaluateAst = (node, scope) => { if (node.type === 'number') return node.value; if (node.type === 'variable') return scope[node.name] ?? 0; if (node.type === 'unary') return node.operator === '-' ? -evaluateAst(node.argument, scope) : evaluateAst(node.argument, scope); if (node.type === 'binary') { const left = evaluateAst(node.left, scope); const right = evaluateAst(node.right, scope); if (node.operator === '+') return left + right; if (node.operator === '-') return left - right; if (node.operator === '*') return left * right; if (node.operator === '/') { if (right === 0) throw new Error('DIV_0'); return left / right; } return left ** right; } const radicand = evaluateAst(node.radicand, scope); if (!node.degree) return Math.sqrt(radicand); const degree = evaluateAst(node.degree, scope); if (degree === 0) throw new Error('DIV_0'); return radicand ** (1 / degree); };
+        const mapErrorToCellText = (error) => error instanceof SyntaxError ? 'Syntax' : (error?.message === 'DIV_0' ? 'DIV/0' : 'Error');
+        const formatNumber = (value) => Number.isFinite(value) ? (Number.isInteger(value) ? String(value) : value.toFixed(8).replace(/\.?0+$/, '')) : 'Error';
+        const sheetIsBlank = (sheet) => !sheet.formulaCanonical.trim() && Object.values(sheet.constants).every((v) => !String(v).trim()) && sheet.rows.every((row) => KEY_ORDER.every((k) => !String(row[k] || '').trim()) && !String(row.Result || '').trim());
+        const applyStat = (values, statName) => !values.length ? '—' : (statName === 'Sum' ? formatNumber(values.reduce((a, b) => a + b, 0)) : statName === 'Avg' ? formatNumber(values.reduce((a, b) => a + b, 0) / values.length) : statName === 'Min' ? formatNumber(Math.min(...values)) : statName === 'Max' ? formatNumber(Math.max(...values)) : statName === 'Count' ? String(values.length) : '—');
 
-          activeTarget = target;
-          activeTarget.classList.add('is-active-target');
-          if (isInput(activeTarget) && document.activeElement !== activeTarget) {
-            activeTarget.focus({ preventScroll: true });
-          }
-          initialValueOnFocus = getText(target);
+        const recomputeStatsFromSheet = (sheet) => { statCells.forEach((cell, index) => { const output = cell.querySelector('output'); const statName = sheet.stats[index] || '--'; if (statName === '--') { output.textContent = '—'; return; } const values = sheet.rows.map((row) => index < 4 ? String(row[KEY_ORDER[index]] || '').trim() : String(row.Result || '').trim()).filter((v) => v !== '').map(Number).filter((n) => Number.isFinite(n)); output.textContent = applyStat(values, statName); }); };
+        const persistFromDom = () => {
+          const sheet = state.sheets[state.currentSheetIndex];
+          sheet.name = sheetNameLine.textContent.trim() || `Sheet ${state.currentSheetIndex + 1}`;
+          sheet.formulaCanonical = displayToCanonical(formulaInput.value, sheet);
+          [...headerNameEls, ...constNameEls].forEach((el, idx) => { const key = idx < 4 ? KEY_ORDER[idx] : CONST_ORDER[idx - 4]; sheet.names[key] = (el.textContent || '').trim(); });
+          constantInputs.forEach((input, idx) => { sheet.constants[CONST_ORDER[idx]] = input.value; });
+          rowBindings.forEach((row, ri) => { KEY_ORDER.forEach((key, ci) => { sheet.rows[ri][key] = row.inputs[ci].value; }); sheet.rows[ri].Result = row.resultCell.textContent || ''; });
+          statCells.forEach((cell, idx) => { const select = cell.querySelector('select'); sheet.stats[idx] = select?.value || '--'; });
+          scheduleSave();
         };
-
-        const blurActiveTarget = () => {
-          if (!activeTarget) return;
-          activeTarget.classList.remove('is-active-target');
-          if (document.activeElement instanceof HTMLElement) {
-            document.activeElement.blur();
-          }
-          activeTarget = null;
-          initialValueOnFocus = '';
-        };
-
-        const insertIntoTarget = (text) => {
-          if (!activeTarget) return;
-          const value = getText(activeTarget);
-          const { start, end } = getSelection(activeTarget);
-          const nextValue = value.slice(0, start) + text + value.slice(end);
-          setText(activeTarget, nextValue);
-          const nextCursor = start + text.length;
-          setSelection(activeTarget, nextCursor);
-        };
-
-        const deleteBackward = () => {
-          if (!activeTarget) return;
-          const value = getText(activeTarget);
-          const { start, end } = getSelection(activeTarget);
-
-          if (start !== end) {
-            const nextValue = value.slice(0, start) + value.slice(end);
-            setText(activeTarget, nextValue);
-            setSelection(activeTarget, start);
-            return;
-          }
-
-          if (start === 0) return;
-          const nextValue = value.slice(0, start - 1) + value.slice(start);
-          setText(activeTarget, nextValue);
-          setSelection(activeTarget, start - 1);
-        };
-
-        const moveCursor = (delta) => {
-          if (!activeTarget) return;
-          const { start, end } = getSelection(activeTarget);
-          const base = delta < 0 ? start : end;
-          const next = Math.max(0, Math.min(base + delta, getText(activeTarget).length));
-          setSelection(activeTarget, next);
-        };
-
-        const toNumericOrZero = (rawValue) => {
-          const value = String(rawValue ?? '').trim();
-          if (!value) return 0;
-          const numeric = Number(value);
-          if (!Number.isFinite(numeric)) {
-            throw new Error('NON_NUMERIC');
-          }
-          return numeric;
-        };
-
-        const tokenize = (source) => {
-          const tokens = [];
-          const text = String(source ?? '');
-          let index = 0;
-
-          while (index < text.length) {
-            const char = text[index];
-
-            if (/\s/.test(char)) {
-              index += 1;
-              continue;
-            }
-
-            if ((char >= '0' && char <= '9') || char === '.') {
-              let end = index;
-              let dotCount = 0;
-              while (end < text.length && ((text[end] >= '0' && text[end] <= '9') || text[end] === '.')) {
-                if (text[end] === '.') dotCount += 1;
-                end += 1;
-              }
-              if (dotCount > 1) throw new SyntaxError('Invalid number');
-              const literal = text.slice(index, end);
-              if (literal === '.') throw new SyntaxError('Invalid number');
-              tokens.push({ type: 'number', value: Number(literal) });
-              index = end;
-              continue;
-            }
-
-            const normalized = char === '−' ? '-' : char;
-            if ('+-*/^'.includes(normalized)) {
-              tokens.push({ type: 'operator', value: normalized });
-              index += 1;
-              continue;
-            }
-
-            if (normalized === '(' || normalized === ')') {
-              tokens.push({ type: 'paren', value: normalized });
-              index += 1;
-              continue;
-            }
-
-            if (normalized === ',') {
-              tokens.push({ type: 'comma', value: ',' });
-              index += 1;
-              continue;
-            }
-
-            if (normalized === '√') {
-              tokens.push({ type: 'root', value: '√' });
-              index += 1;
-              continue;
-            }
-
-            if (/[A-Za-z]/.test(normalized)) {
-              const upper = normalized.toUpperCase();
-              if (!'ABCDVWXYZ'.includes(upper)) {
-                throw new SyntaxError('Unknown variable');
-              }
-              tokens.push({ type: 'variable', value: upper });
-              index += 1;
-              continue;
-            }
-
-            throw new SyntaxError('Unexpected token');
-          }
-
-          return tokens;
-        };
-
-        const parse = (tokens) => {
-          let cursor = 0;
-          const peek = () => tokens[cursor];
-          const consume = () => tokens[cursor++];
-
-          const parsePrimary = () => {
-            const token = peek();
-            if (!token) {
-              throw new SyntaxError('Unexpected end');
-            }
-
-            if (token.type === 'number') {
-              consume();
-              return { type: 'number', value: token.value };
-            }
-
-            if (token.type === 'variable') {
-              consume();
-              return { type: 'variable', name: token.value };
-            }
-
-            if (token.type === 'paren' && token.value === '(') {
-              consume();
-              const expression = parseExpression();
-              const close = consume();
-              if (!close || close.type !== 'paren' || close.value !== ')') {
-                throw new SyntaxError('Missing close paren');
-              }
-              return expression;
-            }
-
-            if (token.type === 'root') {
-              consume();
-              const open = consume();
-              if (!open || open.type !== 'paren' || open.value !== '(') {
-                throw new SyntaxError('Root call requires parenthesis');
-              }
-
-              const first = parseExpression();
-              const next = peek();
-              if (next && next.type === 'comma') {
-                consume();
-                const second = parseExpression();
-                const close = consume();
-                if (!close || close.type !== 'paren' || close.value !== ')') {
-                  throw new SyntaxError('Missing close paren');
-                }
-                return { type: 'root', degree: first, radicand: second };
-              }
-
-              const close = consume();
-              if (!close || close.type !== 'paren' || close.value !== ')') {
-                throw new SyntaxError('Missing close paren');
-              }
-              return { type: 'root', degree: null, radicand: first };
-            }
-
-            throw new SyntaxError('Unexpected token');
-          };
-
-          const parseUnary = () => {
-            const token = peek();
-            if (token && token.type === 'operator' && (token.value === '+' || token.value === '-')) {
-              consume();
-              return { type: 'unary', operator: token.value, argument: parseUnary() };
-            }
-            return parsePrimary();
-          };
-
-          const parsePower = () => {
-            let left = parseUnary();
-            const token = peek();
-            if (token && token.type === 'operator' && token.value === '^') {
-              consume();
-              const right = parsePower();
-              left = { type: 'binary', operator: '^', left, right };
-            }
-            return left;
-          };
-
-          const parseTerm = () => {
-            let left = parsePower();
-            while (true) {
-              const token = peek();
-              if (!token || token.type !== 'operator' || !'*/'.includes(token.value)) {
-                return left;
-              }
-              consume();
-              left = { type: 'binary', operator: token.value, left, right: parsePower() };
-            }
-          };
-
-          const parseExpression = () => {
-            let left = parseTerm();
-            while (true) {
-              const token = peek();
-              if (!token || token.type !== 'operator' || !'+-'.includes(token.value)) {
-                return left;
-              }
-              consume();
-              left = { type: 'binary', operator: token.value, left, right: parseTerm() };
-            }
-          };
-
-          const ast = parseExpression();
-          if (cursor < tokens.length) {
-            throw new SyntaxError('Trailing tokens');
-          }
-          return ast;
-        };
-
-        const evaluateAst = (node, scope) => {
-          switch (node.type) {
-            case 'number':
-              return node.value;
-            case 'variable':
-              return scope[node.name] ?? 0;
-            case 'unary': {
-              const value = evaluateAst(node.argument, scope);
-              return node.operator === '-' ? -value : value;
-            }
-            case 'binary': {
-              const left = evaluateAst(node.left, scope);
-              const right = evaluateAst(node.right, scope);
-              if (node.operator === '+') return left + right;
-              if (node.operator === '-') return left - right;
-              if (node.operator === '*') return left * right;
-              if (node.operator === '/') {
-                if (right === 0) throw new Error('DIV_0');
-                return left / right;
-              }
-              if (node.operator === '^') return left ** right;
-              throw new Error('EVAL');
-            }
-            case 'root': {
-              const radicand = evaluateAst(node.radicand, scope);
-              if (!node.degree) {
-                return Math.sqrt(radicand);
-              }
-              const degree = evaluateAst(node.degree, scope);
-              if (degree === 0) throw new Error('DIV_0');
-              return radicand ** (1 / degree);
-            }
-            default:
-              throw new Error('EVAL');
-          }
-        };
-
-        const mapErrorToCellText = (error) => {
-          if (error instanceof SyntaxError) {
-            return 'Syntax';
-          }
-          if (error?.message === 'DIV_0') {
-            return 'DIV/0';
-          }
-          return 'Error';
-        };
-
-        const formatNumber = (value) => {
-          if (!Number.isFinite(value)) return 'Error';
-          const normalized = Object.is(value, -0) ? 0 : value;
-          if (Number.isInteger(normalized)) return String(normalized);
-          return normalized.toFixed(8).replace(/\.?0+$/, '');
-        };
-
-        const getColumnNumbers = (columnIndex) => {
-          if (columnIndex < 4) {
-            return rowBindings
-              .map((row) => Number(row.inputs[columnIndex]?.value))
-              .filter((value) => Number.isFinite(value));
-          }
-
-          return rowBindings
-            .map((row) => Number(row.resultCell.textContent))
-            .filter((value) => Number.isFinite(value));
-        };
-
-        const applyStat = (values, statName) => {
-          if (!values.length) return '—';
-          if (statName === 'Sum') return formatNumber(values.reduce((total, value) => total + value, 0));
-          if (statName === 'Avg') return formatNumber(values.reduce((total, value) => total + value, 0) / values.length);
-          if (statName === 'Min') return formatNumber(Math.min(...values));
-          if (statName === 'Max') return formatNumber(Math.max(...values));
-          if (statName === 'Count') return String(values.length);
-          return '—';
-        };
-
-        const recomputeStats = () => {
-          statCells.forEach((statCell, index) => {
-            const select = statCell.querySelector('select');
-            const output = statCell.querySelector('output');
-            const statName = select?.value ?? '--';
-            if (statName === '--') {
-              output.textContent = '—';
-              return;
-            }
-            const values = getColumnNumbers(index);
-            output.textContent = applyStat(values, statName);
-          });
+        const renderSheet = () => {
+          const sheet = state.sheets[state.currentSheetIndex];
+          const clean = sanitizeNameMap(sheet);
+          sheetNameLine.textContent = sheet.name;
+          sheetIndexEl.textContent = `${state.currentSheetIndex + 1}/${state.sheets.length}`;
+          formulaInput.value = canonicalToDisplay(sheet.formulaCanonical, sheet);
+          toggleButton.innerHTML = state.formulaMode === 'letter' ? '<strong>A</strong> / Name' : 'A / <strong>Name</strong>';
+          KEY_ORDER.forEach((key, idx) => { headerLetterEls[idx].textContent = key; headerNameEls[idx].textContent = clean[key]; headerNameEls[idx].style.display = state.formulaMode === 'letter' ? 'none' : ''; });
+          CONST_ORDER.forEach((key, idx) => { constLetterEls[idx].textContent = key; constNameEls[idx].textContent = clean[key]; constNameEls[idx].style.display = state.formulaMode === 'letter' ? 'none' : ''; constantInputs[idx].value = sheet.constants[key] || ''; });
+          rowBindings.forEach((row, ri) => { KEY_ORDER.forEach((key, ci) => { row.inputs[ci].value = sheet.rows[ri][key] || ''; }); row.resultCell.textContent = sheet.rows[ri].Result || ''; });
+          statCells.forEach((cell, idx) => { const select = cell.querySelector('select'); if (select) select.value = sheet.stats[idx] || '--'; });
+          recomputeStatsFromSheet(sheet);
         };
 
         const computeAllRows = () => {
+          persistFromDom();
+          const sheet = state.sheets[state.currentSheetIndex];
           let ast;
-          try {
-            ast = parse(tokenize(formulaInput.value));
-          } catch (error) {
-            rowBindings.forEach((row) => {
-              row.resultCell.textContent = mapErrorToCellText(error);
-            });
-            recomputeStats();
-            return;
-          }
-
+          try { ast = parse(tokenize(sheet.formulaCanonical)); } catch (error) { sheet.rows.forEach((row) => { row.Result = mapErrorToCellText(error); }); renderSheet(); return; }
           let constants;
-          try {
-            constants = {
-              V: toNumericOrZero(constantInputs[0]?.value),
-              W: toNumericOrZero(constantInputs[1]?.value),
-              X: toNumericOrZero(constantInputs[2]?.value),
-              Y: toNumericOrZero(constantInputs[3]?.value),
-              Z: toNumericOrZero(constantInputs[4]?.value)
-            };
-          } catch (error) {
-            rowBindings.forEach((row) => {
-              row.resultCell.textContent = mapErrorToCellText(error);
-            });
-            recomputeStats();
-            return;
-          }
-
-          rowBindings.forEach((row) => {
-            try {
-              const scope = {
-                ...constants,
-                A: toNumericOrZero(row.inputs[0]?.value),
-                B: toNumericOrZero(row.inputs[1]?.value),
-                C: toNumericOrZero(row.inputs[2]?.value),
-                D: toNumericOrZero(row.inputs[3]?.value)
-              };
-              const value = evaluateAst(ast, scope);
-              row.resultCell.textContent = formatNumber(value);
-            } catch (error) {
-              row.resultCell.textContent = mapErrorToCellText(error);
-            }
+          try { constants = Object.fromEntries(CONST_ORDER.map((k) => [k, toNumericOrZero(sheet.constants[k])])); } catch (error) { sheet.rows.forEach((row) => { row.Result = mapErrorToCellText(error); }); renderSheet(); return; }
+          sheet.rows.forEach((row) => {
+            try { const scope = { ...constants, ...Object.fromEntries(KEY_ORDER.map((k) => [k, toNumericOrZero(row[k])])) }; row.Result = formatNumber(evaluateAst(ast, scope)); }
+            catch (error) { row.Result = mapErrorToCellText(error); }
           });
-
-          recomputeStats();
+          renderSheet();
+          scheduleSave();
         };
 
-        numericTargets.forEach((target) => {
-          target.setAttribute('inputmode', 'none');
-          target.addEventListener('focus', () => activateTarget(target));
-          target.addEventListener('pointerdown', () => activateTarget(target));
-          target.addEventListener('click', () => activateTarget(target));
-        });
+        const deleteBlankDynamicCurrentSheet = () => {
+          const idx = state.currentSheetIndex;
+          if (idx < 2 || state.sheets.length <= 2) return;
+          if (sheetIsBlank(state.sheets[idx])) { state.sheets.splice(idx, 1); if (state.currentSheetIndex >= state.sheets.length) state.currentSheetIndex = 0; }
+        };
+        const nav = (dir) => { persistFromDom(); const wasLast = state.currentSheetIndex === state.sheets.length - 1; deleteBlankDynamicCurrentSheet(); if (dir > 0 && wasLast) { state.sheets.push(makeSheet(state.sheets.length)); state.currentSheetIndex = state.sheets.length - 1; } else { state.currentSheetIndex = (state.currentSheetIndex + dir + state.sheets.length) % state.sheets.length; } renderSheet(); resetClearStage(); scheduleSave(); };
 
-        titleFields.forEach((target) => {
-          target.setAttribute('contenteditable', 'true');
-          target.addEventListener('focus', () => activateTarget(target));
-          target.addEventListener('pointerup', () => activateTarget(target));
-          target.addEventListener('click', () => activateTarget(target));
-        });
+        const clearAction = () => {
+          persistFromDom();
+          const sheet = state.sheets[state.currentSheetIndex];
+          if (state.clearStage === 0) { if (activeTarget) setText(activeTarget, ''); }
+          else if (state.clearStage === 1) { const row = activeTarget?.closest?.('tr'); const rowIndex = dataRows.indexOf(row); if (rowIndex >= 0) sheet.rows[rowIndex] = { A: '', B: '', C: '', D: '', Result: '' }; }
+          else if (state.clearStage === 2) { sheet.constants = { V: '', W: '', X: '', Y: '', Z: '' }; sheet.formulaCanonical = ''; sheet.rows = makeBlankRows(); }
+          else { state.sheets = [makeSheet(0), makeSheet(1)]; state.currentSheetIndex = 0; }
+          renderSheet();
+          advanceClearStage();
+          scheduleSave();
+        };
+
+        const numericTargets = [...constantInputs, formulaInput, ...cellInputs];
+        const titleFields = [sheetNameLine, ...headerNameEls, ...constNameEls].filter(Boolean);
+        const editableTargets = [...numericTargets, ...titleFields];
+        numericTargets.forEach((target) => { target.setAttribute('inputmode', 'none'); ['focus', 'pointerdown', 'click'].forEach((eventName) => target.addEventListener(eventName, () => activateTarget(target))); target.addEventListener('input', () => { resetClearStage(); persistFromDom(); }); });
+        titleFields.forEach((target) => { ['focus', 'pointerup', 'click'].forEach((eventName) => target.addEventListener(eventName, () => activateTarget(target))); target.addEventListener('input', () => { resetClearStage(); persistFromDom(); }); });
 
         const handleKeyPress = (key) => {
           const label = key.textContent.trim();
-
-          if (key === minimizeKey) {
-            keypad.classList.toggle('minimized');
-            return;
-          }
-          if (key === undoKey) {
-            if (!activeTarget) return;
-            setText(activeTarget, initialValueOnFocus);
-            setSelection(activeTarget, getText(activeTarget).length);
-            return;
-          }
-          if (key === backspaceKey) {
-            deleteBackward();
-            return;
-          }
-          if (key === leftKey) {
-            moveCursor(-1);
-            return;
-          }
-          if (key === rightKey) {
-            moveCursor(1);
-            return;
-          }
-          if (key === resultKey) {
-            blurActiveTarget();
-            computeAllRows();
-            return;
-          }
-          if (label === '⌨︎') {
-            return;
-          }
-
-          const insertText = label === '−' ? '-' : label;
-          insertIntoTarget(insertText);
+          if (key === minimizeKey) return keypad.classList.toggle('minimized');
+          if (key === undoKey) { if (!activeTarget) return; setText(activeTarget, initialValueOnFocus); setSelection(activeTarget, getText(activeTarget).length); resetClearStage(); return; }
+          if (key === backspaceKey) return deleteBackward();
+          if (key === leftKey) return moveCursor(-1);
+          if (key === rightKey) return moveCursor(1);
+          if (key === resultKey) { blurActiveTarget(); computeAllRows(); resetClearStage(); return; }
+          if (label === '⌨︎') return;
+          insertIntoTarget(label === '−' ? '-' : label);
+          persistFromDom();
         };
 
-        keys.forEach((key) => {
-          let pointerTriggered = false;
-          key.addEventListener('pointerdown', (event) => {
-            event.preventDefault();
-            pointerTriggered = true;
-            handleKeyPress(key);
-          });
-          key.addEventListener('click', (event) => {
-            event.preventDefault();
-            if (pointerTriggered) {
-              pointerTriggered = false;
-              return;
-            }
-            handleKeyPress(key);
-          });
-        });
-
-        sheetNavButtons.forEach((button) => {
-          button.addEventListener('click', () => {
-            blurActiveTarget();
-          });
-        });
-
+        keys.forEach((key) => { let pointerTriggered = false; key.addEventListener('pointerdown', (event) => { event.preventDefault(); pointerTriggered = true; handleKeyPress(key); }); key.addEventListener('click', (event) => { event.preventDefault(); if (pointerTriggered) { pointerTriggered = false; return; } handleKeyPress(key); }); });
+        sheetNavButtons[0]?.addEventListener('click', () => { blurActiveTarget(); nav(-1); });
+        sheetNavButtons[1]?.addEventListener('click', () => { blurActiveTarget(); nav(1); });
+        toggleButton?.addEventListener('click', () => { persistFromDom(); state.formulaMode = state.formulaMode === 'letter' ? 'name' : 'letter'; renderSheet(); scheduleSave(); resetClearStage(); });
+        clearButton?.addEventListener('click', (event) => { event.preventDefault(); clearAction(); });
         if (resultHeaderTrigger) {
-          let headerPointerTriggered = false;
-          resultHeaderTrigger.addEventListener('pointerdown', (event) => {
-            event.preventDefault();
-            headerPointerTriggered = true;
-            blurActiveTarget();
-            computeAllRows();
-          });
-          resultHeaderTrigger.addEventListener('click', (event) => {
-            event.preventDefault();
-            if (headerPointerTriggered) {
-              headerPointerTriggered = false;
-              return;
-            }
-            blurActiveTarget();
-            computeAllRows();
-          });
-          resultHeaderTrigger.addEventListener('keydown', (event) => {
-            if (event.key !== 'Enter' && event.key !== ' ') return;
-            event.preventDefault();
-            blurActiveTarget();
-            computeAllRows();
-          });
+          let pointer = false;
+          resultHeaderTrigger.addEventListener('pointerdown', (event) => { event.preventDefault(); pointer = true; blurActiveTarget(); computeAllRows(); resetClearStage(); });
+          resultHeaderTrigger.addEventListener('click', (event) => { event.preventDefault(); if (pointer) { pointer = false; return; } blurActiveTarget(); computeAllRows(); resetClearStage(); });
+          resultHeaderTrigger.addEventListener('keydown', (event) => { if (!['Enter', ' '].includes(event.key)) return; event.preventDefault(); blurActiveTarget(); computeAllRows(); resetClearStage(); });
         }
+        editableTargets.forEach((target) => target.addEventListener('blur', () => { if (activeTarget === target) { target.classList.remove('is-active-target'); activeTarget = null; } persistFromDom(); }));
+        statCells.forEach((cell, idx) => { const select = cell.querySelector('select'); select?.addEventListener('change', () => { state.sheets[state.currentSheetIndex].stats[idx] = select.value; scheduleSave(); resetClearStage(); }); });
+        document.addEventListener('keydown', (event) => { if (event.key !== 'Enter') return; if (!activeTarget || !editableTargets.includes(activeTarget)) return; event.preventDefault(); blurActiveTarget(); computeAllRows(); resetClearStage(); });
 
-        editableTargets.forEach((target) => {
-          target.addEventListener('blur', () => {
-            if (activeTarget === target) {
-              target.classList.remove('is-active-target');
-              activeTarget = null;
-              initialValueOnFocus = '';
-            }
-          });
-        });
-
-        document.addEventListener('keydown', (event) => {
-          if (event.key !== 'Enter') return;
-          if (!activeTarget || !editableTargets.includes(activeTarget)) return;
-          event.preventDefault();
-          blurActiveTarget();
-          computeAllRows();
-        });
-
-        statCells.forEach((cell) => {
-          const select = cell.querySelector('select');
-          select?.addEventListener('change', recomputeStats);
-        });
+        (async () => {
+          const saved = await asyncStorage.get();
+          if (saved?.sheets?.length) {
+            state.sheets = saved.sheets;
+            state.currentSheetIndex = Math.max(0, Math.min(saved.currentSheetIndex || 0, state.sheets.length - 1));
+            state.formulaMode = saved.formulaMode === 'letter' ? 'letter' : 'name';
+          }
+          while (state.sheets.length < 2) state.sheets.push(makeSheet(state.sheets.length));
+          renderSheet();
+          resetClearStage();
+        })();
       })();
     </script>
   </body>
