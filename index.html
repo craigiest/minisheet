@@ -407,11 +407,11 @@
 
     <section class="constants-strip" aria-label="Constants strip">
       <div class="clear-cell"><button class="key-active" aria-label="Clear">C</button></div>
-      <div class="const-cell"><div class="const-top"><div class="letter">V</div><div class="name">const1</div></div><input inputmode="decimal" value="" /></div>
-      <div class="const-cell"><div class="const-top"><div class="letter">W</div><div class="name">const2</div></div><input inputmode="decimal" value="" /></div>
-      <div class="const-cell"><div class="const-top"><div class="letter">X</div><div class="name">const3</div></div><input inputmode="decimal" value="" /></div>
-      <div class="const-cell"><div class="const-top"><div class="letter">Y</div><div class="name">const4</div></div><input inputmode="decimal" value="" /></div>
-      <div class="const-cell"><div class="const-top"><div class="letter">Z</div><div class="name">const5</div></div><input inputmode="decimal" value="" /></div>
+      <div class="const-cell"><div class="const-top"><div class="letter">V</div><div class="name">const1</div></div><input inputmode="none" value="" /></div>
+      <div class="const-cell"><div class="const-top"><div class="letter">W</div><div class="name">const2</div></div><input inputmode="none" value="" /></div>
+      <div class="const-cell"><div class="const-top"><div class="letter">X</div><div class="name">const3</div></div><input inputmode="none" value="" /></div>
+      <div class="const-cell"><div class="const-top"><div class="letter">Y</div><div class="name">const4</div></div><input inputmode="none" value="" /></div>
+      <div class="const-cell"><div class="const-top"><div class="letter">Z</div><div class="name">const5</div></div><input inputmode="none" value="" /></div>
     </section>
 
     <section class="formula-strip" aria-label="Formula editor strip">
@@ -596,6 +596,9 @@
 
           activeTarget = target;
           activeTarget.classList.add('is-active-target');
+          if (isInput(activeTarget) && document.activeElement !== activeTarget) {
+            activeTarget.focus({ preventScroll: true });
+          }
           initialValueOnFocus = getText(target);
         };
 
