@@ -499,6 +499,7 @@
         const resultHeaderTrigger = document.querySelector('th.result-head');
         const clearButton = document.querySelector('.key-active');
         const toggleButton = document.querySelector('.toggle');
+        const titleLine = document.querySelector('.title-line');
         const sheetIndexEl = document.querySelector('.sheet-index');
         const sheetNameLine = document.querySelector('.sheet-name');
         const formulaInput = document.querySelector('.formula-input');
@@ -631,6 +632,7 @@
         const recomputeStatsFromSheet = (sheet) => { statCells.forEach((cell, index) => { const output = cell.querySelector('output'); const statName = sheet.stats[index] || '--'; if (statName === '--') { output.textContent = '—'; return; } const values = sheet.rows.map((row) => index < 4 ? String(row[KEY_ORDER[index]] || '').trim() : String(row.Result || '').trim()).filter((v) => v !== '').map(Number).filter((n) => Number.isFinite(n)); output.textContent = applyStat(values, statName); }); };
         const persistFromDom = () => {
           const sheet = state.sheets[state.currentSheetIndex];
+          sheet.title = titleLine.textContent.trim() || 'Untitled';
           sheet.name = sheetNameLine.textContent.trim() || `Sheet ${state.currentSheetIndex + 1}`;
           sheet.formulaCanonical = displayToCanonical(formulaInput.value, sheet);
           [...headerNameEls, ...constNameEls].forEach((el, idx) => { const key = idx < 4 ? KEY_ORDER[idx] : CONST_ORDER[idx - 4]; sheet.names[key] = (el.textContent || '').trim(); });
@@ -642,6 +644,7 @@
         const renderSheet = () => {
           const sheet = state.sheets[state.currentSheetIndex];
           const clean = sanitizeNameMap(sheet);
+          titleLine.textContent = sheet.title;
           sheetNameLine.textContent = sheet.name;
           sheetIndexEl.textContent = `${state.currentSheetIndex + 1}/${state.sheets.length}`;
           formulaInput.value = canonicalToDisplay(sheet.formulaCanonical, sheet);
@@ -688,7 +691,7 @@
         };
 
         const numericTargets = [...constantInputs, formulaInput, ...cellInputs];
-        const titleFields = [sheetNameLine, ...headerNameEls, ...constNameEls].filter(Boolean);
+        const titleFields = [titleLine, sheetNameLine, ...headerNameEls, ...constNameEls].filter(Boolean);
         const editableTargets = [...numericTargets, ...titleFields];
         numericTargets.forEach((target) => { target.setAttribute('inputmode', 'none'); ['focus', 'pointerdown', 'click'].forEach((eventName) => target.addEventListener(eventName, () => activateTarget(target))); target.addEventListener('input', () => { resetClearStage(); persistFromDom(); }); });
         titleFields.forEach((target) => { ['focus', 'pointerup', 'click'].forEach((eventName) => target.addEventListener(eventName, () => activateTarget(target))); target.addEventListener('input', () => { resetClearStage(); persistFromDom(); }); });
@@ -707,28 +710,8 @@
         };
 
         keys.forEach((key) => { let pointerTriggered = false; key.addEventListener('pointerdown', (event) => { event.preventDefault(); pointerTriggered = true; handleKeyPress(key); }); key.addEventListener('click', (event) => { event.preventDefault(); if (pointerTriggered) { pointerTriggered = false; return; } handleKeyPress(key); }); });
-        const bindNavButton = (button, direction) => {
-          if (!button) return;
-          let pointerTriggered = false;
-          button.addEventListener('pointerdown', (event) => {
-            event.preventDefault();
-            pointerTriggered = true;
-            blurActiveTarget();
-            nav(direction);
-          });
-          button.addEventListener('click', (event) => {
-            event.preventDefault();
-            if (pointerTriggered) {
-              pointerTriggered = false;
-              return;
-            }
-            blurActiveTarget();
-            nav(direction);
-          });
-        };
-
-        bindNavButton(sheetNavButtons[0], -1);
-        bindNavButton(sheetNavButtons[1], 1);
+        sheetNavButtons[0]?.addEventListener('click', () => { blurActiveTarget(); nav(-1); });
+        sheetNavButtons[1]?.addEventListener('click', () => { blurActiveTarget(); nav(1); });
         toggleButton?.addEventListener('click', () => { persistFromDom(); state.formulaMode = state.formulaMode === 'letter' ? 'name' : 'letter'; renderSheet(); scheduleSave(); resetClearStage(); });
         clearButton?.addEventListener('click', (event) => { event.preventDefault(); clearAction(); });
         if (resultHeaderTrigger) {
