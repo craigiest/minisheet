@@ -499,6 +499,7 @@
         const resultHeaderTrigger = document.querySelector('th.result-head');
         const clearButton = document.querySelector('.key-active');
         const toggleButton = document.querySelector('.toggle');
+        const titleLine = document.querySelector('.title-line');
         const sheetIndexEl = document.querySelector('.sheet-index');
         const sheetNameLine = document.querySelector('.sheet-name');
         const formulaInput = document.querySelector('.formula-input');
@@ -534,54 +535,6 @@
         };
 
         const state = { sheets: [makeSheet(0), makeSheet(1)], currentSheetIndex: 0, formulaMode: 'name', clearStage: 0 };
-
-        const normalizeSheet = (rawSheet, idx) => {
-          const fallback = makeSheet(idx);
-          const sheet = rawSheet && typeof rawSheet === 'object' ? rawSheet : {};
-          const rowsSource = Array.isArray(sheet.rows) ? sheet.rows : [];
-          const normalizedRows = Array.from({ length: ROW_COUNT }, (_, rowIndex) => {
-            const sourceRow = rowsSource[rowIndex] && typeof rowsSource[rowIndex] === 'object' ? rowsSource[rowIndex] : {};
-            return {
-              A: String(sourceRow.A ?? ''),
-              B: String(sourceRow.B ?? ''),
-              C: String(sourceRow.C ?? ''),
-              D: String(sourceRow.D ?? ''),
-              Result: String(sourceRow.Result ?? '')
-            };
-          });
-
-          const normalizedStats = Array.from({ length: 5 }, (_, statIndex) => {
-            const value = Array.isArray(sheet.stats) ? sheet.stats[statIndex] : '--';
-            return ['--', 'Sum', 'Avg', 'Min', 'Max', 'Count'].includes(value) ? value : '--';
-          });
-
-          return {
-            ...fallback,
-            ...sheet,
-            title: String(sheet.title ?? fallback.title),
-            name: String(sheet.name ?? fallback.name),
-            formulaCanonical: String(sheet.formulaCanonical ?? sheet.formula ?? fallback.formulaCanonical),
-            names: { ...fallback.names, ...(sheet.names && typeof sheet.names === 'object' ? sheet.names : {}) },
-            constants: { ...fallback.constants, ...(sheet.constants && typeof sheet.constants === 'object' ? sheet.constants : {}) },
-            rows: normalizedRows,
-            stats: normalizedStats
-          };
-        };
-
-        const normalizeStateFromStorage = (saved) => {
-          if (!saved || typeof saved !== 'object' || !Array.isArray(saved.sheets) || !saved.sheets.length) return;
-          state.sheets = saved.sheets.map((sheet, idx) => normalizeSheet(sheet, idx));
-          while (state.sheets.length < 2) state.sheets.push(makeSheet(state.sheets.length));
-          state.currentSheetIndex = Math.max(0, Math.min(Number(saved.currentSheetIndex) || 0, state.sheets.length - 1));
-          state.formulaMode = saved.formulaMode === 'letter' ? 'letter' : 'name';
-        };
-
-        const ensureCurrentSheetShape = () => {
-          if (!Array.isArray(state.sheets) || !state.sheets.length) state.sheets = [makeSheet(0), makeSheet(1)];
-          state.currentSheetIndex = Math.max(0, Math.min(state.currentSheetIndex, state.sheets.length - 1));
-          state.sheets[state.currentSheetIndex] = normalizeSheet(state.sheets[state.currentSheetIndex], state.currentSheetIndex);
-          return state.sheets[state.currentSheetIndex];
-        };
 
         let saveTimer = null;
         const scheduleSave = () => {
@@ -678,7 +631,8 @@
 
         const recomputeStatsFromSheet = (sheet) => { statCells.forEach((cell, index) => { const output = cell.querySelector('output'); const statName = sheet.stats[index] || '--'; if (statName === '--') { output.textContent = '—'; return; } const values = sheet.rows.map((row) => index < 4 ? String(row[KEY_ORDER[index]] || '').trim() : String(row.Result || '').trim()).filter((v) => v !== '').map(Number).filter((n) => Number.isFinite(n)); output.textContent = applyStat(values, statName); }); };
         const persistFromDom = () => {
-          const sheet = ensureCurrentSheetShape();
+          const sheet = state.sheets[state.currentSheetIndex];
+          sheet.title = titleLine.textContent.trim() || 'Untitled';
           sheet.name = sheetNameLine.textContent.trim() || `Sheet ${state.currentSheetIndex + 1}`;
           sheet.formulaCanonical = displayToCanonical(formulaInput.value, sheet);
           [...headerNameEls, ...constNameEls].forEach((el, idx) => { const key = idx < 4 ? KEY_ORDER[idx] : CONST_ORDER[idx - 4]; sheet.names[key] = (el.textContent || '').trim(); });
@@ -688,8 +642,9 @@
           scheduleSave();
         };
         const renderSheet = () => {
-          const sheet = ensureCurrentSheetShape();
+          const sheet = state.sheets[state.currentSheetIndex];
           const clean = sanitizeNameMap(sheet);
+          titleLine.textContent = sheet.title;
           sheetNameLine.textContent = sheet.name;
           sheetIndexEl.textContent = `${state.currentSheetIndex + 1}/${state.sheets.length}`;
           formulaInput.value = canonicalToDisplay(sheet.formulaCanonical, sheet);
@@ -703,7 +658,7 @@
 
         const computeAllRows = () => {
           persistFromDom();
-          const sheet = ensureCurrentSheetShape();
+          const sheet = state.sheets[state.currentSheetIndex];
           let ast;
           try { ast = parse(tokenize(sheet.formulaCanonical)); } catch (error) { sheet.rows.forEach((row) => { row.Result = mapErrorToCellText(error); }); renderSheet(); return; }
           let constants;
@@ -725,7 +680,7 @@
 
         const clearAction = () => {
           persistFromDom();
-          const sheet = ensureCurrentSheetShape();
+          const sheet = state.sheets[state.currentSheetIndex];
           if (state.clearStage === 0) { if (activeTarget) setText(activeTarget, ''); }
           else if (state.clearStage === 1) { const row = activeTarget?.closest?.('tr'); const rowIndex = dataRows.indexOf(row); if (rowIndex >= 0) sheet.rows[rowIndex] = { A: '', B: '', C: '', D: '', Result: '' }; }
           else if (state.clearStage === 2) { sheet.constants = { V: '', W: '', X: '', Y: '', Z: '' }; sheet.formulaCanonical = ''; sheet.rows = makeBlankRows(); }
@@ -736,7 +691,7 @@
         };
 
         const numericTargets = [...constantInputs, formulaInput, ...cellInputs];
-        const titleFields = [sheetNameLine, ...headerNameEls, ...constNameEls].filter(Boolean);
+        const titleFields = [titleLine, sheetNameLine, ...headerNameEls, ...constNameEls].filter(Boolean);
         const editableTargets = [...numericTargets, ...titleFields];
         numericTargets.forEach((target) => { target.setAttribute('inputmode', 'none'); ['focus', 'pointerdown', 'click'].forEach((eventName) => target.addEventListener(eventName, () => activateTarget(target))); target.addEventListener('input', () => { resetClearStage(); persistFromDom(); }); });
         titleFields.forEach((target) => { ['focus', 'pointerup', 'click'].forEach((eventName) => target.addEventListener(eventName, () => activateTarget(target))); target.addEventListener('input', () => { resetClearStage(); persistFromDom(); }); });
@@ -755,28 +710,8 @@
         };
 
         keys.forEach((key) => { let pointerTriggered = false; key.addEventListener('pointerdown', (event) => { event.preventDefault(); pointerTriggered = true; handleKeyPress(key); }); key.addEventListener('click', (event) => { event.preventDefault(); if (pointerTriggered) { pointerTriggered = false; return; } handleKeyPress(key); }); });
-        const bindNavButton = (button, direction) => {
-          if (!button) return;
-          let pointerTriggered = false;
-          button.addEventListener('pointerdown', (event) => {
-            event.preventDefault();
-            pointerTriggered = true;
-            blurActiveTarget();
-            nav(direction);
-          });
-          button.addEventListener('click', (event) => {
-            event.preventDefault();
-            if (pointerTriggered) {
-              pointerTriggered = false;
-              return;
-            }
-            blurActiveTarget();
-            nav(direction);
-          });
-        };
-
-        bindNavButton(sheetNavButtons[0], -1);
-        bindNavButton(sheetNavButtons[1], 1);
+        sheetNavButtons[0]?.addEventListener('click', () => { blurActiveTarget(); nav(-1); });
+        sheetNavButtons[1]?.addEventListener('click', () => { blurActiveTarget(); nav(1); });
         toggleButton?.addEventListener('click', () => { persistFromDom(); state.formulaMode = state.formulaMode === 'letter' ? 'name' : 'letter'; renderSheet(); scheduleSave(); resetClearStage(); });
         clearButton?.addEventListener('click', (event) => { event.preventDefault(); clearAction(); });
         if (resultHeaderTrigger) {
@@ -791,8 +726,12 @@
 
         (async () => {
           const saved = await asyncStorage.get();
-          normalizeStateFromStorage(saved);
-          ensureCurrentSheetShape();
+          if (saved?.sheets?.length) {
+            state.sheets = saved.sheets;
+            state.currentSheetIndex = Math.max(0, Math.min(saved.currentSheetIndex || 0, state.sheets.length - 1));
+            state.formulaMode = saved.formulaMode === 'letter' ? 'letter' : 'name';
+          }
+          while (state.sheets.length < 2) state.sheets.push(makeSheet(state.sheets.length));
           renderSheet();
           resetClearStage();
         })();
