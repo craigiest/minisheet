@@ -12,8 +12,8 @@
         --text: #1d2029;
         --active: #305596;
         --active-soft: #6aa8f1;
-        --nav-h: 56px;
-        --const-h: 86px;
+        --nav-h: 34px;
+        --const-h: 74px;
         --formula-h: 56px;
         --keypad-h: 238px;
         --keypad-min-h: 56px;
@@ -80,7 +80,7 @@
         grid-template-columns: 34px minmax(0,1fr) 34px;
         gap: 6px;
         align-items: center;
-        padding: 6px 8px;
+        padding: 4px 8px;
         z-index: 60;
         isolation: isolate;
       }
@@ -146,9 +146,9 @@
       .clear-cell,
       .const-cell {
         border-right: 1px solid var(--line);
-        padding: 6px 4px;
+        padding: 4px;
         display: grid;
-        gap: 4px;
+        gap: 2px;
         align-content: center;
       }
 
@@ -264,8 +264,8 @@
         table-layout: fixed;
       }
 
-      col.col-num { width: 10%; }
-      col.col-main { width: 17%; }
+      col.col-num { width: 6%; }
+      col.col-main { width: 18%; }
       col.col-result { width: 22%; }
 
       th,
@@ -323,7 +323,7 @@
         background: #f1f1f3;
         color: var(--text);
         border-radius: 8px;
-        min-height: 38px;
+        min-height: 34px;
         display: grid;
         align-content: center;
         justify-items: center;
@@ -341,7 +341,7 @@
       .result-head .head-pill {
         background: var(--active);
         color: #fff;
-        min-height: 38px;
+        min-height: 34px;
         display: flex;
         align-items: center;
         justify-content: center;
