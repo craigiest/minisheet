@@ -668,16 +668,30 @@
         };
 
         const sheetTemplate = (idx) => {
-          if (idx === 0) return { title: 'Proportion: A/B = C/Result', formula: '(B*C)/A+Y' };
-          if (idx === 1) return { title: 'Rule of three: A:B::C:Result', formula: '(B*C)/A' };
-          return { title: 'Blank sheet', formula: '' };
+          if (idx === 0) {
+            return {
+              title: '* for US-->metric, / for metric-->US',
+              formula: 'A*V',
+              names: { V: 'in/cm', W: 'ft/m', X: 'mi/km', Y: 'oz/g', Z: 'lb/kg' },
+              constants: { V: '2.54', W: '0.3048', X: '1.60934', Y: '28.3495', Z: '0.453592' }
+            };
+          }
+          if (idx === 1) return { title: 'Proportion: A/B = C/Result', formula: '(B*C)/A' };
+          return { title: 'New Sheet', formula: '' };
         };
 
         const baseNames = { A: 'value1', B: 'value2', C: 'value3', D: 'unused', V: 'const1', W: 'const2', X: 'const3', Y: 'const4', Z: 'const5' };
         const makeBlankRows = () => Array.from({ length: ROW_COUNT }, () => ({ A: '', B: '', C: '', D: '', Result: '' }));
         const makeSheet = (idx) => {
           const t = sheetTemplate(idx);
-          return { title: t.title, formulaCanonical: t.formula, names: { ...baseNames }, constants: { V: '', W: '', X: '', Y: '', Z: '' }, rows: makeBlankRows(), stats: ['--', '--', '--', '--', '--'] };
+          return {
+            title: t.title,
+            formulaCanonical: t.formula,
+            names: { ...baseNames, ...(t.names || {}) },
+            constants: { V: '', W: '', X: '', Y: '', Z: '', ...(t.constants || {}) },
+            rows: makeBlankRows(),
+            stats: ['--', '--', '--', '--', '--']
+          };
         };
 
         const hydrateSheet = (rawSheet, idx) => {
@@ -699,7 +713,7 @@
           };
         };
 
-        const state = { sheets: [makeSheet(0), makeSheet(1)], currentSheetIndex: 0, formulaMode: 'name', clearStage: 0 };
+        const state = { sheets: [makeSheet(0), makeSheet(1), makeSheet(2)], currentSheetIndex: 0, formulaMode: 'name', clearStage: 0 };
 
         let saveTimer = null;
         const scheduleSave = () => {
@@ -765,7 +779,7 @@
           ALL_LETTERS.forEach((letter) => {
             const raw = String(sheet.names[letter] ?? '').trim();
             let base = raw || letter;
-            if (reserved.has(base.toUpperCase()) || /[^A-Za-z0-9_]/.test(base)) base = `[${base}]`;
+            if (reserved.has(base.toUpperCase())) base = `[${base}]`;
             let next = base;
             let n = 2;
             while (seen.has(next.toUpperCase())) next = `${base}_${n++}`;
@@ -869,7 +883,7 @@
 
         const deleteBlankDynamicCurrentSheet = () => {
           const idx = state.currentSheetIndex;
-          if (idx < 2 || state.sheets.length <= 2) return;
+          if (idx < 3 || state.sheets.length <= 3) return;
           if (sheetIsBlank(state.sheets[idx])) { state.sheets.splice(idx, 1); if (state.currentSheetIndex >= state.sheets.length) state.currentSheetIndex = 0; }
         };
         const nav = (dir) => { persistFromDom(); const wasLast = state.currentSheetIndex === state.sheets.length - 1; deleteBlankDynamicCurrentSheet(); if (dir > 0 && wasLast) { state.sheets.push(makeSheet(state.sheets.length)); state.currentSheetIndex = state.sheets.length - 1; } else { state.currentSheetIndex = (state.currentSheetIndex + dir + state.sheets.length) % state.sheets.length; } renderSheet(); resetClearStage(); scheduleSave(); };
@@ -880,7 +894,7 @@
           if (state.clearStage === 0) { if (activeTarget) setText(activeTarget, ''); }
           else if (state.clearStage === 1) { const row = activeTarget?.closest?.('tr'); const rowIndex = dataRows.indexOf(row); if (rowIndex >= 0) sheet.rows[rowIndex] = { A: '', B: '', C: '', D: '', Result: '' }; }
           else if (state.clearStage === 2) { sheet.constants = { V: '', W: '', X: '', Y: '', Z: '' }; sheet.formulaCanonical = ''; sheet.rows = makeBlankRows(); }
-          else { state.sheets = [makeSheet(0), makeSheet(1)]; state.currentSheetIndex = 0; }
+          else { state.sheets = [makeSheet(0), makeSheet(1), makeSheet(2)]; state.currentSheetIndex = 2; }
           renderSheet();
           advanceClearStage();
           scheduleSave();
@@ -995,10 +1009,12 @@
           const saved = await asyncStorage.get();
           if (saved?.sheets?.length) {
             state.sheets = saved.sheets.map((sheet, idx) => hydrateSheet(sheet, idx));
-            state.currentSheetIndex = Math.max(0, Math.min(saved.currentSheetIndex || 0, state.sheets.length - 1));
+            state.currentSheetIndex = Math.max(0, Math.min(saved.currentSheetIndex ?? 0, state.sheets.length - 1));
             state.formulaMode = saved.formulaMode === 'letter' ? 'letter' : 'name';
+          } else {
+            state.currentSheetIndex = 2;
           }
-          while (state.sheets.length < 2) state.sheets.push(makeSheet(state.sheets.length));
+          while (state.sheets.length < 3) state.sheets.push(makeSheet(state.sheets.length));
           renderSheet();
           resetClearStage();
           updateKeyAvailability();
