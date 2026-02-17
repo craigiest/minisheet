@@ -18,6 +18,7 @@
         --keypad-h: 238px;
         --keypad-min-h: 56px;
         --keypad-active-h: var(--keypad-h);
+        --keypad-bg: #7082a7;
       }
 
       body.keypad-is-minimized {
@@ -181,11 +182,12 @@
       .const-top .letter {
         font-size: 12px;
         line-height: 1;
+        font-weight: 700;
       }
 
       .const-top .name {
         font-size: 11px;
-        font-weight: 600;
+        font-weight: 400;
       }
 
       .const-cell input {
@@ -322,8 +324,29 @@
         justify-items: center;
       }
 
-      .head-pill .letter { font-size: 14px; }
-      .head-pill .name { font-size: 11px; font-weight: 700; }
+      .head-pill .letter { font-size: 14px; font-weight: 700; }
+      .head-pill .name { font-size: 11px; font-weight: 400; }
+
+      .result-head .head-pill {
+        min-height: 38px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .result-head .head-pill .name {
+        display: none;
+      }
+
+      body.formula-mode-name .head-pill .letter,
+      body.formula-mode-name .const-top .letter {
+        font-weight: 400;
+      }
+
+      body.formula-mode-name .head-pill .name,
+      body.formula-mode-name .const-top .name {
+        font-weight: 700;
+      }
 
       .result-head,
       .result-cell {
@@ -386,10 +409,13 @@
         height: 22px;
         display: grid;
         align-items: center;
+        justify-items: end;
+        text-align: right;
         border: 0;
         background: transparent;
         color: #596275;
-        font-size: 13px;
+        font-size: 15px;
+        font-weight: 700;
       }
 
       .keypad {
@@ -399,7 +425,7 @@
         bottom: env(safe-area-inset-bottom);
         height: var(--keypad-h);
         padding: 6px;
-        background: #7082a7;
+        background: var(--keypad-bg);
         border-top: 1px solid #5d6f97;
         z-index: 41;
         transition: height 0.2s ease;
@@ -427,8 +453,18 @@
         border: 1px solid transparent;
       }
 
-      .key.enter {
-        background: #7f88a0;
+
+      .key.is-inactive,
+      .key.light.is-inactive {
+        background: var(--keypad-bg);
+        color: #d8deea;
+        border-color: transparent;
+      }
+
+      .key-active.is-inactive {
+        background: var(--panel);
+        color: #8a94a8;
+        border-color: transparent;
       }
 
       .keypad.minimized {
@@ -514,7 +550,7 @@
             <th class="col-head"><div class="head-pill"><div class="letter">B</div><div class="name">value2</div></div></th>
             <th class="col-head"><div class="head-pill"><div class="letter">C</div><div class="name">value3</div></div></th>
             <th class="col-head"><div class="head-pill"><div class="letter">D</div><div class="name">unused</div></div></th>
-            <th class="col-head result-head" role="button" tabindex="0" aria-label="Compute results"><div class="head-pill"><div class="letter">Result</div><div class="name">&nbsp;</div></div></th>
+            <th class="col-head result-head" role="button" tabindex="0" aria-label="Compute results"><div class="head-pill"><div class="letter">Result</div><div class="name"></div></div></th>
           </tr>
         </thead>
         <tbody>
@@ -606,6 +642,8 @@
         const dataRows = [...document.querySelectorAll('tbody tr')];
         const statCells = [...document.querySelectorAll('tfoot .stat-cell')];
         const headerPills = [...document.querySelectorAll('thead .head-pill')];
+        const getKeyLabel = (key) => key?.textContent.trim() || '';
+        const NUMBER_ENTRY_KEY_LABELS = new Set(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '−', '↺', '⌫', '=', '↕']);
 
         const asyncStorage = {
           async get() {
@@ -669,6 +707,19 @@
 
         const cellInputs = [...document.querySelectorAll('.cell-input')];
         const rowBindings = dataRows.map((row) => ({ inputs: [...row.querySelectorAll('.cell-input')], resultCell: row.querySelector('.result-cell') }));
+        const numberEntryTargets = new Set([...constantInputs, ...cellInputs]);
+        const isNumberEntryContext = () => !!activeTarget && numberEntryTargets.has(activeTarget);
+        const isKeyEnabled = (key) => !isNumberEntryContext() || NUMBER_ENTRY_KEY_LABELS.has(getKeyLabel(key));
+        const updateKeyAvailability = () => {
+          keys.forEach((key) => {
+            const enabled = isKeyEnabled(key);
+            key.classList.toggle('is-inactive', !enabled);
+            key.setAttribute('aria-disabled', enabled ? 'false' : 'true');
+          });
+          const clearEnabled = isNumberEntryContext();
+          clearButton?.classList.toggle('is-inactive', !clearEnabled);
+          clearButton?.setAttribute('aria-disabled', clearEnabled ? 'false' : 'true');
+        };
         const headerNameEls = headerPills.slice(0, 4).map((pill) => pill.querySelector('.name'));
         const headerLetterEls = headerPills.slice(0, 4).map((pill) => pill.querySelector('.letter'));
         const constNameEls = constTopEls.map((pill) => pill.querySelector('.name'));
@@ -731,8 +782,8 @@
           const selection = window.getSelection(); selection.removeAllRanges(); selection.addRange(range);
         };
 
-        const activateTarget = (target) => { if (!target || activeTarget === target) return; if (activeTarget) activeTarget.classList.remove('is-active-target'); activeTarget = target; target.classList.add('is-active-target'); if (isInput(target) && document.activeElement !== target) target.focus({ preventScroll: true }); initialValueOnFocus = getText(target); };
-        const blurActiveTarget = () => { if (!activeTarget) return; activeTarget.classList.remove('is-active-target'); if (document.activeElement instanceof HTMLElement) document.activeElement.blur(); activeTarget = null; };
+        const activateTarget = (target) => { if (!target || activeTarget === target) return; if (activeTarget) activeTarget.classList.remove('is-active-target'); activeTarget = target; target.classList.add('is-active-target'); if (isInput(target) && document.activeElement !== target) target.focus({ preventScroll: true }); initialValueOnFocus = getText(target); updateKeyAvailability(); };
+        const blurActiveTarget = () => { if (!activeTarget) return; activeTarget.classList.remove('is-active-target'); if (document.activeElement instanceof HTMLElement) document.activeElement.blur(); activeTarget = null; updateKeyAvailability(); };
         const insertIntoTarget = (text) => { if (!activeTarget) return; const value = getText(activeTarget); const { start, end } = getSelection(activeTarget); setText(activeTarget, value.slice(0, start) + text + value.slice(end)); setSelection(activeTarget, start + text.length); resetClearStage(); };
         const deleteBackward = () => { if (!activeTarget) return; const value = getText(activeTarget); const { start, end } = getSelection(activeTarget); if (start !== end) { setText(activeTarget, value.slice(0, start) + value.slice(end)); setSelection(activeTarget, start); } else if (start > 0) { setText(activeTarget, value.slice(0, start - 1) + value.slice(start)); setSelection(activeTarget, start - 1); } resetClearStage(); };
         const moveCursor = (delta) => { if (!activeTarget) return; const { start, end } = getSelection(activeTarget); const base = delta < 0 ? start : end; setSelection(activeTarget, Math.max(0, Math.min(base + delta, getText(activeTarget).length))); };
@@ -767,11 +818,13 @@
           sheetIndexEl.textContent = `${state.currentSheetIndex + 1}/${state.sheets.length}`;
           formulaInput.value = canonicalToDisplay(sheet.formulaCanonical, sheet);
           toggleButton.innerHTML = state.formulaMode === 'letter' ? '<strong>A</strong> / Name' : 'A / <strong>Name</strong>';
-          KEY_ORDER.forEach((key, idx) => { headerLetterEls[idx].textContent = key; headerNameEls[idx].textContent = clean[key]; headerNameEls[idx].style.display = state.formulaMode === 'letter' ? 'none' : ''; });
-          CONST_ORDER.forEach((key, idx) => { constLetterEls[idx].textContent = key; constNameEls[idx].textContent = clean[key]; constNameEls[idx].style.display = state.formulaMode === 'letter' ? 'none' : ''; constantInputs[idx].value = sheet.constants[key] || ''; });
+          document.body.classList.toggle('formula-mode-name', state.formulaMode === 'name');
+          KEY_ORDER.forEach((key, idx) => { headerLetterEls[idx].textContent = key; headerNameEls[idx].textContent = clean[key]; headerNameEls[idx].style.display = ''; });
+          CONST_ORDER.forEach((key, idx) => { constLetterEls[idx].textContent = key; constNameEls[idx].textContent = clean[key]; constNameEls[idx].style.display = ''; constantInputs[idx].value = sheet.constants[key] || ''; });
           rowBindings.forEach((row, ri) => { KEY_ORDER.forEach((key, ci) => { row.inputs[ci].value = sheet.rows[ri][key] || ''; }); row.resultCell.textContent = sheet.rows[ri].Result || ''; });
           statCells.forEach((cell, idx) => { const select = cell.querySelector('select'); if (select) select.value = sheet.stats[idx] || '--'; });
           recomputeStatsFromSheet(sheet);
+          updateKeyAvailability();
         };
 
         const computeAllRows = () => {
@@ -815,7 +868,8 @@
         titleFields.forEach((target) => { ['focus', 'pointerup', 'click'].forEach((eventName) => target.addEventListener(eventName, () => activateTarget(target))); target.addEventListener('input', () => { resetClearStage(); persistFromDom(); }); });
 
         const handleKeyPress = (key) => {
-          const label = key.textContent.trim();
+          const label = getKeyLabel(key);
+          if (!isKeyEnabled(key)) return;
           if (key === minimizeKey) {
             const isMinimized = keypad.classList.toggle('minimized');
             document.body.classList.toggle('keypad-is-minimized', isMinimized);
@@ -854,14 +908,14 @@
         bindSheetArrow(sheetNavButtons[1], 1);
 
         toggleButton?.addEventListener('click', () => { persistFromDom(); state.formulaMode = state.formulaMode === 'letter' ? 'name' : 'letter'; renderSheet(); scheduleSave(); resetClearStage(); });
-        clearButton?.addEventListener('click', (event) => { event.preventDefault(); clearAction(); });
+        clearButton?.addEventListener('click', (event) => { event.preventDefault(); if (clearButton?.getAttribute('aria-disabled') === 'true') return; clearAction(); });
         if (resultHeaderTrigger) {
           let pointer = false;
           resultHeaderTrigger.addEventListener('pointerdown', (event) => { event.preventDefault(); pointer = true; blurActiveTarget(); computeAllRows(); resetClearStage(); });
           resultHeaderTrigger.addEventListener('click', (event) => { event.preventDefault(); if (pointer) { pointer = false; return; } blurActiveTarget(); computeAllRows(); resetClearStage(); });
           resultHeaderTrigger.addEventListener('keydown', (event) => { if (!['Enter', ' '].includes(event.key)) return; event.preventDefault(); blurActiveTarget(); computeAllRows(); resetClearStage(); });
         }
-        editableTargets.forEach((target) => target.addEventListener('blur', () => { if (activeTarget === target) { target.classList.remove('is-active-target'); activeTarget = null; } persistFromDom(); }));
+        editableTargets.forEach((target) => target.addEventListener('blur', () => { if (activeTarget === target) { target.classList.remove('is-active-target'); activeTarget = null; updateKeyAvailability(); } persistFromDom(); }));
         statCells.forEach((cell, idx) => { const select = cell.querySelector('select'); select?.addEventListener('change', () => { state.sheets[state.currentSheetIndex].stats[idx] = select.value; scheduleSave(); resetClearStage(); }); });
         document.addEventListener('keydown', (event) => { if (event.key !== 'Enter') return; if (!activeTarget || !editableTargets.includes(activeTarget)) return; event.preventDefault(); blurActiveTarget(); computeAllRows(); resetClearStage(); });
 
@@ -875,6 +929,7 @@
           while (state.sheets.length < 2) state.sheets.push(makeSheet(state.sheets.length));
           renderSheet();
           resetClearStage();
+          updateKeyAvailability();
         })();
       })();
     </script>
