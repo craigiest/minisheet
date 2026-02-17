@@ -327,17 +327,6 @@
       .head-pill .letter { font-size: 14px; font-weight: 700; }
       .head-pill .name { font-size: 11px; font-weight: 400; }
 
-      .result-head .head-pill {
-        min-height: 38px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-
-      .result-head .head-pill .name {
-        display: none;
-      }
-
       body.formula-mode-name .head-pill .letter,
       body.formula-mode-name .const-top .letter {
         font-weight: 400;
@@ -440,11 +429,20 @@
       }
 
       .key {
+        appearance: none;
+        -webkit-appearance: none;
         border: 0;
         border-radius: 8px;
         background: var(--active);
+        box-shadow: none;
         color: #fff;
         font-size: 18px;
+        outline: none;
+      }
+
+      .key:focus-visible {
+        outline: 2px solid #f0f3fa;
+        outline-offset: 2px;
       }
 
       .key.light {
@@ -465,6 +463,18 @@
         background: var(--panel);
         color: #8a94a8;
         border-color: transparent;
+      }
+
+      .key.is-inactive,
+      .key.light.is-inactive,
+      .key.enter.is-inactive {
+        background: var(--keypad-bg);
+        color: #d8deea;
+      }
+
+      .key-active.is-inactive {
+        background: #7f88a0;
+        color: #d8deea;
       }
 
       .keypad.minimized {
