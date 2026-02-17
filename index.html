@@ -17,6 +17,9 @@
         --formula-h: 56px;
         --keypad-h: 238px;
         --keypad-min-h: 56px;
+        --keypad-pad: 6px;
+        --key-gap: 6px;
+        --key-row-h: calc((var(--keypad-h) - (var(--keypad-pad) * 2) - (var(--key-gap) * 5)) / 6);
         --keypad-active-h: var(--keypad-h);
         --keypad-bg: #7082a7;
       }
@@ -301,6 +304,7 @@
       }
 
       .num-head {
+        top: 0;
         text-align: center;
       }
 
@@ -437,7 +441,7 @@
         right: 0;
         bottom: env(safe-area-inset-bottom);
         height: var(--keypad-h);
-        padding: 6px;
+        padding: var(--keypad-pad);
         background: var(--keypad-bg);
         border-top: 1px solid #5d6f97;
         z-index: 41;
@@ -449,7 +453,7 @@
         display: grid;
         grid-template-columns: repeat(6, minmax(0, 1fr));
         grid-template-rows: repeat(6, minmax(0, 1fr));
-        gap: 6px;
+        gap: var(--key-gap);
       }
 
       .key {
@@ -499,7 +503,12 @@
       }
 
       .keypad.minimized .keys {
-        grid-template-rows: 1fr;
+        grid-template-rows: var(--key-row-h);
+        align-content: start;
+      }
+
+      .keypad.minimized .key {
+        height: var(--key-row-h);
       }
 
       .keypad.minimized .key:nth-child(n + 7) {
