@@ -626,7 +626,7 @@
 
     <section class="keypad" aria-label="Bottom keypad">
       <div class="keys">
-        <button class="key">↺</button><button class="key">⌨︎</button><button class="key">↕</button><button class="key">:</button><button class="key">√</button><button class="key">⌫</button>
+        <button class="key">⤺</button><button class="key">⌨︎</button><button class="key">⤓</button><button class="key">:</button><button class="key">√</button><button class="key">⌫</button>
         <button class="key light">&lt;</button><button class="key light">&gt;</button><button class="key">(</button><button class="key">)</button><button class="key">^</button><button class="key">/</button>
         <button class="key light">IF</button><button class="key light">AVG</button><button class="key">7</button><button class="key">8</button><button class="key">9</button><button class="key">*</button>
         <button class="key light">AND</button><button class="key light">SUM</button><button class="key">4</button><button class="key">5</button><button class="key">6</button><button class="key">−</button>
@@ -656,10 +656,14 @@
         const ALL_LETTERS = [...KEY_ORDER, ...CONST_ORDER];
         const STORAGE_KEY = 'minisheet-v2';
 
+        const UNDO_KEY_LABEL = '⤺';
+        const MINIMIZE_KEY_LABEL = '⤓';
+        const MAXIMIZE_KEY_LABEL = '⤒';
+
         const keypad = document.querySelector('.keypad');
         const keys = [...document.querySelectorAll('.keypad .key')];
-        const minimizeKey = keys.find((key) => key.textContent.trim() === '↕');
-        const undoKey = keys.find((key) => key.textContent.trim() === '↺');
+        const minimizeKey = keys.find((key) => key.textContent.trim() === MINIMIZE_KEY_LABEL);
+        const undoKey = keys.find((key) => key.textContent.trim() === UNDO_KEY_LABEL);
         const backspaceKey = keys.find((key) => key.textContent.trim() === '⌫');
         const leftKey = keys.find((key) => key.textContent.trim() === '<');
         const rightKey = keys.find((key) => key.textContent.trim() === '>');
@@ -679,8 +683,8 @@
         const statCells = [...document.querySelectorAll('tfoot .stat-cell')];
         const headerPills = [...document.querySelectorAll('thead .head-pill')];
         const getKeyLabel = (key) => key?.textContent.trim() || '';
-        const NUMBER_ENTRY_KEY_LABELS = new Set(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '−', '↺', '⌫', '=', '↕']);
-        const FORMULA_ENTRY_KEY_LABELS = new Set(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '−', '+', '*', '/', '^', '(', ')', ',', ':', '⌫', '↺', '↕', '⌨︎']);
+        const NUMBER_ENTRY_KEY_LABELS = new Set(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '−', UNDO_KEY_LABEL, '⌫', '=', MINIMIZE_KEY_LABEL, MAXIMIZE_KEY_LABEL]);
+        const FORMULA_ENTRY_KEY_LABELS = new Set(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '−', '+', '*', '/', '^', '(', ')', ',', ':', '⌫', UNDO_KEY_LABEL, MINIMIZE_KEY_LABEL, MAXIMIZE_KEY_LABEL, '⌨︎']);
 
         const asyncStorage = {
           async get() {
@@ -1140,6 +1144,7 @@
           if (key === minimizeKey) {
             const isMinimized = keypad.classList.toggle('minimized');
             document.body.classList.toggle('keypad-is-minimized', isMinimized);
+            minimizeKey.textContent = isMinimized ? MAXIMIZE_KEY_LABEL : MINIMIZE_KEY_LABEL;
             return;
           }
           if (key === undoKey) {
