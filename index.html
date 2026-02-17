@@ -811,32 +811,48 @@
         const getText = (el) => (isInput(el) ? el.value : (el.textContent || ''));
         const setText = (el, value) => { if (isInput(el)) el.value = value; else el.textContent = value; };
 
-        const sanitizeNameMap = (sheet) => {
-          const out = {};
-          const seen = new Set();
-          const reserved = new Set(['RESULT', 'SUM', 'AVG', 'MIN', 'MAX', 'COUNT', ...ALL_LETTERS]);
+        const OPERATOR_LIKE_CHARS_RE = /[+\-*/^(),√\[\]]/;
+        const buildNameMaps = (sheet) => {
+          const rawByLetter = {};
+          const effectiveByLetter = {};
           ALL_LETTERS.forEach((letter) => {
             const raw = String(sheet.names[letter] ?? '').trim();
-            let base = raw || letter;
-            if (reserved.has(base.toUpperCase())) base = `[${base}]`;
-            let next = base;
-            let n = 2;
-            while (seen.has(next.toUpperCase())) next = `${base}_${n++}`;
-            seen.add(next.toUpperCase());
-            out[letter] = next;
+            rawByLetter[letter] = raw;
+            effectiveByLetter[letter] = !raw || raw.toUpperCase() === letter ? letter : raw;
           });
-          return out;
+
+          const counts = {};
+          Object.values(effectiveByLetter).forEach((name) => {
+            const key = name.toUpperCase();
+            counts[key] = (counts[key] || 0) + 1;
+          });
+
+          const clean = {};
+          const map = {};
+          const ui = {};
+          ALL_LETTERS.forEach((letter) => {
+            const raw = rawByLetter[letter];
+            const base = effectiveByLetter[letter];
+            const duplicated = (counts[base.toUpperCase()] || 0) > 1;
+            const deduped = duplicated ? `${base}${letter}` : base;
+            const isLetterName = ALL_LETTERS.includes(deduped.toUpperCase());
+            const needsBracket = deduped !== letter && (OPERATOR_LIKE_CHARS_RE.test(deduped) || isLetterName);
+            const formulaName = needsBracket ? `[${deduped}]` : deduped;
+            clean[letter] = formulaName;
+            map[formulaName] = letter;
+            ui[letter] = raw || letter;
+          });
+          return { clean, map, ui };
         };
-        const buildNameToLetter = (sheet) => { const clean = sanitizeNameMap(sheet); const map = {}; Object.entries(clean).forEach(([k, v]) => { map[v] = k; }); return { clean, map }; };
-        const canonicalToDisplay = (canonical, sheet) => state.formulaMode === 'letter' ? canonical : String(canonical || '').replace(/[A-Za-z]/g, (m) => buildNameToLetter(sheet).clean[m.toUpperCase()] || m);
+        const canonicalToDisplay = (canonical, sheet) => state.formulaMode === 'letter' ? canonical : String(canonical || '').replace(/[A-Za-z]/g, (m) => buildNameMaps(sheet).clean[m.toUpperCase()] || m);
         const displayToCanonical = (display, sheet) => {
           let expr = String(display || '');
-          Object.entries(buildNameToLetter(sheet).map).sort((a, b) => b[0].length - a[0].length).forEach(([name, letter]) => { expr = expr.split(name).join(letter); });
+          Object.entries(buildNameMaps(sheet).map).sort((a, b) => b[0].length - a[0].length).forEach(([name, letter]) => { expr = expr.split(name).join(letter); });
           return expr;
         };
         const formulaTokenFor = (letter) => {
           if (state.formulaMode === 'letter') return letter;
-          const clean = sanitizeNameMap(state.sheets[state.currentSheetIndex]);
+          const clean = buildNameMaps(state.sheets[state.currentSheetIndex]).clean;
           return clean[letter] || letter;
         };
 
@@ -888,15 +904,15 @@
         };
         const renderSheet = () => {
           const sheet = state.sheets[state.currentSheetIndex];
-          const clean = sanitizeNameMap(sheet);
+          const { ui } = buildNameMaps(sheet);
           if (titleLine) titleLine.textContent = String(sheet.title ?? '');
           if (sheetNameLine) sheetNameLine.textContent = '';
           sheetIndexEl.textContent = `${state.currentSheetIndex + 1}/${state.sheets.length}`;
           formulaInput.value = canonicalToDisplay(sheet.formulaCanonical, sheet);
           toggleButton.innerHTML = state.formulaMode === 'letter' ? '<strong>A</strong> / Name' : 'A / <strong>Name</strong>';
           document.body.classList.toggle('formula-mode-name', state.formulaMode === 'name');
-          KEY_ORDER.forEach((key, idx) => { headerLetterEls[idx].textContent = key; headerNameEls[idx].textContent = clean[key]; headerNameEls[idx].style.display = ''; });
-          CONST_ORDER.forEach((key, idx) => { constLetterEls[idx].textContent = key; constNameEls[idx].textContent = clean[key]; constNameEls[idx].style.display = ''; constantInputs[idx].value = sheet.constants[key] || ''; });
+          KEY_ORDER.forEach((key, idx) => { headerLetterEls[idx].textContent = key; headerNameEls[idx].textContent = ui[key]; headerNameEls[idx].style.display = ''; });
+          CONST_ORDER.forEach((key, idx) => { constLetterEls[idx].textContent = key; constNameEls[idx].textContent = ui[key]; constNameEls[idx].style.display = ''; constantInputs[idx].value = sheet.constants[key] || ''; });
           rowBindings.forEach((row, ri) => { KEY_ORDER.forEach((key, ci) => { row.inputs[ci].value = sheet.rows[ri][key] || ''; }); row.resultCell.textContent = sheet.rows[ri].Result || ''; });
           statCells.forEach((cell, idx) => { const select = cell.querySelector('select'); if (select) select.value = sheet.stats[idx] || '--'; });
           recomputeStatsFromSheet(sheet);
