@@ -878,9 +878,24 @@
 
         const numericTargets = [...constantInputs, formulaInput, ...cellInputs];
         const titleFields = [titleLine, sheetNameLine, ...headerNameEls, ...constNameEls].filter(Boolean);
+        const labelEditableFields = new Set([...headerNameEls, ...constNameEls].filter(Boolean));
         const editableTargets = [...numericTargets, ...titleFields];
         numericTargets.forEach((target) => { target.setAttribute('inputmode', 'none'); ['focus', 'pointerdown', 'click'].forEach((eventName) => target.addEventListener(eventName, () => activateTarget(target))); target.addEventListener('input', () => { resetClearStage(); persistFromDom(); }); });
-        titleFields.forEach((target) => { ['focus', 'pointerup', 'click'].forEach((eventName) => target.addEventListener(eventName, () => activateTarget(target))); target.addEventListener('input', () => { resetClearStage(); persistFromDom(); }); });
+        titleFields.forEach((target) => {
+          ['focus', 'pointerup', 'click'].forEach((eventName) => target.addEventListener(eventName, (event) => {
+            if (activeTarget === formulaInput && labelEditableFields.has(target)) {
+              if (event.cancelable) event.preventDefault();
+              event.stopPropagation();
+              const { start, end } = getSelection(formulaInput);
+              if (document.activeElement === target && target instanceof HTMLElement) target.blur();
+              formulaInput.focus({ preventScroll: true });
+              setSelection(formulaInput, start, end);
+              return;
+            }
+            activateTarget(target);
+          }));
+          target.addEventListener('input', () => { resetClearStage(); persistFromDom(); });
+        });
 
         const handleKeyPress = (key) => {
           const label = getKeyLabel(key);
