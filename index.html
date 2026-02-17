@@ -1129,6 +1129,7 @@
         const numericTargets = [...constantInputs, formulaInput, ...cellInputs];
         const titleFields = [titleLine, sheetNameLine, ...headerNameEls, ...constNameEls].filter(Boolean);
         const labelEditableFields = new Set([...headerNameEls, ...constNameEls].filter(Boolean));
+        const recalcOnBlurTargets = new Set([...constantInputs, formulaInput, ...cellInputs]);
         const editableTargets = [...numericTargets, ...titleFields];
         numericTargets.forEach((target) => { target.setAttribute('inputmode', 'none'); ['focus', 'pointerdown', 'click'].forEach((eventName) => target.addEventListener(eventName, () => activateTarget(target))); target.addEventListener('beforeinput', () => { if (activeTarget === target) captureUndoForFocusedTarget(); }); target.addEventListener('input', () => { resetClearStage(); persistFromDom(); }); });
         titleFields.forEach((target) => {
@@ -1264,7 +1265,17 @@
           resultHeaderTrigger.addEventListener('click', (event) => { event.preventDefault(); if (pointer) { pointer = false; return; } blurActiveTarget(); computeAllRows(); resetClearStage(); });
           resultHeaderTrigger.addEventListener('keydown', (event) => { if (!['Enter', ' '].includes(event.key)) return; event.preventDefault(); blurActiveTarget(); computeAllRows(); resetClearStage(); });
         }
-        editableTargets.forEach((target) => target.addEventListener('blur', () => { if (activeTarget === target) { target.classList.remove('is-active-target'); activeTarget = null; hasCapturedFocusUndo = false; updateKeyAvailability(); } persistFromDom(); }));
+        editableTargets.forEach((target) => target.addEventListener('blur', () => {
+          const shouldRecompute = activeTarget === target && recalcOnBlurTargets.has(target);
+          if (activeTarget === target) {
+            target.classList.remove('is-active-target');
+            activeTarget = null;
+            hasCapturedFocusUndo = false;
+            updateKeyAvailability();
+          }
+          if (shouldRecompute) computeAllRows();
+          else persistFromDom();
+        }));
         statCells.forEach((cell, idx) => { const select = cell.querySelector('select'); select?.addEventListener('change', () => { state.sheets[state.currentSheetIndex].stats[idx] = select.value; scheduleSave(); resetClearStage(); }); });
         document.addEventListener('keydown', (event) => { if (event.key !== 'Enter') return; if (!activeTarget || !editableTargets.includes(activeTarget)) return; event.preventDefault(); blurActiveTarget(); computeAllRows(); resetClearStage(); });
 
