@@ -489,6 +489,11 @@
         border-color: transparent;
       }
 
+      .key-active.is-danger {
+        background: #b43e4c;
+        color: #fff;
+      }
+
       .keypad.minimized {
         height: var(--keypad-min-h);
       }
@@ -726,7 +731,7 @@
           };
         };
 
-        const state = { sheets: [makeSheet(0), makeSheet(1), makeSheet(2)], currentSheetIndex: 0, formulaMode: 'name', clearStage: 0 };
+        const state = { sheets: [makeSheet(0), makeSheet(1), makeSheet(2)], currentSheetIndex: 0, formulaMode: 'name', clearStage: 0, acConfirmPresses: 0 };
 
         let saveTimer = null;
         const scheduleSave = () => {
@@ -763,7 +768,7 @@
             key.setAttribute('aria-disabled', enabled ? 'false' : 'true');
           });
           document.body.classList.toggle('formula-entry-active', isFormulaEntryContext());
-          const clearEnabled = isNumberEntryContext();
+          const clearEnabled = !!activeTarget || state.clearStage > 0;
           clearButton?.classList.toggle('is-inactive', !clearEnabled);
           clearButton?.setAttribute('aria-disabled', clearEnabled ? 'false' : 'true');
         };
@@ -781,8 +786,27 @@
         let activeTarget = null;
         let initialValueOnFocus = '';
 
-        const resetClearStage = () => { state.clearStage = 0; clearButton.textContent = 'C'; };
-        const advanceClearStage = () => { state.clearStage = Math.min(3, state.clearStage + 1); clearButton.textContent = ['C', '#C', '#C', 'AC'][state.clearStage]; };
+        const CLEAR_STAGE_META = [
+          { label: 'C', ariaLabel: 'Clear selected item', danger: false },
+          { label: '#C', ariaLabel: 'Clear all grid values', danger: false },
+          { label: 'CC', ariaLabel: 'Clear constants', danger: false },
+          { label: 'AC', ariaLabel: 'Clear entire sheet', danger: false },
+          { label: 'Rst', ariaLabel: 'Reset all sheets to defaults', danger: true }
+        ];
+        const syncClearButtonUi = () => {
+          if (!clearButton) return;
+          const meta = CLEAR_STAGE_META[state.clearStage] || CLEAR_STAGE_META[0];
+          clearButton.textContent = meta.label;
+          clearButton.setAttribute('aria-label', meta.ariaLabel);
+          clearButton.classList.toggle('is-danger', !!meta.danger);
+        };
+        const setClearStage = (nextStage) => {
+          state.clearStage = Math.max(0, Math.min(CLEAR_STAGE_META.length - 1, nextStage));
+          if (state.clearStage < 3) state.acConfirmPresses = 0;
+          syncClearButtonUi();
+          updateKeyAvailability();
+        };
+        const resetClearStage = () => setClearStage(0);
         const isInput = (el) => el instanceof HTMLInputElement;
         const getText = (el) => (isInput(el) ? el.value : (el.textContent || ''));
         const setText = (el, value) => { if (isInput(el)) el.value = value; else el.textContent = value; };
@@ -906,12 +930,44 @@
         const clearAction = () => {
           persistFromDom();
           const sheet = state.sheets[state.currentSheetIndex];
-          if (state.clearStage === 0) { if (activeTarget) setText(activeTarget, ''); }
-          else if (state.clearStage === 1) { const row = activeTarget?.closest?.('tr'); const rowIndex = dataRows.indexOf(row); if (rowIndex >= 0) sheet.rows[rowIndex] = { A: '', B: '', C: '', D: '', Result: '' }; }
-          else if (state.clearStage === 2) { sheet.constants = { V: '', W: '', X: '', Y: '', Z: '' }; sheet.formulaCanonical = ''; sheet.rows = makeBlankRows(); }
-          else { state.sheets = [makeSheet(0), makeSheet(1), makeSheet(2)]; state.currentSheetIndex = 2; }
+          if (state.clearStage === 0) {
+            if (!activeTarget) return;
+            if (!getText(activeTarget)) return;
+            setText(activeTarget, '');
+            setClearStage(1);
+            persistFromDom();
+            return;
+          }
+          if (state.clearStage === 1) {
+            sheet.rows = makeBlankRows();
+            renderSheet();
+            setClearStage(2);
+            scheduleSave();
+            return;
+          }
+          if (state.clearStage === 2) {
+            sheet.constants = { V: '', W: '', X: '', Y: '', Z: '' };
+            renderSheet();
+            setClearStage(3);
+            scheduleSave();
+            return;
+          }
+          if (state.clearStage === 3) {
+            if (state.acConfirmPresses === 0) {
+              state.sheets[state.currentSheetIndex] = makeSheet(state.currentSheetIndex);
+              blurActiveTarget();
+              renderSheet();
+              scheduleSave();
+            }
+            state.acConfirmPresses += 1;
+            if (state.acConfirmPresses >= 4) setClearStage(4);
+            return;
+          }
+          state.sheets = [makeSheet(0), makeSheet(1), makeSheet(2)];
+          state.currentSheetIndex = 2;
+          blurActiveTarget();
           renderSheet();
-          advanceClearStage();
+          resetClearStage();
           scheduleSave();
         };
 
@@ -1010,6 +1066,11 @@
 
         toggleButton?.addEventListener('click', () => { persistFromDom(); state.formulaMode = state.formulaMode === 'letter' ? 'name' : 'letter'; renderSheet(); scheduleSave(); resetClearStage(); });
         clearButton?.addEventListener('click', (event) => { event.preventDefault(); if (clearButton?.getAttribute('aria-disabled') === 'true') return; clearAction(); });
+        document.addEventListener('pointerdown', (event) => {
+          if (state.clearStage < 3) return;
+          if (clearButton?.contains(event.target)) return;
+          resetClearStage();
+        }, true);
         if (resultHeaderTrigger) {
           let pointer = false;
           resultHeaderTrigger.addEventListener('pointerdown', (event) => { event.preventDefault(); pointer = true; blurActiveTarget(); computeAllRows(); resetClearStage(); });
