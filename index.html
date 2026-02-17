@@ -876,6 +876,7 @@
         };
 
         const OPERATOR_LIKE_CHARS_RE = /[+\-*/^(),√\[\]]/;
+        const NUMERIC_NAME_RE = /^[-+]?\d+(?:\.\d+)?$/;
         const buildNameMaps = (sheet) => {
           const rawByLetter = {};
           const effectiveByLetter = {};
@@ -900,7 +901,8 @@
             const duplicated = (counts[base.toUpperCase()] || 0) > 1;
             const deduped = duplicated ? `${base}${letter}` : base;
             const isLetterName = ALL_LETTERS.includes(deduped.toUpperCase());
-            const needsBracket = deduped !== letter && (OPERATOR_LIKE_CHARS_RE.test(deduped) || isLetterName);
+            const isNumericName = NUMERIC_NAME_RE.test(deduped);
+            const needsBracket = deduped !== letter && (OPERATOR_LIKE_CHARS_RE.test(deduped) || isLetterName || isNumericName);
             const formulaName = needsBracket ? `[${deduped}]` : deduped;
             clean[letter] = formulaName;
             map[formulaName] = letter;
