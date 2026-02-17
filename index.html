@@ -354,23 +354,37 @@
       }
 
       .stat-cell {
-        border: 1px solid #d8d8de;
-        border-radius: 14px;
-        background: #ececf1;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
         height: 48px;
         display: grid;
         grid-template-rows: 1fr 1fr;
         align-items: center;
-        padding: 1px 6px;
+        padding: 0 4px;
       }
 
-      .stat-cell select,
+      .stat-cell select {
+        width: 100%;
+        height: 22px;
+        line-height: 22px;
+        border: 1px solid #d2d7e2;
+        border-radius: 6px;
+        background: #f6f8fb;
+        color: #2f5f9f;
+        font-size: 12px;
+        padding: 0 4px;
+      }
+
       .stat-cell output {
+        width: 100%;
+        height: 22px;
+        display: grid;
+        align-items: center;
         border: 0;
         background: transparent;
-        color: #2584e6;
-        font-size: 12px;
-        width: 100%;
+        color: #596275;
+        font-size: 13px;
       }
 
       .keypad {
