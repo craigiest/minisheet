@@ -1065,7 +1065,24 @@
         constTopEls.forEach((pill, idx) => bindFormulaInsertButton(pill, CONST_ORDER[idx]));
 
         toggleButton?.addEventListener('click', () => { persistFromDom(); state.formulaMode = state.formulaMode === 'letter' ? 'name' : 'letter'; renderSheet(); scheduleSave(); resetClearStage(); });
-        clearButton?.addEventListener('click', (event) => { event.preventDefault(); if (clearButton?.getAttribute('aria-disabled') === 'true') return; clearAction(); });
+        if (clearButton) {
+          let clearPointerTriggered = false;
+          clearButton.addEventListener('pointerdown', (event) => {
+            event.preventDefault();
+            clearPointerTriggered = true;
+            if (clearButton.getAttribute('aria-disabled') === 'true') return;
+            clearAction();
+          });
+          clearButton.addEventListener('click', (event) => {
+            event.preventDefault();
+            if (clearPointerTriggered) {
+              clearPointerTriggered = false;
+              return;
+            }
+            if (clearButton.getAttribute('aria-disabled') === 'true') return;
+            clearAction();
+          });
+        }
         document.addEventListener('pointerdown', (event) => {
           if (state.clearStage < 3) return;
           if (clearButton?.contains(event.target)) return;
