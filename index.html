@@ -785,6 +785,9 @@
 
         let activeTarget = null;
         let initialValueOnFocus = '';
+        let hasCapturedFocusUndo = false;
+        const MAX_UNDO_HISTORY = 5;
+        const undoHistoryBySheet = state.sheets.map(() => []);
 
         const CLEAR_STAGE_META = [
           { label: 'C', ariaLabel: 'Clear selected item', danger: false },
@@ -810,33 +813,90 @@
         const isInput = (el) => el instanceof HTMLInputElement;
         const getText = (el) => (isInput(el) ? el.value : (el.textContent || ''));
         const setText = (el, value) => { if (isInput(el)) el.value = value; else el.textContent = value; };
+        const cloneData = (value) => typeof structuredClone === 'function' ? structuredClone(value) : JSON.parse(JSON.stringify(value));
+        const ensureUndoHistoryAlignment = () => {
+          while (undoHistoryBySheet.length < state.sheets.length) undoHistoryBySheet.push([]);
+          if (undoHistoryBySheet.length > state.sheets.length) undoHistoryBySheet.length = state.sheets.length;
+        };
+        const currentUndoStack = () => {
+          ensureUndoHistoryAlignment();
+          return undoHistoryBySheet[state.currentSheetIndex] || (undoHistoryBySheet[state.currentSheetIndex] = []);
+        };
+        const clearAllUndoHistory = () => {
+          undoHistoryBySheet.length = 0;
+          state.sheets.forEach(() => undoHistoryBySheet.push([]));
+        };
+        const captureUndoSnapshot = () => {
+          persistFromDom();
+          const stack = currentUndoStack();
+          stack.push({
+            sheet: cloneData(state.sheets[state.currentSheetIndex]),
+            clearStage: state.clearStage,
+            acConfirmPresses: state.acConfirmPresses
+          });
+          if (stack.length > MAX_UNDO_HISTORY) stack.splice(0, stack.length - MAX_UNDO_HISTORY);
+        };
+        const captureUndoForFocusedTarget = () => {
+          if (!activeTarget || hasCapturedFocusUndo) return;
+          captureUndoSnapshot();
+          hasCapturedFocusUndo = true;
+        };
+        const restoreUndo = () => {
+          const stack = currentUndoStack();
+          if (!stack.length) return false;
+          const snap = stack.pop();
+          blurActiveTarget();
+          state.sheets[state.currentSheetIndex] = cloneData(snap.sheet);
+          state.clearStage = snap.clearStage;
+          state.acConfirmPresses = snap.acConfirmPresses;
+          renderSheet();
+          scheduleSave();
+          resetClearStage();
+          return true;
+        };
 
-        const sanitizeNameMap = (sheet) => {
-          const out = {};
-          const seen = new Set();
-          const reserved = new Set(['RESULT', 'SUM', 'AVG', 'MIN', 'MAX', 'COUNT', ...ALL_LETTERS]);
+        const OPERATOR_LIKE_CHARS_RE = /[+\-*/^(),√\[\]]/;
+        const buildNameMaps = (sheet) => {
+          const rawByLetter = {};
+          const effectiveByLetter = {};
           ALL_LETTERS.forEach((letter) => {
             const raw = String(sheet.names[letter] ?? '').trim();
-            let base = raw || letter;
-            if (reserved.has(base.toUpperCase())) base = `[${base}]`;
-            let next = base;
-            let n = 2;
-            while (seen.has(next.toUpperCase())) next = `${base}_${n++}`;
-            seen.add(next.toUpperCase());
-            out[letter] = next;
+            rawByLetter[letter] = raw;
+            effectiveByLetter[letter] = !raw || raw.toUpperCase() === letter ? letter : raw;
           });
-          return out;
+
+          const counts = {};
+          Object.values(effectiveByLetter).forEach((name) => {
+            const key = name.toUpperCase();
+            counts[key] = (counts[key] || 0) + 1;
+          });
+
+          const clean = {};
+          const map = {};
+          const ui = {};
+          ALL_LETTERS.forEach((letter) => {
+            const raw = rawByLetter[letter];
+            const base = effectiveByLetter[letter];
+            const duplicated = (counts[base.toUpperCase()] || 0) > 1;
+            const deduped = duplicated ? `${base}${letter}` : base;
+            const isLetterName = ALL_LETTERS.includes(deduped.toUpperCase());
+            const needsBracket = deduped !== letter && (OPERATOR_LIKE_CHARS_RE.test(deduped) || isLetterName);
+            const formulaName = needsBracket ? `[${deduped}]` : deduped;
+            clean[letter] = formulaName;
+            map[formulaName] = letter;
+            ui[letter] = raw || letter;
+          });
+          return { clean, map, ui };
         };
-        const buildNameToLetter = (sheet) => { const clean = sanitizeNameMap(sheet); const map = {}; Object.entries(clean).forEach(([k, v]) => { map[v] = k; }); return { clean, map }; };
-        const canonicalToDisplay = (canonical, sheet) => state.formulaMode === 'letter' ? canonical : String(canonical || '').replace(/[A-Za-z]/g, (m) => buildNameToLetter(sheet).clean[m.toUpperCase()] || m);
+        const canonicalToDisplay = (canonical, sheet) => state.formulaMode === 'letter' ? canonical : String(canonical || '').replace(/[A-Za-z]/g, (m) => buildNameMaps(sheet).clean[m.toUpperCase()] || m);
         const displayToCanonical = (display, sheet) => {
           let expr = String(display || '');
-          Object.entries(buildNameToLetter(sheet).map).sort((a, b) => b[0].length - a[0].length).forEach(([name, letter]) => { expr = expr.split(name).join(letter); });
+          Object.entries(buildNameMaps(sheet).map).sort((a, b) => b[0].length - a[0].length).forEach(([name, letter]) => { expr = expr.split(name).join(letter); });
           return expr;
         };
         const formulaTokenFor = (letter) => {
           if (state.formulaMode === 'letter') return letter;
-          const clean = sanitizeNameMap(state.sheets[state.currentSheetIndex]);
+          const clean = buildNameMaps(state.sheets[state.currentSheetIndex]).clean;
           return clean[letter] || letter;
         };
 
@@ -858,10 +918,49 @@
           const selection = window.getSelection(); selection.removeAllRanges(); selection.addRange(range);
         };
 
-        const activateTarget = (target) => { if (!target || activeTarget === target) return; if (activeTarget) activeTarget.classList.remove('is-active-target'); activeTarget = target; target.classList.add('is-active-target'); if (isInput(target) && document.activeElement !== target) target.focus({ preventScroll: true }); initialValueOnFocus = getText(target); resetClearStage(); updateKeyAvailability(); };
-        const blurActiveTarget = () => { if (!activeTarget) return; activeTarget.classList.remove('is-active-target'); if (document.activeElement instanceof HTMLElement) document.activeElement.blur(); activeTarget = null; updateKeyAvailability(); };
-        const insertIntoTarget = (text) => { if (!activeTarget) return; const value = getText(activeTarget); const { start, end } = getSelection(activeTarget); setText(activeTarget, value.slice(0, start) + text + value.slice(end)); setSelection(activeTarget, start + text.length); resetClearStage(); };
-        const deleteBackward = () => { if (!activeTarget) return; const value = getText(activeTarget); const { start, end } = getSelection(activeTarget); if (start !== end) { setText(activeTarget, value.slice(0, start) + value.slice(end)); setSelection(activeTarget, start); } else if (start > 0) { setText(activeTarget, value.slice(0, start - 1) + value.slice(start)); setSelection(activeTarget, start - 1); } resetClearStage(); };
+        const activateTarget = (target) => {
+          if (!target || activeTarget === target) return;
+          if (activeTarget) activeTarget.classList.remove('is-active-target');
+          activeTarget = target;
+          target.classList.add('is-active-target');
+          if (isInput(target) && document.activeElement !== target) target.focus({ preventScroll: true });
+          initialValueOnFocus = getText(target);
+          hasCapturedFocusUndo = false;
+          resetClearStage();
+          updateKeyAvailability();
+        };
+        const blurActiveTarget = () => {
+          if (!activeTarget) return;
+          activeTarget.classList.remove('is-active-target');
+          if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+          activeTarget = null;
+          hasCapturedFocusUndo = false;
+          updateKeyAvailability();
+        };
+        const insertIntoTarget = (text) => {
+          if (!activeTarget) return;
+          captureUndoForFocusedTarget();
+          const value = getText(activeTarget);
+          const { start, end } = getSelection(activeTarget);
+          setText(activeTarget, value.slice(0, start) + text + value.slice(end));
+          setSelection(activeTarget, start + text.length);
+          resetClearStage();
+        };
+        const deleteBackward = () => {
+          if (!activeTarget) return;
+          const value = getText(activeTarget);
+          const { start, end } = getSelection(activeTarget);
+          if (start !== end) {
+            captureUndoForFocusedTarget();
+            setText(activeTarget, value.slice(0, start) + value.slice(end));
+            setSelection(activeTarget, start);
+          } else if (start > 0) {
+            captureUndoForFocusedTarget();
+            setText(activeTarget, value.slice(0, start - 1) + value.slice(start));
+            setSelection(activeTarget, start - 1);
+          }
+          resetClearStage();
+        };
         const moveCursor = (delta) => { if (!activeTarget) return; const { start, end } = getSelection(activeTarget); const base = delta < 0 ? start : end; setSelection(activeTarget, Math.max(0, Math.min(base + delta, getText(activeTarget).length))); };
         const toNumericOrZero = (rawValue) => { const value = String(rawValue ?? '').trim(); if (!value) return 0; const numeric = Number(value); if (!Number.isFinite(numeric)) throw new Error('NON_NUMERIC'); return numeric; };
 
@@ -888,15 +987,15 @@
         };
         const renderSheet = () => {
           const sheet = state.sheets[state.currentSheetIndex];
-          const clean = sanitizeNameMap(sheet);
+          const { ui } = buildNameMaps(sheet);
           if (titleLine) titleLine.textContent = String(sheet.title ?? '');
           if (sheetNameLine) sheetNameLine.textContent = '';
           sheetIndexEl.textContent = `${state.currentSheetIndex + 1}/${state.sheets.length}`;
           formulaInput.value = canonicalToDisplay(sheet.formulaCanonical, sheet);
           toggleButton.innerHTML = state.formulaMode === 'letter' ? '<strong>A</strong> / Name' : 'A / <strong>Name</strong>';
           document.body.classList.toggle('formula-mode-name', state.formulaMode === 'name');
-          KEY_ORDER.forEach((key, idx) => { headerLetterEls[idx].textContent = key; headerNameEls[idx].textContent = clean[key]; headerNameEls[idx].style.display = ''; });
-          CONST_ORDER.forEach((key, idx) => { constLetterEls[idx].textContent = key; constNameEls[idx].textContent = clean[key]; constNameEls[idx].style.display = ''; constantInputs[idx].value = sheet.constants[key] || ''; });
+          KEY_ORDER.forEach((key, idx) => { headerLetterEls[idx].textContent = key; headerNameEls[idx].textContent = ui[key]; headerNameEls[idx].style.display = ''; });
+          CONST_ORDER.forEach((key, idx) => { constLetterEls[idx].textContent = key; constNameEls[idx].textContent = ui[key]; constNameEls[idx].style.display = ''; constantInputs[idx].value = sheet.constants[key] || ''; });
           rowBindings.forEach((row, ri) => { KEY_ORDER.forEach((key, ci) => { row.inputs[ci].value = sheet.rows[ri][key] || ''; }); row.resultCell.textContent = sheet.rows[ri].Result || ''; });
           statCells.forEach((cell, idx) => { const select = cell.querySelector('select'); if (select) select.value = sheet.stats[idx] || '--'; });
           recomputeStatsFromSheet(sheet);
@@ -923,15 +1022,36 @@
         const deleteBlankDynamicCurrentSheet = () => {
           const idx = state.currentSheetIndex;
           if (idx < 3 || state.sheets.length <= 3) return;
-          if (sheetIsBlank(state.sheets[idx])) { state.sheets.splice(idx, 1); if (state.currentSheetIndex >= state.sheets.length) state.currentSheetIndex = 0; }
+          if (sheetIsBlank(state.sheets[idx])) {
+            state.sheets.splice(idx, 1);
+            undoHistoryBySheet.splice(idx, 1);
+            if (state.currentSheetIndex >= state.sheets.length) state.currentSheetIndex = 0;
+          }
         };
-        const nav = (dir) => { persistFromDom(); const wasLast = state.currentSheetIndex === state.sheets.length - 1; deleteBlankDynamicCurrentSheet(); if (dir > 0 && wasLast) { state.sheets.push(makeSheet(state.sheets.length)); state.currentSheetIndex = state.sheets.length - 1; } else { state.currentSheetIndex = (state.currentSheetIndex + dir + state.sheets.length) % state.sheets.length; } renderSheet(); resetClearStage(); scheduleSave(); };
+        const nav = (dir) => {
+          persistFromDom();
+          const wasLast = state.currentSheetIndex === state.sheets.length - 1;
+          deleteBlankDynamicCurrentSheet();
+          if (dir > 0 && wasLast) {
+            state.sheets.push(makeSheet(state.sheets.length));
+            undoHistoryBySheet.push([]);
+            state.currentSheetIndex = state.sheets.length - 1;
+          } else {
+            state.currentSheetIndex = (state.currentSheetIndex + dir + state.sheets.length) % state.sheets.length;
+          }
+          ensureUndoHistoryAlignment();
+          renderSheet();
+          resetClearStage();
+          scheduleSave();
+        };
 
         const clearAction = () => {
           persistFromDom();
           const sheet = state.sheets[state.currentSheetIndex];
           if (state.clearStage === 0) {
             if (activeTarget && (numberEntryTargets.has(activeTarget) || labelEditableFields.has(activeTarget) || activeTarget === formulaInput) && getText(activeTarget)) {
+              captureUndoSnapshot();
+              hasCapturedFocusUndo = true;
               setText(activeTarget, '');
             }
             setClearStage(1);
@@ -939,6 +1059,7 @@
             return;
           }
           if (state.clearStage === 1) {
+            captureUndoSnapshot();
             sheet.rows = makeBlankRows();
             renderSheet();
             setClearStage(2);
@@ -946,6 +1067,7 @@
             return;
           }
           if (state.clearStage === 2) {
+            captureUndoSnapshot();
             sheet.constants = { V: '', W: '', X: '', Y: '', Z: '' };
             renderSheet();
             setClearStage(3);
@@ -954,6 +1076,7 @@
           }
           if (state.clearStage === 3) {
             if (state.acConfirmPresses === 0) {
+              captureUndoSnapshot();
               blurActiveTarget();
               state.sheets[state.currentSheetIndex] = makeSheet(state.currentSheetIndex);
               renderSheet();
@@ -966,6 +1089,7 @@
           blurActiveTarget();
           state.sheets = [makeSheet(0), makeSheet(1), makeSheet(2)];
           state.currentSheetIndex = 2;
+          clearAllUndoHistory();
           renderSheet();
           resetClearStage();
           scheduleSave();
@@ -975,7 +1099,7 @@
         const titleFields = [titleLine, sheetNameLine, ...headerNameEls, ...constNameEls].filter(Boolean);
         const labelEditableFields = new Set([...headerNameEls, ...constNameEls].filter(Boolean));
         const editableTargets = [...numericTargets, ...titleFields];
-        numericTargets.forEach((target) => { target.setAttribute('inputmode', 'none'); ['focus', 'pointerdown', 'click'].forEach((eventName) => target.addEventListener(eventName, () => activateTarget(target))); target.addEventListener('input', () => { resetClearStage(); persistFromDom(); }); });
+        numericTargets.forEach((target) => { target.setAttribute('inputmode', 'none'); ['focus', 'pointerdown', 'click'].forEach((eventName) => target.addEventListener(eventName, () => activateTarget(target))); target.addEventListener('beforeinput', () => { if (activeTarget === target) captureUndoForFocusedTarget(); }); target.addEventListener('input', () => { resetClearStage(); persistFromDom(); }); });
         titleFields.forEach((target) => {
           ['focus', 'pointerup', 'click'].forEach((eventName) => target.addEventListener(eventName, (event) => {
             if (activeTarget === formulaInput && labelEditableFields.has(target)) {
@@ -989,6 +1113,7 @@
             }
             activateTarget(target);
           }));
+          target.addEventListener('beforeinput', () => { if (activeTarget === target) captureUndoForFocusedTarget(); });
           target.addEventListener('input', () => { resetClearStage(); persistFromDom(); });
         });
 
@@ -1001,7 +1126,20 @@
             document.body.classList.toggle('keypad-is-minimized', isMinimized);
             return;
           }
-          if (key === undoKey) { if (!activeTarget) return; setText(activeTarget, initialValueOnFocus); setSelection(activeTarget, getText(activeTarget).length); resetClearStage(); return; }
+          if (key === undoKey) {
+            if (restoreUndo()) {
+              resetClearStage();
+              return;
+            }
+            if (activeTarget && getText(activeTarget) !== initialValueOnFocus) {
+              setText(activeTarget, initialValueOnFocus);
+              setSelection(activeTarget, getText(activeTarget).length);
+              hasCapturedFocusUndo = false;
+              persistFromDom();
+            }
+            resetClearStage();
+            return;
+          }
           if (key === backspaceKey) return deleteBackward();
           if (key === leftKey) return moveCursor(-1);
           if (key === rightKey) return moveCursor(1);
@@ -1094,7 +1232,7 @@
           resultHeaderTrigger.addEventListener('click', (event) => { event.preventDefault(); if (pointer) { pointer = false; return; } blurActiveTarget(); computeAllRows(); resetClearStage(); });
           resultHeaderTrigger.addEventListener('keydown', (event) => { if (!['Enter', ' '].includes(event.key)) return; event.preventDefault(); blurActiveTarget(); computeAllRows(); resetClearStage(); });
         }
-        editableTargets.forEach((target) => target.addEventListener('blur', () => { if (activeTarget === target) { target.classList.remove('is-active-target'); activeTarget = null; updateKeyAvailability(); } persistFromDom(); }));
+        editableTargets.forEach((target) => target.addEventListener('blur', () => { if (activeTarget === target) { target.classList.remove('is-active-target'); activeTarget = null; hasCapturedFocusUndo = false; updateKeyAvailability(); } persistFromDom(); }));
         statCells.forEach((cell, idx) => { const select = cell.querySelector('select'); select?.addEventListener('change', () => { state.sheets[state.currentSheetIndex].stats[idx] = select.value; scheduleSave(); resetClearStage(); }); });
         document.addEventListener('keydown', (event) => { if (event.key !== 'Enter') return; if (!activeTarget || !editableTargets.includes(activeTarget)) return; event.preventDefault(); blurActiveTarget(); computeAllRows(); resetClearStage(); });
 
@@ -1108,6 +1246,8 @@
             state.currentSheetIndex = 2;
           }
           while (state.sheets.length < 3) state.sheets.push(makeSheet(state.sheets.length));
+          clearAllUndoHistory();
+          ensureUndoHistoryAlignment();
           renderSheet();
           resetClearStage();
           updateKeyAvailability();
