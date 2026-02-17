@@ -226,12 +226,17 @@
         width: 100%;
         min-width: 0;
         height: 42px;
-        border: 2px solid var(--active-soft);
+        border: 2px solid #c7c7ce;
         border-radius: 10px;
-        box-shadow: 0 0 0 1px rgba(106, 168, 241, 0.35) inset;
+        box-shadow: none;
         background: #f0f0f2;
         font-size: 14px;
         padding: 6px 10px;
+      }
+
+      .formula-input.is-active-target {
+        border-color: var(--active-soft);
+        box-shadow: 0 0 0 1px rgba(106, 168, 241, 0.35) inset;
       }
 
       .toggle {
