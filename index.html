@@ -733,8 +733,26 @@
         };
 
         keys.forEach((key) => { let pointerTriggered = false; key.addEventListener('pointerdown', (event) => { event.preventDefault(); pointerTriggered = true; handleKeyPress(key); }); key.addEventListener('click', (event) => { event.preventDefault(); if (pointerTriggered) { pointerTriggered = false; return; } handleKeyPress(key); }); });
-        sheetNavButtons[0]?.addEventListener('click', () => { blurActiveTarget(); nav(-1); });
-        sheetNavButtons[1]?.addEventListener('click', () => { blurActiveTarget(); nav(1); });
+        const bindSheetArrow = (button, direction) => {
+          if (!button) return;
+          let pointerTriggered = false;
+          const navigate = () => { blurActiveTarget(); nav(direction); };
+          button.addEventListener('pointerdown', (event) => {
+            event.preventDefault();
+            pointerTriggered = true;
+            navigate();
+          });
+          button.addEventListener('click', (event) => {
+            event.preventDefault();
+            if (pointerTriggered) {
+              pointerTriggered = false;
+              return;
+            }
+            navigate();
+          });
+        };
+        bindSheetArrow(sheetNavButtons[0], -1);
+        bindSheetArrow(sheetNavButtons[1], 1);
 
         toggleButton?.addEventListener('click', () => { persistFromDom(); state.formulaMode = state.formulaMode === 'letter' ? 'name' : 'letter'; renderSheet(); scheduleSave(); resetClearStage(); });
         clearButton?.addEventListener('click', (event) => { event.preventDefault(); clearAction(); });
