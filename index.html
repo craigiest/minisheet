@@ -504,10 +504,11 @@
         const rightKey = keys.find((key) => key.textContent.trim() === '>');
         const resultKey = keys.find((key) => key.textContent.trim() === '=');
         const sheetNavButtons = [...document.querySelectorAll('.nav .arrow')];
+        const sheetTitleEl = document.querySelector('.sheet-title');
         const resultHeaderTrigger = document.querySelector('th.result-head');
         const clearButton = document.querySelector('.key-active');
         const toggleButton = document.querySelector('.toggle');
-        const titleLine = document.querySelector('.title-line');
+        const titleLine = document.querySelector('.title-line') || sheetTitleEl;
         const sheetIndexEl = document.querySelector('.sheet-index');
         const sheetNameLine = document.querySelector('.sheet-name');
         const formulaInput = document.querySelector('.formula-input');
@@ -640,8 +641,15 @@
         const recomputeStatsFromSheet = (sheet) => { statCells.forEach((cell, index) => { const output = cell.querySelector('output'); const statName = sheet.stats[index] || '--'; if (statName === '--') { output.textContent = '—'; return; } const values = sheet.rows.map((row) => index < 4 ? String(row[KEY_ORDER[index]] || '').trim() : String(row.Result || '').trim()).filter((v) => v !== '').map(Number).filter((n) => Number.isFinite(n)); output.textContent = applyStat(values, statName); }); };
         const persistFromDom = () => {
           const sheet = state.sheets[state.currentSheetIndex];
-          sheet.title = titleLine.textContent.trim() || 'Untitled';
-          sheet.name = sheetNameLine.textContent.trim() || `Sheet ${state.currentSheetIndex + 1}`;
+          const rawTitle = (titleLine?.textContent || '').trim();
+          if (sheetNameLine) {
+            sheet.title = rawTitle || 'Untitled';
+            sheet.name = (sheetNameLine.textContent || '').trim() || `Sheet ${state.currentSheetIndex + 1}`;
+          } else {
+            const [rawSheetTitle, rawSheetName] = rawTitle.split('|').map((part) => part.trim());
+            sheet.title = rawSheetTitle || 'Untitled';
+            sheet.name = rawSheetName || sheet.name || `Sheet ${state.currentSheetIndex + 1}`;
+          }
           sheet.formulaCanonical = displayToCanonical(formulaInput.value, sheet);
           [...headerNameEls, ...constNameEls].forEach((el, idx) => { const key = idx < 4 ? KEY_ORDER[idx] : CONST_ORDER[idx - 4]; sheet.names[key] = (el.textContent || '').trim(); });
           constantInputs.forEach((input, idx) => { sheet.constants[CONST_ORDER[idx]] = input.value; });
@@ -652,8 +660,12 @@
         const renderSheet = () => {
           const sheet = state.sheets[state.currentSheetIndex];
           const clean = sanitizeNameMap(sheet);
-          titleLine.textContent = sheet.title;
-          sheetNameLine.textContent = sheet.name;
+          if (sheetNameLine) {
+            titleLine.textContent = sheet.title;
+            sheetNameLine.textContent = sheet.name;
+          } else if (titleLine) {
+            titleLine.textContent = `${sheet.title} | ${sheet.name}`;
+          }
           sheetIndexEl.textContent = `${state.currentSheetIndex + 1}/${state.sheets.length}`;
           formulaInput.value = canonicalToDisplay(sheet.formulaCanonical, sheet);
           toggleButton.innerHTML = state.formulaMode === 'letter' ? '<strong>A</strong> / Name' : 'A / <strong>Name</strong>';
@@ -720,6 +732,7 @@
         keys.forEach((key) => { let pointerTriggered = false; key.addEventListener('pointerdown', (event) => { event.preventDefault(); pointerTriggered = true; handleKeyPress(key); }); key.addEventListener('click', (event) => { event.preventDefault(); if (pointerTriggered) { pointerTriggered = false; return; } handleKeyPress(key); }); });
         sheetNavButtons[0]?.addEventListener('click', () => { blurActiveTarget(); nav(-1); });
         sheetNavButtons[1]?.addEventListener('click', () => { blurActiveTarget(); nav(1); });
+
         toggleButton?.addEventListener('click', () => { persistFromDom(); state.formulaMode = state.formulaMode === 'letter' ? 'name' : 'letter'; renderSheet(); scheduleSave(); resetClearStage(); });
         clearButton?.addEventListener('click', (event) => { event.preventDefault(); clearAction(); });
         if (resultHeaderTrigger) {
