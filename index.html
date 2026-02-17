@@ -977,6 +977,27 @@
             setText(activeTarget, value.slice(0, start) + value.slice(end));
             setSelection(activeTarget, start);
           } else if (start > 0) {
+            if (activeTarget === formulaInput && state.formulaMode === 'name') {
+              const displayTokens = Object.values(buildNameMaps(state.sheets[state.currentSheetIndex]).clean).sort((a, b) => b.length - a.length);
+              let matchedRange = null;
+              displayTokens.forEach((token) => {
+                let index = value.indexOf(token);
+                while (index !== -1) {
+                  const endIndex = index + token.length;
+                  if (index < start && start <= endIndex) {
+                    if (!matchedRange || token.length > matchedRange.length) matchedRange = { start: index, end: endIndex, length: token.length };
+                  }
+                  index = value.indexOf(token, index + 1);
+                }
+              });
+              if (matchedRange) {
+                captureUndoForFocusedTarget();
+                setText(activeTarget, value.slice(0, matchedRange.start) + value.slice(matchedRange.end));
+                setSelection(activeTarget, matchedRange.start);
+                resetClearStage();
+                return;
+              }
+            }
             captureUndoForFocusedTarget();
             setText(activeTarget, value.slice(0, start - 1) + value.slice(start));
             setSelection(activeTarget, start - 1);
