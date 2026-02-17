@@ -445,11 +445,20 @@
       }
 
       .key {
+        appearance: none;
+        -webkit-appearance: none;
         border: 0;
         border-radius: 8px;
         background: var(--active);
+        box-shadow: none;
         color: #fff;
         font-size: 18px;
+        outline: none;
+      }
+
+      .key:focus-visible {
+        outline: 2px solid #f0f3fa;
+        outline-offset: 2px;
       }
 
       .key.light {
@@ -649,7 +658,7 @@
         const headerPills = [...document.querySelectorAll('thead .head-pill')];
         const getKeyLabel = (key) => key?.textContent.trim() || '';
         const NUMBER_ENTRY_KEY_LABELS = new Set(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '−', '↺', '⌫', '=', '↕']);
-        const FORMULA_ENTRY_KEY_LABELS = new Set(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '−', '+', '*', '/', '^', '(', ')', ',', ':', '⌫', '↺', '↕', '⌨︎']);
+        const FORMULA_ENTRY_KEY_LABELS = new Set(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '−', '+', '*', '/', '^', '(', ')', ',', '√', '⌫', '↺', '↕', '⌨︎']); // Re-add ':' only after range-based functions are supported.
 
         const asyncStorage = {
           async get() {
@@ -932,7 +941,11 @@
           if (key === rightKey) return moveCursor(1);
           if (key === resultKey) { blurActiveTarget(); computeAllRows(); resetClearStage(); return; }
           if (label === '⌨︎') return;
-          insertIntoTarget(label === '−' ? '-' : label);
+          if (label === '√') {
+            insertIntoTarget('√(');
+          } else {
+            insertIntoTarget(label === '−' ? '-' : label);
+          }
           persistFromDom();
         };
 
