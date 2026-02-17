@@ -785,6 +785,8 @@
 
         let activeTarget = null;
         let initialValueOnFocus = '';
+        let hasCapturedFocusUndo = false;
+        let undoSnapshot = null;
 
         const CLEAR_STAGE_META = [
           { label: 'C', ariaLabel: 'Clear selected item', danger: false },
@@ -810,6 +812,37 @@
         const isInput = (el) => el instanceof HTMLInputElement;
         const getText = (el) => (isInput(el) ? el.value : (el.textContent || ''));
         const setText = (el, value) => { if (isInput(el)) el.value = value; else el.textContent = value; };
+        const cloneData = (value) => typeof structuredClone === 'function' ? structuredClone(value) : JSON.parse(JSON.stringify(value));
+        const captureUndoSnapshot = () => {
+          persistFromDom();
+          undoSnapshot = {
+            sheets: cloneData(state.sheets),
+            currentSheetIndex: state.currentSheetIndex,
+            formulaMode: state.formulaMode,
+            clearStage: state.clearStage,
+            acConfirmPresses: state.acConfirmPresses
+          };
+        };
+        const captureUndoForFocusedTarget = () => {
+          if (!activeTarget || hasCapturedFocusUndo) return;
+          captureUndoSnapshot();
+          hasCapturedFocusUndo = true;
+        };
+        const restoreUndo = () => {
+          if (!undoSnapshot) return false;
+          const snap = undoSnapshot;
+          undoSnapshot = null;
+          state.sheets = cloneData(snap.sheets);
+          state.currentSheetIndex = snap.currentSheetIndex;
+          state.formulaMode = snap.formulaMode;
+          state.clearStage = snap.clearStage;
+          state.acConfirmPresses = snap.acConfirmPresses;
+          blurActiveTarget();
+          renderSheet();
+          scheduleSave();
+          resetClearStage();
+          return true;
+        };
 
         const OPERATOR_LIKE_CHARS_RE = /[+\-*/^(),√\[\]]/;
         const buildNameMaps = (sheet) => {
@@ -874,10 +907,49 @@
           const selection = window.getSelection(); selection.removeAllRanges(); selection.addRange(range);
         };
 
-        const activateTarget = (target) => { if (!target || activeTarget === target) return; if (activeTarget) activeTarget.classList.remove('is-active-target'); activeTarget = target; target.classList.add('is-active-target'); if (isInput(target) && document.activeElement !== target) target.focus({ preventScroll: true }); initialValueOnFocus = getText(target); resetClearStage(); updateKeyAvailability(); };
-        const blurActiveTarget = () => { if (!activeTarget) return; activeTarget.classList.remove('is-active-target'); if (document.activeElement instanceof HTMLElement) document.activeElement.blur(); activeTarget = null; updateKeyAvailability(); };
-        const insertIntoTarget = (text) => { if (!activeTarget) return; const value = getText(activeTarget); const { start, end } = getSelection(activeTarget); setText(activeTarget, value.slice(0, start) + text + value.slice(end)); setSelection(activeTarget, start + text.length); resetClearStage(); };
-        const deleteBackward = () => { if (!activeTarget) return; const value = getText(activeTarget); const { start, end } = getSelection(activeTarget); if (start !== end) { setText(activeTarget, value.slice(0, start) + value.slice(end)); setSelection(activeTarget, start); } else if (start > 0) { setText(activeTarget, value.slice(0, start - 1) + value.slice(start)); setSelection(activeTarget, start - 1); } resetClearStage(); };
+        const activateTarget = (target) => {
+          if (!target || activeTarget === target) return;
+          if (activeTarget) activeTarget.classList.remove('is-active-target');
+          activeTarget = target;
+          target.classList.add('is-active-target');
+          if (isInput(target) && document.activeElement !== target) target.focus({ preventScroll: true });
+          initialValueOnFocus = getText(target);
+          hasCapturedFocusUndo = false;
+          resetClearStage();
+          updateKeyAvailability();
+        };
+        const blurActiveTarget = () => {
+          if (!activeTarget) return;
+          activeTarget.classList.remove('is-active-target');
+          if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+          activeTarget = null;
+          hasCapturedFocusUndo = false;
+          updateKeyAvailability();
+        };
+        const insertIntoTarget = (text) => {
+          if (!activeTarget) return;
+          captureUndoForFocusedTarget();
+          const value = getText(activeTarget);
+          const { start, end } = getSelection(activeTarget);
+          setText(activeTarget, value.slice(0, start) + text + value.slice(end));
+          setSelection(activeTarget, start + text.length);
+          resetClearStage();
+        };
+        const deleteBackward = () => {
+          if (!activeTarget) return;
+          const value = getText(activeTarget);
+          const { start, end } = getSelection(activeTarget);
+          if (start !== end) {
+            captureUndoForFocusedTarget();
+            setText(activeTarget, value.slice(0, start) + value.slice(end));
+            setSelection(activeTarget, start);
+          } else if (start > 0) {
+            captureUndoForFocusedTarget();
+            setText(activeTarget, value.slice(0, start - 1) + value.slice(start));
+            setSelection(activeTarget, start - 1);
+          }
+          resetClearStage();
+        };
         const moveCursor = (delta) => { if (!activeTarget) return; const { start, end } = getSelection(activeTarget); const base = delta < 0 ? start : end; setSelection(activeTarget, Math.max(0, Math.min(base + delta, getText(activeTarget).length))); };
         const toNumericOrZero = (rawValue) => { const value = String(rawValue ?? '').trim(); if (!value) return 0; const numeric = Number(value); if (!Number.isFinite(numeric)) throw new Error('NON_NUMERIC'); return numeric; };
 
@@ -948,6 +1020,8 @@
           const sheet = state.sheets[state.currentSheetIndex];
           if (state.clearStage === 0) {
             if (activeTarget && (numberEntryTargets.has(activeTarget) || labelEditableFields.has(activeTarget) || activeTarget === formulaInput) && getText(activeTarget)) {
+              captureUndoSnapshot();
+              hasCapturedFocusUndo = true;
               setText(activeTarget, '');
             }
             setClearStage(1);
@@ -955,6 +1029,7 @@
             return;
           }
           if (state.clearStage === 1) {
+            captureUndoSnapshot();
             sheet.rows = makeBlankRows();
             renderSheet();
             setClearStage(2);
@@ -962,6 +1037,7 @@
             return;
           }
           if (state.clearStage === 2) {
+            captureUndoSnapshot();
             sheet.constants = { V: '', W: '', X: '', Y: '', Z: '' };
             renderSheet();
             setClearStage(3);
@@ -970,6 +1046,7 @@
           }
           if (state.clearStage === 3) {
             if (state.acConfirmPresses === 0) {
+              captureUndoSnapshot();
               blurActiveTarget();
               state.sheets[state.currentSheetIndex] = makeSheet(state.currentSheetIndex);
               renderSheet();
@@ -979,6 +1056,7 @@
             if (state.acConfirmPresses >= 4) setClearStage(4);
             return;
           }
+          undoSnapshot = null;
           blurActiveTarget();
           state.sheets = [makeSheet(0), makeSheet(1), makeSheet(2)];
           state.currentSheetIndex = 2;
@@ -991,7 +1069,7 @@
         const titleFields = [titleLine, sheetNameLine, ...headerNameEls, ...constNameEls].filter(Boolean);
         const labelEditableFields = new Set([...headerNameEls, ...constNameEls].filter(Boolean));
         const editableTargets = [...numericTargets, ...titleFields];
-        numericTargets.forEach((target) => { target.setAttribute('inputmode', 'none'); ['focus', 'pointerdown', 'click'].forEach((eventName) => target.addEventListener(eventName, () => activateTarget(target))); target.addEventListener('input', () => { resetClearStage(); persistFromDom(); }); });
+        numericTargets.forEach((target) => { target.setAttribute('inputmode', 'none'); ['focus', 'pointerdown', 'click'].forEach((eventName) => target.addEventListener(eventName, () => activateTarget(target))); target.addEventListener('beforeinput', () => { if (activeTarget === target) captureUndoForFocusedTarget(); }); target.addEventListener('input', () => { resetClearStage(); persistFromDom(); }); });
         titleFields.forEach((target) => {
           ['focus', 'pointerup', 'click'].forEach((eventName) => target.addEventListener(eventName, (event) => {
             if (activeTarget === formulaInput && labelEditableFields.has(target)) {
@@ -1005,6 +1083,7 @@
             }
             activateTarget(target);
           }));
+          target.addEventListener('beforeinput', () => { if (activeTarget === target) captureUndoForFocusedTarget(); });
           target.addEventListener('input', () => { resetClearStage(); persistFromDom(); });
         });
 
@@ -1017,7 +1096,20 @@
             document.body.classList.toggle('keypad-is-minimized', isMinimized);
             return;
           }
-          if (key === undoKey) { if (!activeTarget) return; setText(activeTarget, initialValueOnFocus); setSelection(activeTarget, getText(activeTarget).length); resetClearStage(); return; }
+          if (key === undoKey) {
+            if (activeTarget && getText(activeTarget) !== initialValueOnFocus) {
+              if (!hasCapturedFocusUndo) captureUndoSnapshot();
+              setText(activeTarget, initialValueOnFocus);
+              setSelection(activeTarget, getText(activeTarget).length);
+              hasCapturedFocusUndo = false;
+              persistFromDom();
+              resetClearStage();
+              return;
+            }
+            restoreUndo();
+            resetClearStage();
+            return;
+          }
           if (key === backspaceKey) return deleteBackward();
           if (key === leftKey) return moveCursor(-1);
           if (key === rightKey) return moveCursor(1);
@@ -1110,7 +1202,7 @@
           resultHeaderTrigger.addEventListener('click', (event) => { event.preventDefault(); if (pointer) { pointer = false; return; } blurActiveTarget(); computeAllRows(); resetClearStage(); });
           resultHeaderTrigger.addEventListener('keydown', (event) => { if (!['Enter', ' '].includes(event.key)) return; event.preventDefault(); blurActiveTarget(); computeAllRows(); resetClearStage(); });
         }
-        editableTargets.forEach((target) => target.addEventListener('blur', () => { if (activeTarget === target) { target.classList.remove('is-active-target'); activeTarget = null; updateKeyAvailability(); } persistFromDom(); }));
+        editableTargets.forEach((target) => target.addEventListener('blur', () => { if (activeTarget === target) { target.classList.remove('is-active-target'); activeTarget = null; hasCapturedFocusUndo = false; updateKeyAvailability(); } persistFromDom(); }));
         statCells.forEach((cell, idx) => { const select = cell.querySelector('select'); select?.addEventListener('change', () => { state.sheets[state.currentSheetIndex].stats[idx] = select.value; scheduleSave(); resetClearStage(); }); });
         document.addEventListener('keydown', (event) => { if (event.key !== 'Enter') return; if (!activeTarget || !editableTargets.includes(activeTarget)) return; event.preventDefault(); blurActiveTarget(); computeAllRows(); resetClearStage(); });
 
