@@ -773,6 +773,11 @@
           Object.entries(buildNameToLetter(sheet).map).sort((a, b) => b[0].length - a[0].length).forEach(([name, letter]) => { expr = expr.split(name).join(letter); });
           return expr;
         };
+        const formulaTokenFor = (letter) => {
+          if (state.formulaMode === 'letter') return letter;
+          const clean = sanitizeNameMap(state.sheets[state.currentSheetIndex]);
+          return clean[letter] || letter;
+        };
 
         const getSelection = (el) => {
           if (isInput(el)) return { start: el.selectionStart ?? 0, end: el.selectionEnd ?? 0 };
@@ -916,6 +921,33 @@
         };
         bindSheetArrow(sheetNavButtons[0], -1);
         bindSheetArrow(sheetNavButtons[1], 1);
+
+        const bindFormulaInsertButton = (button, letter) => {
+          if (!button) return;
+          let pointerTriggered = false;
+          const insertToken = (event) => {
+            if (activeTarget !== formulaInput) return;
+            event.preventDefault();
+            event.stopPropagation();
+            pointerTriggered = true;
+            insertIntoTarget(formulaTokenFor(letter));
+            persistFromDom();
+          };
+          button.addEventListener('pointerdown', insertToken, true);
+          button.addEventListener('click', (event) => {
+            if (activeTarget !== formulaInput) return;
+            event.preventDefault();
+            event.stopPropagation();
+            if (pointerTriggered) {
+              pointerTriggered = false;
+              return;
+            }
+            insertIntoTarget(formulaTokenFor(letter));
+            persistFromDom();
+          }, true);
+        };
+        headerPills.slice(0, 4).forEach((pill, idx) => bindFormulaInsertButton(pill, KEY_ORDER[idx]));
+        constTopEls.forEach((pill, idx) => bindFormulaInsertButton(pill, CONST_ORDER[idx]));
 
         toggleButton?.addEventListener('click', () => { persistFromDom(); state.formulaMode = state.formulaMode === 'letter' ? 'name' : 'letter'; renderSheet(); scheduleSave(); resetClearStage(); });
         clearButton?.addEventListener('click', (event) => { event.preventDefault(); if (clearButton?.getAttribute('aria-disabled') === 'true') return; clearAction(); });
