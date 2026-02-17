@@ -12,11 +12,14 @@
         --text: #1d2029;
         --active: #305596;
         --active-soft: #6aa8f1;
-        --nav-h: 56px;
-        --const-h: 86px;
+        --nav-h: 34px;
+        --const-h: 74px;
         --formula-h: 56px;
         --keypad-h: 238px;
-        --keypad-min-h: 56px;
+        --keypad-min-h: 50px;
+        --keypad-pad: 6px;
+        --key-gap: 6px;
+        --key-row-h: calc((var(--keypad-h) - (var(--keypad-pad) * 2) - (var(--key-gap) * 5)) / 6);
         --keypad-active-h: var(--keypad-h);
         --keypad-bg: #7082a7;
       }
@@ -80,7 +83,7 @@
         grid-template-columns: 34px minmax(0,1fr) 34px;
         gap: 6px;
         align-items: center;
-        padding: 6px 8px;
+        padding: 2px 8px 6px;
         z-index: 60;
         isolation: isolate;
       }
@@ -146,9 +149,9 @@
       .clear-cell,
       .const-cell {
         border-right: 1px solid var(--line);
-        padding: 6px 4px;
+        padding: 4px;
         display: grid;
-        gap: 4px;
+        gap: 2px;
         align-content: center;
       }
 
@@ -264,8 +267,8 @@
         table-layout: fixed;
       }
 
-      col.col-num { width: 10%; }
-      col.col-main { width: 17%; }
+      col.col-num { width: 6%; }
+      col.col-main { width: 18%; }
       col.col-result { width: 22%; }
 
       th,
@@ -301,6 +304,7 @@
       }
 
       .num-head {
+        top: 0;
         text-align: center;
       }
 
@@ -323,7 +327,7 @@
         background: #f1f1f3;
         color: var(--text);
         border-radius: 8px;
-        min-height: 38px;
+        min-height: 34px;
         display: grid;
         align-content: center;
         justify-items: center;
@@ -341,7 +345,7 @@
       .result-head .head-pill {
         background: var(--active);
         color: #fff;
-        min-height: 38px;
+        min-height: 34px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -382,7 +386,7 @@
         background: var(--panel);
         border-top: 2px solid #a4acb8;
         padding: 4px;
-        height: 58px;
+        height: 56px;
       }
 
       tfoot {
@@ -398,7 +402,7 @@
         border: 0;
         border-radius: 0;
         background: transparent;
-        height: 48px;
+        height: 46px;
         display: grid;
         grid-template-rows: 1fr 1fr;
         align-items: center;
@@ -437,7 +441,7 @@
         right: 0;
         bottom: env(safe-area-inset-bottom);
         height: var(--keypad-h);
-        padding: 6px;
+        padding: var(--keypad-pad);
         background: var(--keypad-bg);
         border-top: 1px solid #5d6f97;
         z-index: 41;
@@ -449,7 +453,7 @@
         display: grid;
         grid-template-columns: repeat(6, minmax(0, 1fr));
         grid-template-rows: repeat(6, minmax(0, 1fr));
-        gap: 6px;
+        gap: var(--key-gap);
       }
 
       .key {
@@ -499,7 +503,12 @@
       }
 
       .keypad.minimized .keys {
-        grid-template-rows: 1fr;
+        grid-template-rows: var(--key-row-h);
+        align-content: start;
+      }
+
+      .keypad.minimized .key {
+        height: var(--key-row-h);
       }
 
       .keypad.minimized .key:nth-child(n + 7) {
@@ -617,7 +626,7 @@
 
     <section class="keypad" aria-label="Bottom keypad">
       <div class="keys">
-        <button class="key">↺</button><button class="key">⌨︎</button><button class="key">↕</button><button class="key">:</button><button class="key">√</button><button class="key">⌫</button>
+        <button class="key">⤺</button><button class="key">⌨︎</button><button class="key">⤓</button><button class="key">:</button><button class="key">√</button><button class="key">⌫</button>
         <button class="key light">&lt;</button><button class="key light">&gt;</button><button class="key">(</button><button class="key">)</button><button class="key">^</button><button class="key">/</button>
         <button class="key light">IF</button><button class="key light">AVG</button><button class="key">7</button><button class="key">8</button><button class="key">9</button><button class="key">*</button>
         <button class="key light">AND</button><button class="key light">SUM</button><button class="key">4</button><button class="key">5</button><button class="key">6</button><button class="key">−</button>
@@ -647,10 +656,14 @@
         const ALL_LETTERS = [...KEY_ORDER, ...CONST_ORDER];
         const STORAGE_KEY = 'minisheet-v2';
 
+        const UNDO_KEY_LABEL = '⤺';
+        const MINIMIZE_KEY_LABEL = '⤓';
+        const MAXIMIZE_KEY_LABEL = '⤒';
+
         const keypad = document.querySelector('.keypad');
         const keys = [...document.querySelectorAll('.keypad .key')];
-        const minimizeKey = keys.find((key) => key.textContent.trim() === '↕');
-        const undoKey = keys.find((key) => key.textContent.trim() === '↺');
+        const minimizeKey = keys.find((key) => key.textContent.trim() === MINIMIZE_KEY_LABEL);
+        const undoKey = keys.find((key) => key.textContent.trim() === UNDO_KEY_LABEL);
         const backspaceKey = keys.find((key) => key.textContent.trim() === '⌫');
         const leftKey = keys.find((key) => key.textContent.trim() === '<');
         const rightKey = keys.find((key) => key.textContent.trim() === '>');
@@ -670,8 +683,8 @@
         const statCells = [...document.querySelectorAll('tfoot .stat-cell')];
         const headerPills = [...document.querySelectorAll('thead .head-pill')];
         const getKeyLabel = (key) => key?.textContent.trim() || '';
-        const NUMBER_ENTRY_KEY_LABELS = new Set(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '−', '↺', '⌫', '=', '↕']);
-        const FORMULA_ENTRY_KEY_LABELS = new Set(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '−', '+', '*', '/', '^', '(', ')', ',', ':', '⌫', '↺', '↕', '⌨︎']);
+        const NUMBER_ENTRY_KEY_LABELS = new Set(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '−', UNDO_KEY_LABEL, '⌫', '=', MINIMIZE_KEY_LABEL, MAXIMIZE_KEY_LABEL]);
+        const FORMULA_ENTRY_KEY_LABELS = new Set(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '−', '+', '*', '/', '^', '(', ')', ',', ':', '⌫', UNDO_KEY_LABEL, MINIMIZE_KEY_LABEL, MAXIMIZE_KEY_LABEL, '⌨︎']);
 
         const asyncStorage = {
           async get() {
@@ -785,6 +798,9 @@
 
         let activeTarget = null;
         let initialValueOnFocus = '';
+        let hasCapturedFocusUndo = false;
+        const MAX_UNDO_HISTORY = 5;
+        const undoHistoryBySheet = state.sheets.map(() => []);
 
         const CLEAR_STAGE_META = [
           { label: 'C', ariaLabel: 'Clear selected item', danger: false },
@@ -810,33 +826,90 @@
         const isInput = (el) => el instanceof HTMLInputElement;
         const getText = (el) => (isInput(el) ? el.value : (el.textContent || ''));
         const setText = (el, value) => { if (isInput(el)) el.value = value; else el.textContent = value; };
+        const cloneData = (value) => typeof structuredClone === 'function' ? structuredClone(value) : JSON.parse(JSON.stringify(value));
+        const ensureUndoHistoryAlignment = () => {
+          while (undoHistoryBySheet.length < state.sheets.length) undoHistoryBySheet.push([]);
+          if (undoHistoryBySheet.length > state.sheets.length) undoHistoryBySheet.length = state.sheets.length;
+        };
+        const currentUndoStack = () => {
+          ensureUndoHistoryAlignment();
+          return undoHistoryBySheet[state.currentSheetIndex] || (undoHistoryBySheet[state.currentSheetIndex] = []);
+        };
+        const clearAllUndoHistory = () => {
+          undoHistoryBySheet.length = 0;
+          state.sheets.forEach(() => undoHistoryBySheet.push([]));
+        };
+        const captureUndoSnapshot = () => {
+          persistFromDom();
+          const stack = currentUndoStack();
+          stack.push({
+            sheet: cloneData(state.sheets[state.currentSheetIndex]),
+            clearStage: state.clearStage,
+            acConfirmPresses: state.acConfirmPresses
+          });
+          if (stack.length > MAX_UNDO_HISTORY) stack.splice(0, stack.length - MAX_UNDO_HISTORY);
+        };
+        const captureUndoForFocusedTarget = () => {
+          if (!activeTarget || hasCapturedFocusUndo) return;
+          captureUndoSnapshot();
+          hasCapturedFocusUndo = true;
+        };
+        const restoreUndo = () => {
+          const stack = currentUndoStack();
+          if (!stack.length) return false;
+          const snap = stack.pop();
+          blurActiveTarget();
+          state.sheets[state.currentSheetIndex] = cloneData(snap.sheet);
+          state.clearStage = snap.clearStage;
+          state.acConfirmPresses = snap.acConfirmPresses;
+          renderSheet();
+          scheduleSave();
+          resetClearStage();
+          return true;
+        };
 
-        const sanitizeNameMap = (sheet) => {
-          const out = {};
-          const seen = new Set();
-          const reserved = new Set(['RESULT', 'SUM', 'AVG', 'MIN', 'MAX', 'COUNT', ...ALL_LETTERS]);
+        const OPERATOR_LIKE_CHARS_RE = /[+\-*/^(),√\[\]]/;
+        const buildNameMaps = (sheet) => {
+          const rawByLetter = {};
+          const effectiveByLetter = {};
           ALL_LETTERS.forEach((letter) => {
             const raw = String(sheet.names[letter] ?? '').trim();
-            let base = raw || letter;
-            if (reserved.has(base.toUpperCase())) base = `[${base}]`;
-            let next = base;
-            let n = 2;
-            while (seen.has(next.toUpperCase())) next = `${base}_${n++}`;
-            seen.add(next.toUpperCase());
-            out[letter] = next;
+            rawByLetter[letter] = raw;
+            effectiveByLetter[letter] = !raw || raw.toUpperCase() === letter ? letter : raw;
           });
-          return out;
+
+          const counts = {};
+          Object.values(effectiveByLetter).forEach((name) => {
+            const key = name.toUpperCase();
+            counts[key] = (counts[key] || 0) + 1;
+          });
+
+          const clean = {};
+          const map = {};
+          const ui = {};
+          ALL_LETTERS.forEach((letter) => {
+            const raw = rawByLetter[letter];
+            const base = effectiveByLetter[letter];
+            const duplicated = (counts[base.toUpperCase()] || 0) > 1;
+            const deduped = duplicated ? `${base}${letter}` : base;
+            const isLetterName = ALL_LETTERS.includes(deduped.toUpperCase());
+            const needsBracket = deduped !== letter && (OPERATOR_LIKE_CHARS_RE.test(deduped) || isLetterName);
+            const formulaName = needsBracket ? `[${deduped}]` : deduped;
+            clean[letter] = formulaName;
+            map[formulaName] = letter;
+            ui[letter] = raw || letter;
+          });
+          return { clean, map, ui };
         };
-        const buildNameToLetter = (sheet) => { const clean = sanitizeNameMap(sheet); const map = {}; Object.entries(clean).forEach(([k, v]) => { map[v] = k; }); return { clean, map }; };
-        const canonicalToDisplay = (canonical, sheet) => state.formulaMode === 'letter' ? canonical : String(canonical || '').replace(/[A-Za-z]/g, (m) => buildNameToLetter(sheet).clean[m.toUpperCase()] || m);
+        const canonicalToDisplay = (canonical, sheet) => state.formulaMode === 'letter' ? canonical : String(canonical || '').replace(/[A-Za-z]/g, (m) => buildNameMaps(sheet).clean[m.toUpperCase()] || m);
         const displayToCanonical = (display, sheet) => {
           let expr = String(display || '');
-          Object.entries(buildNameToLetter(sheet).map).sort((a, b) => b[0].length - a[0].length).forEach(([name, letter]) => { expr = expr.split(name).join(letter); });
+          Object.entries(buildNameMaps(sheet).map).sort((a, b) => b[0].length - a[0].length).forEach(([name, letter]) => { expr = expr.split(name).join(letter); });
           return expr;
         };
         const formulaTokenFor = (letter) => {
           if (state.formulaMode === 'letter') return letter;
-          const clean = sanitizeNameMap(state.sheets[state.currentSheetIndex]);
+          const clean = buildNameMaps(state.sheets[state.currentSheetIndex]).clean;
           return clean[letter] || letter;
         };
 
@@ -858,17 +931,56 @@
           const selection = window.getSelection(); selection.removeAllRanges(); selection.addRange(range);
         };
 
-        const activateTarget = (target) => { if (!target || activeTarget === target) return; if (activeTarget) activeTarget.classList.remove('is-active-target'); activeTarget = target; target.classList.add('is-active-target'); if (isInput(target) && document.activeElement !== target) target.focus({ preventScroll: true }); initialValueOnFocus = getText(target); resetClearStage(); updateKeyAvailability(); };
-        const blurActiveTarget = () => { if (!activeTarget) return; activeTarget.classList.remove('is-active-target'); if (document.activeElement instanceof HTMLElement) document.activeElement.blur(); activeTarget = null; updateKeyAvailability(); };
-        const insertIntoTarget = (text) => { if (!activeTarget) return; const value = getText(activeTarget); const { start, end } = getSelection(activeTarget); setText(activeTarget, value.slice(0, start) + text + value.slice(end)); setSelection(activeTarget, start + text.length); resetClearStage(); };
-        const deleteBackward = () => { if (!activeTarget) return; const value = getText(activeTarget); const { start, end } = getSelection(activeTarget); if (start !== end) { setText(activeTarget, value.slice(0, start) + value.slice(end)); setSelection(activeTarget, start); } else if (start > 0) { setText(activeTarget, value.slice(0, start - 1) + value.slice(start)); setSelection(activeTarget, start - 1); } resetClearStage(); };
+        const activateTarget = (target) => {
+          if (!target || activeTarget === target) return;
+          if (activeTarget) activeTarget.classList.remove('is-active-target');
+          activeTarget = target;
+          target.classList.add('is-active-target');
+          if (isInput(target) && document.activeElement !== target) target.focus({ preventScroll: true });
+          initialValueOnFocus = getText(target);
+          hasCapturedFocusUndo = false;
+          resetClearStage();
+          updateKeyAvailability();
+        };
+        const blurActiveTarget = () => {
+          if (!activeTarget) return;
+          activeTarget.classList.remove('is-active-target');
+          if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+          activeTarget = null;
+          hasCapturedFocusUndo = false;
+          updateKeyAvailability();
+        };
+        const insertIntoTarget = (text) => {
+          if (!activeTarget) return;
+          captureUndoForFocusedTarget();
+          const value = getText(activeTarget);
+          const { start, end } = getSelection(activeTarget);
+          setText(activeTarget, value.slice(0, start) + text + value.slice(end));
+          setSelection(activeTarget, start + text.length);
+          resetClearStage();
+        };
+        const deleteBackward = () => {
+          if (!activeTarget) return;
+          const value = getText(activeTarget);
+          const { start, end } = getSelection(activeTarget);
+          if (start !== end) {
+            captureUndoForFocusedTarget();
+            setText(activeTarget, value.slice(0, start) + value.slice(end));
+            setSelection(activeTarget, start);
+          } else if (start > 0) {
+            captureUndoForFocusedTarget();
+            setText(activeTarget, value.slice(0, start - 1) + value.slice(start));
+            setSelection(activeTarget, start - 1);
+          }
+          resetClearStage();
+        };
         const moveCursor = (delta) => { if (!activeTarget) return; const { start, end } = getSelection(activeTarget); const base = delta < 0 ? start : end; setSelection(activeTarget, Math.max(0, Math.min(base + delta, getText(activeTarget).length))); };
         const toNumericOrZero = (rawValue) => { const value = String(rawValue ?? '').trim(); if (!value) return 0; const numeric = Number(value); if (!Number.isFinite(numeric)) throw new Error('NON_NUMERIC'); return numeric; };
 
         const tokenize = (source) => { const tokens = []; const text = String(source ?? ''); let index = 0; while (index < text.length) { const char = text[index]; if (/\s/.test(char)) { index += 1; continue; } if ((char >= '0' && char <= '9') || char === '.') { let end = index; while (end < text.length && /[0-9.]/.test(text[end])) end += 1; const literal = text.slice(index, end); if ((literal.match(/\./g) || []).length > 1 || literal === '.') throw new SyntaxError('Invalid number'); tokens.push({ type: 'number', value: Number(literal) }); index = end; continue; } const normalized = char === '−' ? '-' : char; if ('+-*/^'.includes(normalized)) { tokens.push({ type: 'operator', value: normalized }); index += 1; continue; } if (normalized === '(' || normalized === ')') { tokens.push({ type: 'paren', value: normalized }); index += 1; continue; } if (normalized === ',') { tokens.push({ type: 'comma', value: ',' }); index += 1; continue; } if (normalized === '√') { tokens.push({ type: 'root', value: '√' }); index += 1; continue; } if (/[A-Za-z]/.test(normalized)) { const upper = normalized.toUpperCase(); if (!ALL_LETTERS.includes(upper)) throw new SyntaxError('Unknown variable'); tokens.push({ type: 'variable', value: upper }); index += 1; continue; } throw new SyntaxError('Unexpected token'); } return tokens; };
         const parse = (tokens) => { let cursor = 0; const peek = () => tokens[cursor]; const consume = () => tokens[cursor++]; const primary = () => { const token = peek(); if (!token) throw new SyntaxError('Unexpected end'); if (token.type === 'number') return consume(), { type: 'number', value: token.value }; if (token.type === 'variable') return consume(), { type: 'variable', name: token.value }; if (token.type === 'paren' && token.value === '(') { consume(); const expr = expression(); const close = consume(); if (!close || close.type !== 'paren' || close.value !== ')') throw new SyntaxError('Missing close paren'); return expr; } if (token.type === 'root') { consume(); const open = consume(); if (!open || open.type !== 'paren' || open.value !== '(') throw new SyntaxError('Root call requires parenthesis'); const first = expression(); if (peek()?.type === 'comma') { consume(); const second = expression(); const close = consume(); if (!close || close.type !== 'paren' || close.value !== ')') throw new SyntaxError('Missing close paren'); return { type: 'root', degree: first, radicand: second }; } const close = consume(); if (!close || close.type !== 'paren' || close.value !== ')') throw new SyntaxError('Missing close paren'); return { type: 'root', degree: null, radicand: first }; } throw new SyntaxError('Unexpected token'); }; const unary = () => peek()?.type === 'operator' && '+-'.includes(peek().value) ? { type: 'unary', operator: consume().value, argument: unary() } : primary(); const power = () => { let left = unary(); while (peek()?.type === 'operator' && peek().value === '^') left = { type: 'binary', operator: consume().value, left, right: unary() }; return left; }; const term = () => { let left = power(); while (peek()?.type === 'operator' && '*/'.includes(peek().value)) left = { type: 'binary', operator: consume().value, left, right: power() }; return left; }; const expression = () => { let left = term(); while (peek()?.type === 'operator' && '+-'.includes(peek().value)) left = { type: 'binary', operator: consume().value, left, right: term() }; return left; }; const ast = expression(); if (cursor < tokens.length) throw new SyntaxError('Trailing tokens'); return ast; };
         const evaluateAst = (node, scope) => { if (node.type === 'number') return node.value; if (node.type === 'variable') return scope[node.name] ?? 0; if (node.type === 'unary') return node.operator === '-' ? -evaluateAst(node.argument, scope) : evaluateAst(node.argument, scope); if (node.type === 'binary') { const left = evaluateAst(node.left, scope); const right = evaluateAst(node.right, scope); if (node.operator === '+') return left + right; if (node.operator === '-') return left - right; if (node.operator === '*') return left * right; if (node.operator === '/') { if (right === 0) throw new Error('DIV_0'); return left / right; } return left ** right; } const radicand = evaluateAst(node.radicand, scope); if (!node.degree) return Math.sqrt(radicand); const degree = evaluateAst(node.degree, scope); if (degree === 0) throw new Error('DIV_0'); return radicand ** (1 / degree); };
-        const mapErrorToCellText = (error) => error instanceof SyntaxError ? 'Syntax Err.' : (error?.message === 'DIV_0' ? 'DIV/0' : 'Error');
+        const mapErrorToCellText = (error) => error instanceof SyntaxError ? 'Syntax Err' : (error?.message === 'DIV_0' ? 'DIV/0' : 'Error');
         const formatNumber = (value) => Number.isFinite(value) ? (Number.isInteger(value) ? String(value) : value.toFixed(8).replace(/\.?0+$/, '')) : 'Error';
         const sheetIsBlank = (sheet) => !sheet.formulaCanonical.trim() && Object.values(sheet.constants).every((v) => !String(v).trim()) && sheet.rows.every((row) => KEY_ORDER.every((k) => !String(row[k] || '').trim()) && !String(row.Result || '').trim());
         const applyStat = (values, statName) => !values.length ? '—' : (statName === 'Sum' ? formatNumber(values.reduce((a, b) => a + b, 0)) : statName === 'Avg' ? formatNumber(values.reduce((a, b) => a + b, 0) / values.length) : statName === 'Min' ? formatNumber(Math.min(...values)) : statName === 'Max' ? formatNumber(Math.max(...values)) : statName === 'Count' ? String(values.length) : '—');
@@ -888,15 +1000,15 @@
         };
         const renderSheet = () => {
           const sheet = state.sheets[state.currentSheetIndex];
-          const clean = sanitizeNameMap(sheet);
+          const { ui } = buildNameMaps(sheet);
           if (titleLine) titleLine.textContent = String(sheet.title ?? '');
           if (sheetNameLine) sheetNameLine.textContent = '';
           sheetIndexEl.textContent = `${state.currentSheetIndex + 1}/${state.sheets.length}`;
           formulaInput.value = canonicalToDisplay(sheet.formulaCanonical, sheet);
           toggleButton.innerHTML = state.formulaMode === 'letter' ? '<strong>A</strong> / Name' : 'A / <strong>Name</strong>';
           document.body.classList.toggle('formula-mode-name', state.formulaMode === 'name');
-          KEY_ORDER.forEach((key, idx) => { headerLetterEls[idx].textContent = key; headerNameEls[idx].textContent = clean[key]; headerNameEls[idx].style.display = ''; });
-          CONST_ORDER.forEach((key, idx) => { constLetterEls[idx].textContent = key; constNameEls[idx].textContent = clean[key]; constNameEls[idx].style.display = ''; constantInputs[idx].value = sheet.constants[key] || ''; });
+          KEY_ORDER.forEach((key, idx) => { headerLetterEls[idx].textContent = key; headerNameEls[idx].textContent = ui[key]; headerNameEls[idx].style.display = ''; });
+          CONST_ORDER.forEach((key, idx) => { constLetterEls[idx].textContent = key; constNameEls[idx].textContent = ui[key]; constNameEls[idx].style.display = ''; constantInputs[idx].value = sheet.constants[key] || ''; });
           rowBindings.forEach((row, ri) => { KEY_ORDER.forEach((key, ci) => { row.inputs[ci].value = sheet.rows[ri][key] || ''; }); row.resultCell.textContent = sheet.rows[ri].Result || ''; });
           statCells.forEach((cell, idx) => { const select = cell.querySelector('select'); if (select) select.value = sheet.stats[idx] || '--'; });
           recomputeStatsFromSheet(sheet);
@@ -907,6 +1019,12 @@
           persistFromDom();
           const sheet = state.sheets[state.currentSheetIndex];
           const rowIsEmpty = (row) => KEY_ORDER.every((k) => !String(row[k] || '').trim());
+          if (!String(sheet.formulaCanonical || '').trim()) {
+            sheet.rows.forEach((row) => { row.Result = ''; });
+            renderSheet();
+            scheduleSave();
+            return;
+          }
           let ast;
           try { ast = parse(tokenize(sheet.formulaCanonical)); } catch (error) { sheet.rows.forEach((row) => { row.Result = rowIsEmpty(row) ? '' : mapErrorToCellText(error); }); renderSheet(); return; }
           let constants;
@@ -923,15 +1041,36 @@
         const deleteBlankDynamicCurrentSheet = () => {
           const idx = state.currentSheetIndex;
           if (idx < 3 || state.sheets.length <= 3) return;
-          if (sheetIsBlank(state.sheets[idx])) { state.sheets.splice(idx, 1); if (state.currentSheetIndex >= state.sheets.length) state.currentSheetIndex = 0; }
+          if (sheetIsBlank(state.sheets[idx])) {
+            state.sheets.splice(idx, 1);
+            undoHistoryBySheet.splice(idx, 1);
+            if (state.currentSheetIndex >= state.sheets.length) state.currentSheetIndex = 0;
+          }
         };
-        const nav = (dir) => { persistFromDom(); const wasLast = state.currentSheetIndex === state.sheets.length - 1; deleteBlankDynamicCurrentSheet(); if (dir > 0 && wasLast) { state.sheets.push(makeSheet(state.sheets.length)); state.currentSheetIndex = state.sheets.length - 1; } else { state.currentSheetIndex = (state.currentSheetIndex + dir + state.sheets.length) % state.sheets.length; } renderSheet(); resetClearStage(); scheduleSave(); };
+        const nav = (dir) => {
+          persistFromDom();
+          const wasLast = state.currentSheetIndex === state.sheets.length - 1;
+          deleteBlankDynamicCurrentSheet();
+          if (dir > 0 && wasLast) {
+            state.sheets.push(makeSheet(state.sheets.length));
+            undoHistoryBySheet.push([]);
+            state.currentSheetIndex = state.sheets.length - 1;
+          } else {
+            state.currentSheetIndex = (state.currentSheetIndex + dir + state.sheets.length) % state.sheets.length;
+          }
+          ensureUndoHistoryAlignment();
+          renderSheet();
+          resetClearStage();
+          scheduleSave();
+        };
 
         const clearAction = () => {
           persistFromDom();
           const sheet = state.sheets[state.currentSheetIndex];
           if (state.clearStage === 0) {
             if (activeTarget && (numberEntryTargets.has(activeTarget) || labelEditableFields.has(activeTarget) || activeTarget === formulaInput) && getText(activeTarget)) {
+              captureUndoSnapshot();
+              hasCapturedFocusUndo = true;
               setText(activeTarget, '');
             }
             setClearStage(1);
@@ -939,6 +1078,7 @@
             return;
           }
           if (state.clearStage === 1) {
+            captureUndoSnapshot();
             sheet.rows = makeBlankRows();
             renderSheet();
             setClearStage(2);
@@ -946,6 +1086,7 @@
             return;
           }
           if (state.clearStage === 2) {
+            captureUndoSnapshot();
             sheet.constants = { V: '', W: '', X: '', Y: '', Z: '' };
             renderSheet();
             setClearStage(3);
@@ -954,6 +1095,7 @@
           }
           if (state.clearStage === 3) {
             if (state.acConfirmPresses === 0) {
+              captureUndoSnapshot();
               blurActiveTarget();
               state.sheets[state.currentSheetIndex] = makeSheet(state.currentSheetIndex);
               renderSheet();
@@ -966,6 +1108,7 @@
           blurActiveTarget();
           state.sheets = [makeSheet(0), makeSheet(1), makeSheet(2)];
           state.currentSheetIndex = 2;
+          clearAllUndoHistory();
           renderSheet();
           resetClearStage();
           scheduleSave();
@@ -975,7 +1118,7 @@
         const titleFields = [titleLine, sheetNameLine, ...headerNameEls, ...constNameEls].filter(Boolean);
         const labelEditableFields = new Set([...headerNameEls, ...constNameEls].filter(Boolean));
         const editableTargets = [...numericTargets, ...titleFields];
-        numericTargets.forEach((target) => { target.setAttribute('inputmode', 'none'); ['focus', 'pointerdown', 'click'].forEach((eventName) => target.addEventListener(eventName, () => activateTarget(target))); target.addEventListener('input', () => { resetClearStage(); persistFromDom(); }); });
+        numericTargets.forEach((target) => { target.setAttribute('inputmode', 'none'); ['focus', 'pointerdown', 'click'].forEach((eventName) => target.addEventListener(eventName, () => activateTarget(target))); target.addEventListener('beforeinput', () => { if (activeTarget === target) captureUndoForFocusedTarget(); }); target.addEventListener('input', () => { resetClearStage(); persistFromDom(); }); });
         titleFields.forEach((target) => {
           ['focus', 'pointerup', 'click'].forEach((eventName) => target.addEventListener(eventName, (event) => {
             if (activeTarget === formulaInput && labelEditableFields.has(target)) {
@@ -989,6 +1132,7 @@
             }
             activateTarget(target);
           }));
+          target.addEventListener('beforeinput', () => { if (activeTarget === target) captureUndoForFocusedTarget(); });
           target.addEventListener('input', () => { resetClearStage(); persistFromDom(); });
         });
 
@@ -999,9 +1143,23 @@
           if (key === minimizeKey) {
             const isMinimized = keypad.classList.toggle('minimized');
             document.body.classList.toggle('keypad-is-minimized', isMinimized);
+            minimizeKey.textContent = isMinimized ? MAXIMIZE_KEY_LABEL : MINIMIZE_KEY_LABEL;
             return;
           }
-          if (key === undoKey) { if (!activeTarget) return; setText(activeTarget, initialValueOnFocus); setSelection(activeTarget, getText(activeTarget).length); resetClearStage(); return; }
+          if (key === undoKey) {
+            if (restoreUndo()) {
+              resetClearStage();
+              return;
+            }
+            if (activeTarget && getText(activeTarget) !== initialValueOnFocus) {
+              setText(activeTarget, initialValueOnFocus);
+              setSelection(activeTarget, getText(activeTarget).length);
+              hasCapturedFocusUndo = false;
+              persistFromDom();
+            }
+            resetClearStage();
+            return;
+          }
           if (key === backspaceKey) return deleteBackward();
           if (key === leftKey) return moveCursor(-1);
           if (key === rightKey) return moveCursor(1);
@@ -1094,7 +1252,7 @@
           resultHeaderTrigger.addEventListener('click', (event) => { event.preventDefault(); if (pointer) { pointer = false; return; } blurActiveTarget(); computeAllRows(); resetClearStage(); });
           resultHeaderTrigger.addEventListener('keydown', (event) => { if (!['Enter', ' '].includes(event.key)) return; event.preventDefault(); blurActiveTarget(); computeAllRows(); resetClearStage(); });
         }
-        editableTargets.forEach((target) => target.addEventListener('blur', () => { if (activeTarget === target) { target.classList.remove('is-active-target'); activeTarget = null; updateKeyAvailability(); } persistFromDom(); }));
+        editableTargets.forEach((target) => target.addEventListener('blur', () => { if (activeTarget === target) { target.classList.remove('is-active-target'); activeTarget = null; hasCapturedFocusUndo = false; updateKeyAvailability(); } persistFromDom(); }));
         statCells.forEach((cell, idx) => { const select = cell.querySelector('select'); select?.addEventListener('change', () => { state.sheets[state.currentSheetIndex].stats[idx] = select.value; scheduleSave(); resetClearStage(); }); });
         document.addEventListener('keydown', (event) => { if (event.key !== 'Enter') return; if (!activeTarget || !editableTargets.includes(activeTarget)) return; event.preventDefault(); blurActiveTarget(); computeAllRows(); resetClearStage(); });
 
@@ -1108,6 +1266,8 @@
             state.currentSheetIndex = 2;
           }
           while (state.sheets.length < 3) state.sheets.push(makeSheet(state.sheets.length));
+          clearAllUndoHistory();
+          ensureUndoHistoryAlignment();
           renderSheet();
           resetClearStage();
           updateKeyAvailability();
