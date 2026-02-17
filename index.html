@@ -786,7 +786,8 @@
         let activeTarget = null;
         let initialValueOnFocus = '';
         let hasCapturedFocusUndo = false;
-        let undoSnapshot = null;
+        const MAX_UNDO_HISTORY = 5;
+        const undoHistoryBySheet = state.sheets.map(() => []);
 
         const CLEAR_STAGE_META = [
           { label: 'C', ariaLabel: 'Clear selected item', danger: false },
@@ -813,15 +814,27 @@
         const getText = (el) => (isInput(el) ? el.value : (el.textContent || ''));
         const setText = (el, value) => { if (isInput(el)) el.value = value; else el.textContent = value; };
         const cloneData = (value) => typeof structuredClone === 'function' ? structuredClone(value) : JSON.parse(JSON.stringify(value));
+        const ensureUndoHistoryAlignment = () => {
+          while (undoHistoryBySheet.length < state.sheets.length) undoHistoryBySheet.push([]);
+          if (undoHistoryBySheet.length > state.sheets.length) undoHistoryBySheet.length = state.sheets.length;
+        };
+        const currentUndoStack = () => {
+          ensureUndoHistoryAlignment();
+          return undoHistoryBySheet[state.currentSheetIndex] || (undoHistoryBySheet[state.currentSheetIndex] = []);
+        };
+        const clearAllUndoHistory = () => {
+          undoHistoryBySheet.length = 0;
+          state.sheets.forEach(() => undoHistoryBySheet.push([]));
+        };
         const captureUndoSnapshot = () => {
           persistFromDom();
-          undoSnapshot = {
-            sheets: cloneData(state.sheets),
-            currentSheetIndex: state.currentSheetIndex,
-            formulaMode: state.formulaMode,
+          const stack = currentUndoStack();
+          stack.push({
+            sheet: cloneData(state.sheets[state.currentSheetIndex]),
             clearStage: state.clearStage,
             acConfirmPresses: state.acConfirmPresses
-          };
+          });
+          if (stack.length > MAX_UNDO_HISTORY) stack.splice(0, stack.length - MAX_UNDO_HISTORY);
         };
         const captureUndoForFocusedTarget = () => {
           if (!activeTarget || hasCapturedFocusUndo) return;
@@ -829,15 +842,13 @@
           hasCapturedFocusUndo = true;
         };
         const restoreUndo = () => {
-          if (!undoSnapshot) return false;
-          const snap = undoSnapshot;
-          undoSnapshot = null;
-          state.sheets = cloneData(snap.sheets);
-          state.currentSheetIndex = snap.currentSheetIndex;
-          state.formulaMode = snap.formulaMode;
+          const stack = currentUndoStack();
+          if (!stack.length) return false;
+          const snap = stack.pop();
+          blurActiveTarget();
+          state.sheets[state.currentSheetIndex] = cloneData(snap.sheet);
           state.clearStage = snap.clearStage;
           state.acConfirmPresses = snap.acConfirmPresses;
-          blurActiveTarget();
           renderSheet();
           scheduleSave();
           resetClearStage();
@@ -1011,9 +1022,28 @@
         const deleteBlankDynamicCurrentSheet = () => {
           const idx = state.currentSheetIndex;
           if (idx < 3 || state.sheets.length <= 3) return;
-          if (sheetIsBlank(state.sheets[idx])) { state.sheets.splice(idx, 1); if (state.currentSheetIndex >= state.sheets.length) state.currentSheetIndex = 0; }
+          if (sheetIsBlank(state.sheets[idx])) {
+            state.sheets.splice(idx, 1);
+            undoHistoryBySheet.splice(idx, 1);
+            if (state.currentSheetIndex >= state.sheets.length) state.currentSheetIndex = 0;
+          }
         };
-        const nav = (dir) => { persistFromDom(); const wasLast = state.currentSheetIndex === state.sheets.length - 1; deleteBlankDynamicCurrentSheet(); if (dir > 0 && wasLast) { state.sheets.push(makeSheet(state.sheets.length)); state.currentSheetIndex = state.sheets.length - 1; } else { state.currentSheetIndex = (state.currentSheetIndex + dir + state.sheets.length) % state.sheets.length; } renderSheet(); resetClearStage(); scheduleSave(); };
+        const nav = (dir) => {
+          persistFromDom();
+          const wasLast = state.currentSheetIndex === state.sheets.length - 1;
+          deleteBlankDynamicCurrentSheet();
+          if (dir > 0 && wasLast) {
+            state.sheets.push(makeSheet(state.sheets.length));
+            undoHistoryBySheet.push([]);
+            state.currentSheetIndex = state.sheets.length - 1;
+          } else {
+            state.currentSheetIndex = (state.currentSheetIndex + dir + state.sheets.length) % state.sheets.length;
+          }
+          ensureUndoHistoryAlignment();
+          renderSheet();
+          resetClearStage();
+          scheduleSave();
+        };
 
         const clearAction = () => {
           persistFromDom();
@@ -1060,6 +1090,7 @@
           blurActiveTarget();
           state.sheets = [makeSheet(0), makeSheet(1), makeSheet(2)];
           state.currentSheetIndex = 2;
+          clearAllUndoHistory();
           renderSheet();
           resetClearStage();
           scheduleSave();
@@ -1097,16 +1128,16 @@
             return;
           }
           if (key === undoKey) {
+            if (restoreUndo()) {
+              resetClearStage();
+              return;
+            }
             if (activeTarget && getText(activeTarget) !== initialValueOnFocus) {
-              if (!hasCapturedFocusUndo) captureUndoSnapshot();
               setText(activeTarget, initialValueOnFocus);
               setSelection(activeTarget, getText(activeTarget).length);
               hasCapturedFocusUndo = false;
               persistFromDom();
-              resetClearStage();
-              return;
             }
-            restoreUndo();
             resetClearStage();
             return;
           }
@@ -1216,6 +1247,8 @@
             state.currentSheetIndex = 2;
           }
           while (state.sheets.length < 3) state.sheets.push(makeSheet(state.sheets.length));
+          clearAllUndoHistory();
+          ensureUndoHistoryAlignment();
           renderSheet();
           resetClearStage();
           updateKeyAvailability();
