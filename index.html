@@ -468,6 +468,11 @@
         outline: none;
       }
 
+      .key-undo {
+        font-size: 24px;
+        line-height: 1;
+      }
+
       .key:focus-visible {
         outline: 2px solid #f0f3fa;
         outline-offset: 2px;
@@ -626,7 +631,7 @@
 
     <section class="keypad" aria-label="Bottom keypad">
       <div class="keys">
-        <button class="key">⤺</button><button class="key">⌨︎</button><button class="key">⤓</button><button class="key">:</button><button class="key">√</button><button class="key">⌫</button>
+        <button class="key key-undo">⤺</button><button class="key">⌨︎</button><button class="key">⤓</button><button class="key">:</button><button class="key">√</button><button class="key">⌫</button>
         <button class="key light">&lt;</button><button class="key light">&gt;</button><button class="key">(</button><button class="key">)</button><button class="key">^</button><button class="key">/</button>
         <button class="key light">IF</button><button class="key light">AVG</button><button class="key">7</button><button class="key">8</button><button class="key">9</button><button class="key">*</button>
         <button class="key light">AND</button><button class="key light">SUM</button><button class="key">4</button><button class="key">5</button><button class="key">6</button><button class="key">−</button>
@@ -767,6 +772,7 @@
         const isFormulaEntryContext = () => activeTarget === formulaInput;
         const getInputContext = () => isNumberEntryContext() ? 'number' : (isFormulaEntryContext() ? 'formula' : 'default');
         const isKeyEnabled = (key) => {
+          if (key === undoKey) return currentUndoStack().length > 0;
           const label = getKeyLabel(key);
           const context = getInputContext();
           if (context === 'number') return NUMBER_ENTRY_KEY_LABELS.has(label);
