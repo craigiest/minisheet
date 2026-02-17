@@ -182,11 +182,12 @@
       .const-top .letter {
         font-size: 12px;
         line-height: 1;
+        font-weight: 700;
       }
 
       .const-top .name {
         font-size: 11px;
-        font-weight: 600;
+        font-weight: 400;
       }
 
       .const-cell input {
@@ -323,8 +324,18 @@
         justify-items: center;
       }
 
-      .head-pill .letter { font-size: 14px; }
-      .head-pill .name { font-size: 11px; font-weight: 700; }
+      .head-pill .letter { font-size: 14px; font-weight: 700; }
+      .head-pill .name { font-size: 11px; font-weight: 400; }
+
+      body.formula-mode-name .head-pill .letter,
+      body.formula-mode-name .const-top .letter {
+        font-weight: 400;
+      }
+
+      body.formula-mode-name .head-pill .name,
+      body.formula-mode-name .const-top .name {
+        font-weight: 700;
+      }
 
       .result-head,
       .result-cell {
@@ -817,8 +828,9 @@
           sheetIndexEl.textContent = `${state.currentSheetIndex + 1}/${state.sheets.length}`;
           formulaInput.value = canonicalToDisplay(sheet.formulaCanonical, sheet);
           toggleButton.innerHTML = state.formulaMode === 'letter' ? '<strong>A</strong> / Name' : 'A / <strong>Name</strong>';
-          KEY_ORDER.forEach((key, idx) => { headerLetterEls[idx].textContent = key; headerNameEls[idx].textContent = clean[key]; headerNameEls[idx].style.display = state.formulaMode === 'letter' ? 'none' : ''; });
-          CONST_ORDER.forEach((key, idx) => { constLetterEls[idx].textContent = key; constNameEls[idx].textContent = clean[key]; constNameEls[idx].style.display = state.formulaMode === 'letter' ? 'none' : ''; constantInputs[idx].value = sheet.constants[key] || ''; });
+          document.body.classList.toggle('formula-mode-name', state.formulaMode === 'name');
+          KEY_ORDER.forEach((key, idx) => { headerLetterEls[idx].textContent = key; headerNameEls[idx].textContent = clean[key]; headerNameEls[idx].style.display = ''; });
+          CONST_ORDER.forEach((key, idx) => { constLetterEls[idx].textContent = key; constNameEls[idx].textContent = clean[key]; constNameEls[idx].style.display = ''; constantInputs[idx].value = sheet.constants[key] || ''; });
           rowBindings.forEach((row, ri) => { KEY_ORDER.forEach((key, ci) => { row.inputs[ci].value = sheet.rows[ri][key] || ''; }); row.resultCell.textContent = sheet.rows[ri].Result || ''; });
           statCells.forEach((cell, idx) => { const select = cell.querySelector('select'); if (select) select.value = sheet.stats[idx] || '--'; });
           recomputeStatsFromSheet(sheet);
