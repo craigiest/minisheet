@@ -170,8 +170,8 @@
 
       .const-top {
         border-radius: 8px;
-        background: var(--active);
-        color: #fff;
+        background: #f1f1f3;
+        color: var(--text);
         min-height: 34px;
         display: grid;
         align-content: center;
@@ -320,8 +320,8 @@
       }
 
       .head-pill {
-        background: var(--active);
-        color: #fff;
+        background: #f1f1f3;
+        color: var(--text);
         border-radius: 8px;
         min-height: 38px;
         display: grid;
@@ -329,10 +329,18 @@
         justify-items: center;
       }
 
+      body.formula-entry-active .col-head:not(.result-head) .head-pill,
+      body.formula-entry-active .const-top {
+        background: var(--active);
+        color: #fff;
+      }
+
       .head-pill .letter { font-size: 14px; font-weight: 700; }
       .head-pill .name { font-size: 11px; font-weight: 400; }
 
       .result-head .head-pill {
+        background: var(--active);
+        color: #fff;
         min-height: 38px;
         display: flex;
         align-items: center;
@@ -658,7 +666,7 @@
         const headerPills = [...document.querySelectorAll('thead .head-pill')];
         const getKeyLabel = (key) => key?.textContent.trim() || '';
         const NUMBER_ENTRY_KEY_LABELS = new Set(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '−', '↺', '⌫', '=', '↕']);
-        const FORMULA_ENTRY_KEY_LABELS = new Set(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '−', '+', '*', '/', '^', '(', ')', ',', '√', '⌫', '↺', '↕', '⌨︎']); // Re-add ':' only after range-based functions are supported.
+        const FORMULA_ENTRY_KEY_LABELS = new Set(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '−', '+', '*', '/', '^', '(', ')', ',', ':', '⌫', '↺', '↕', '⌨︎']);
 
         const asyncStorage = {
           async get() {
@@ -738,7 +746,8 @@
         const rowBindings = dataRows.map((row) => ({ inputs: [...row.querySelectorAll('.cell-input')], resultCell: row.querySelector('.result-cell') }));
         const numberEntryTargets = new Set([...constantInputs, ...cellInputs]);
         const isNumberEntryContext = () => !!activeTarget && numberEntryTargets.has(activeTarget);
-        const getInputContext = () => isNumberEntryContext() ? 'number' : (activeTarget === formulaInput ? 'formula' : 'default');
+        const isFormulaEntryContext = () => activeTarget === formulaInput;
+        const getInputContext = () => isNumberEntryContext() ? 'number' : (isFormulaEntryContext() ? 'formula' : 'default');
         const isKeyEnabled = (key) => {
           const label = getKeyLabel(key);
           const context = getInputContext();
@@ -753,6 +762,7 @@
             key.classList.toggle('is-inactive', !enabled);
             key.setAttribute('aria-disabled', enabled ? 'false' : 'true');
           });
+          document.body.classList.toggle('formula-entry-active', isFormulaEntryContext());
           const clearEnabled = isNumberEntryContext();
           clearButton?.classList.toggle('is-inactive', !clearEnabled);
           clearButton?.setAttribute('aria-disabled', clearEnabled ? 'false' : 'true');
