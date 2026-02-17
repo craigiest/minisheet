@@ -66,33 +66,36 @@
       }
 
       .title-block {
+        display: grid;
+        gap: 1px;
         min-width: 0;
-        flex: 1;
+      }
+
+      .title-line {
+        font-size: 16px;
+        line-height: 1.1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
 
       .sheet-line {
         display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-        min-width: 0;
+        gap: 8px;
+        align-items: baseline;
+        white-space: nowrap;
       }
 
       .sheet-index {
         font-size: 12px;
         font-weight: 600;
-        white-space: nowrap;
       }
 
       .sheet-name {
-        font-size: 16px;
-        line-height: 1.1;
-        color: var(--text);
+        font-size: 12px;
+        color: #4f5466;
         overflow: hidden;
         text-overflow: ellipsis;
-        white-space: nowrap;
-        flex: 1;
-        min-width: 0;
       }
 
       .constants-strip {
@@ -396,7 +399,8 @@
     <header class="nav">
       <button class="arrow" aria-label="Previous sheet">◀</button>
       <div class="title-block">
-        <div class="sheet-line"><span class="sheet-name" contenteditable="true" role="textbox" aria-label="Sheet title">Proportion: A/B = C/Result | A:B::C:Result</span><span class="sheet-index">1/2</span></div>
+        <div class="title-line" contenteditable="true" role="textbox" aria-label="Sheet title">Proportion: A/B = C/Result | A:B::C:Result</div>
+        <div class="sheet-line"><span class="sheet-index">2</span><span class="sheet-name">A:B::C:Result</span></div>
       </div>
       <button class="arrow" aria-label="Next sheet">▶</button>
     </header>
