@@ -41,6 +41,26 @@
         font: inherit;
       }
 
+      button,
+      .key,
+      .arrow,
+      .sheet-title,
+      .cell-input,
+      .formula-input,
+      .const-cell input,
+      select {
+        touch-action: manipulation;
+      }
+
+      html,
+      body,
+      .grid-wrap,
+      .constants-strip,
+      .formula-strip,
+      .keypad {
+        touch-action: manipulation;
+      }
+
       .nav {
         position: fixed;
         top: env(safe-area-inset-top);
@@ -398,6 +418,17 @@
         outline: 2px solid var(--active-soft);
         outline-offset: -2px;
       }
+
+
+      @media (pointer: coarse) {
+        .cell-input,
+        .formula-input,
+        .const-cell input,
+        .stat-cell select {
+          font-size: 16px;
+        }
+      }
+
     </style>
   </head>
   <body>
