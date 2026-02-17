@@ -996,10 +996,12 @@
         const persistFromDom = () => {
           const sheet = state.sheets[state.currentSheetIndex];
           const rawTitle = (titleLine?.textContent || '').trim();
+          const isEditingLabel = !!activeTarget && labelEditableFields.has(activeTarget);
           sheet.title = rawTitle || 'Untitled';
           delete sheet.name;
-          sheet.formulaCanonical = displayToCanonical(formulaInput.value, sheet);
+          if (!isEditingLabel) sheet.formulaCanonical = displayToCanonical(formulaInput.value, sheet);
           [...headerNameEls, ...constNameEls].forEach((el, idx) => { const key = idx < 4 ? KEY_ORDER[idx] : CONST_ORDER[idx - 4]; sheet.names[key] = (el.textContent || '').trim(); });
+          if (isEditingLabel && state.formulaMode === 'name') formulaInput.value = canonicalToDisplay(sheet.formulaCanonical, sheet);
           constantInputs.forEach((input, idx) => { sheet.constants[CONST_ORDER[idx]] = input.value; });
           rowBindings.forEach((row, ri) => { KEY_ORDER.forEach((key, ci) => { sheet.rows[ri][key] = row.inputs[ci].value; }); sheet.rows[ri].Result = row.resultCell.textContent || ''; });
           statCells.forEach((cell, idx) => { const select = cell.querySelector('select'); sheet.stats[idx] = select?.value || '--'; });
