@@ -931,7 +931,7 @@
           persistFromDom();
           const sheet = state.sheets[state.currentSheetIndex];
           if (state.clearStage === 0) {
-            if (activeTarget && getText(activeTarget)) {
+            if (activeTarget && numberEntryTargets.has(activeTarget) && getText(activeTarget)) {
               setText(activeTarget, '');
             }
             setClearStage(1);
@@ -954,8 +954,8 @@
           }
           if (state.clearStage === 3) {
             if (state.acConfirmPresses === 0) {
-              state.sheets[state.currentSheetIndex] = makeSheet(state.currentSheetIndex);
               blurActiveTarget();
+              state.sheets[state.currentSheetIndex] = makeSheet(state.currentSheetIndex);
               renderSheet();
               scheduleSave();
             }
@@ -963,9 +963,9 @@
             if (state.acConfirmPresses >= 4) setClearStage(4);
             return;
           }
+          blurActiveTarget();
           state.sheets = [makeSheet(0), makeSheet(1), makeSheet(2)];
           state.currentSheetIndex = 2;
-          blurActiveTarget();
           renderSheet();
           resetClearStage();
           scheduleSave();
