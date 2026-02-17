@@ -1266,7 +1266,7 @@
           resultHeaderTrigger.addEventListener('keydown', (event) => { if (!['Enter', ' '].includes(event.key)) return; event.preventDefault(); blurActiveTarget(); computeAllRows(); resetClearStage(); });
         }
         editableTargets.forEach((target) => target.addEventListener('blur', () => {
-          const shouldRecompute = activeTarget === target && recalcOnBlurTargets.has(target);
+          const shouldRecompute = recalcOnBlurTargets.has(target);
           if (activeTarget === target) {
             target.classList.remove('is-active-target');
             activeTarget = null;
