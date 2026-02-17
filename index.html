@@ -18,6 +18,7 @@
         --keypad-h: 238px;
         --keypad-min-h: 56px;
         --keypad-active-h: var(--keypad-h);
+        --keypad-bg: #7082a7;
       }
 
       body.keypad-is-minimized {
@@ -402,7 +403,7 @@
         bottom: env(safe-area-inset-bottom);
         height: var(--keypad-h);
         padding: 6px;
-        background: #7082a7;
+        background: var(--keypad-bg);
         border-top: 1px solid #5d6f97;
         z-index: 41;
         transition: height 0.2s ease;
