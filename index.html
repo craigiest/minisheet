@@ -327,17 +327,6 @@
       .head-pill .letter { font-size: 14px; font-weight: 700; }
       .head-pill .name { font-size: 11px; font-weight: 400; }
 
-      .result-head .head-pill {
-        min-height: 38px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-
-      .result-head .head-pill .name {
-        display: none;
-      }
-
       body.formula-mode-name .head-pill .letter,
       body.formula-mode-name .const-top .letter {
         font-weight: 400;
@@ -440,11 +429,20 @@
       }
 
       .key {
+        appearance: none;
+        -webkit-appearance: none;
         border: 0;
         border-radius: 8px;
         background: var(--active);
+        box-shadow: none;
         color: #fff;
         font-size: 18px;
+        outline: none;
+      }
+
+      .key:focus-visible {
+        outline: 2px solid #f0f3fa;
+        outline-offset: 2px;
       }
 
       .key.light {
@@ -465,6 +463,18 @@
         background: var(--panel);
         color: #8a94a8;
         border-color: transparent;
+      }
+
+      .key.is-inactive,
+      .key.light.is-inactive,
+      .key.enter.is-inactive {
+        background: var(--keypad-bg);
+        color: #d8deea;
+      }
+
+      .key-active.is-inactive {
+        background: #7f88a0;
+        color: #d8deea;
       }
 
       .keypad.minimized {
@@ -709,21 +719,10 @@
         const rowBindings = dataRows.map((row) => ({ inputs: [...row.querySelectorAll('.cell-input')], resultCell: row.querySelector('.result-cell') }));
         const numberEntryTargets = new Set([...constantInputs, ...cellInputs]);
         const isNumberEntryContext = () => !!activeTarget && numberEntryTargets.has(activeTarget);
-        const getInputContext = () => isNumberEntryContext() ? 'number' : (activeTarget === formulaInput ? 'formula' : 'default');
-        const isFormulaBlockedKey = (key) => {
-          const label = getKeyLabel(key);
-          return key.classList.contains('light') || label === '=';
-        };
-        const isKeyEnabled = (key) => {
-          const context = getInputContext();
-          if (context === 'number') return NUMBER_ENTRY_KEY_LABELS.has(getKeyLabel(key));
-          if (context === 'formula') return !isFormulaBlockedKey(key);
-          return true;
-        };
+        const isKeyEnabled = (key) => !isNumberEntryContext() || NUMBER_ENTRY_KEY_LABELS.has(getKeyLabel(key));
         const updateKeyAvailability = () => {
           keys.forEach((key) => {
             const enabled = isKeyEnabled(key);
-            key.disabled = !enabled;
             key.classList.toggle('is-inactive', !enabled);
             key.setAttribute('aria-disabled', enabled ? 'false' : 'true');
           });
@@ -902,7 +901,6 @@
 
         const handleKeyPress = (key) => {
           const label = getKeyLabel(key);
-          if (key?.disabled) return;
           if (!isKeyEnabled(key)) return;
           if (key === minimizeKey) {
             const isMinimized = keypad.classList.toggle('minimized');
