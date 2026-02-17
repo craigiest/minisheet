@@ -931,7 +931,7 @@
           persistFromDom();
           const sheet = state.sheets[state.currentSheetIndex];
           if (state.clearStage === 0) {
-            if (activeTarget && (numberEntryTargets.has(activeTarget) || labelEditableFields.has(activeTarget)) && getText(activeTarget)) {
+            if (activeTarget && (numberEntryTargets.has(activeTarget) || labelEditableFields.has(activeTarget) || activeTarget === formulaInput) && getText(activeTarget)) {
               setText(activeTarget, '');
             }
             setClearStage(1);
