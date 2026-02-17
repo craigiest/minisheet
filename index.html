@@ -453,11 +453,20 @@
       }
 
       .key {
+        appearance: none;
+        -webkit-appearance: none;
         border: 0;
         border-radius: 8px;
         background: var(--active);
+        box-shadow: none;
         color: #fff;
         font-size: 18px;
+        outline: none;
+      }
+
+      .key:focus-visible {
+        outline: 2px solid #f0f3fa;
+        outline-offset: 2px;
       }
 
       .key.light {
@@ -942,7 +951,11 @@
           if (key === rightKey) return moveCursor(1);
           if (key === resultKey) { blurActiveTarget(); computeAllRows(); resetClearStage(); return; }
           if (label === '⌨︎') return;
-          insertIntoTarget(label === '−' ? '-' : label);
+          if (label === '√') {
+            insertIntoTarget('√(');
+          } else {
+            insertIntoTarget(label === '−' ? '-' : label);
+          }
           persistFromDom();
         };
 
