@@ -418,11 +418,20 @@
       }
 
       .key {
+        appearance: none;
+        -webkit-appearance: none;
         border: 0;
         border-radius: 8px;
         background: var(--active);
+        box-shadow: none;
         color: #fff;
         font-size: 18px;
+        outline: none;
+      }
+
+      .key:focus-visible {
+        outline: 2px solid #f0f3fa;
+        outline-offset: 2px;
       }
 
       .key.light {
@@ -434,7 +443,7 @@
 
       .key.is-inactive,
       .key.light.is-inactive {
-        background: #7082a7;
+        background: var(--keypad-bg);
         color: #d8deea;
         border-color: transparent;
       }
@@ -448,7 +457,7 @@
       .key.is-inactive,
       .key.light.is-inactive,
       .key.enter.is-inactive {
-        background: #7f88a0;
+        background: var(--keypad-bg);
         color: #d8deea;
       }
 
