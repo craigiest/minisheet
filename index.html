@@ -16,6 +16,12 @@
         --const-h: 86px;
         --formula-h: 56px;
         --keypad-h: 238px;
+        --keypad-min-h: 56px;
+        --keypad-active-h: var(--keypad-h);
+      }
+
+      body.keypad-is-minimized {
+        --keypad-active-h: var(--keypad-min-h);
       }
 
       * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -236,7 +242,7 @@
         top: calc(env(safe-area-inset-top) + var(--nav-h) + var(--const-h) + var(--formula-h));
         left: 0;
         right: 0;
-        bottom: calc(env(safe-area-inset-bottom) + var(--keypad-h));
+        bottom: calc(env(safe-area-inset-bottom) + var(--keypad-active-h));
         overflow-y: auto;
         overflow-x: hidden;
         -webkit-overflow-scrolling: touch;
@@ -402,7 +408,7 @@
       }
 
       .keypad.minimized {
-        height: 56px;
+        height: var(--keypad-min-h);
       }
 
       .keypad.minimized .keys {
@@ -786,7 +792,11 @@
 
         const handleKeyPress = (key) => {
           const label = key.textContent.trim();
-          if (key === minimizeKey) return keypad.classList.toggle('minimized');
+          if (key === minimizeKey) {
+            const isMinimized = keypad.classList.toggle('minimized');
+            document.body.classList.toggle('keypad-is-minimized', isMinimized);
+            return;
+          }
           if (key === undoKey) { if (!activeTarget) return; setText(activeTarget, initialValueOnFocus); setSelection(activeTarget, getText(activeTarget).length); resetClearStage(); return; }
           if (key === backspaceKey) return deleteBackward();
           if (key === leftKey) return moveCursor(-1);
