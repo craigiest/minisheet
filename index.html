@@ -1116,6 +1116,7 @@
             if (state.acConfirmPresses >= 4) setClearStage(4);
             return;
           }
+          undoSnapshot = null;
           blurActiveTarget();
           state.sheets = [makeSheet(0), makeSheet(1), makeSheet(2)];
           state.currentSheetIndex = 2;
