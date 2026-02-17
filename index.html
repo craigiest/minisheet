@@ -744,15 +744,7 @@
         const mapErrorToCellText = (error) => error instanceof SyntaxError ? 'Syntax' : (error?.message === 'DIV_0' ? 'DIV/0' : 'Error');
         const formatNumber = (value) => Number.isFinite(value) ? (Number.isInteger(value) ? String(value) : value.toFixed(8).replace(/\.?0+$/, '')) : 'Error';
         const sheetIsBlank = (sheet) => !sheet.formulaCanonical.trim() && Object.values(sheet.constants).every((v) => !String(v).trim()) && sheet.rows.every((row) => KEY_ORDER.every((k) => !String(row[k] || '').trim()) && !String(row.Result || '').trim());
-        const applyStat = (values, statName) => {
-          if (!values.length) return '—';
-          if (statName === 'Sum') return formatNumber(values.reduce((a, b) => a + b, 0));
-          if (statName === 'Avg') return formatNumber(values.reduce((a, b) => a + b, 0) / values.length);
-          if (statName === 'Min') return formatNumber(Math.min(...values));
-          if (statName === 'Max') return formatNumber(Math.max(...values));
-          if (statName === 'Count') return formatNumber(values.length);
-          return '—';
-        };
+        const applyStat = (values, statName) => !values.length ? '—' : (statName === 'Sum' ? formatNumber(values.reduce((a, b) => a + b, 0)) : statName === 'Avg' ? formatNumber(values.reduce((a, b) => a + b, 0) / values.length) : statName === 'Min' ? formatNumber(Math.min(...values)) : statName === 'Max' ? formatNumber(Math.max(...values)) : statName === 'Count' ? String(values.length) : '—');
 
         const recomputeStatsFromSheet = (sheet) => { statCells.forEach((cell, index) => { const output = cell.querySelector('output'); const statName = sheet.stats[index] || '--'; if (statName === '--') { output.textContent = '—'; return; } const values = sheet.rows.map((row) => index < 4 ? String(row[KEY_ORDER[index]] || '').trim() : String(row.Result || '').trim()).filter((v) => v !== '').map(Number).filter((n) => Number.isFinite(n)); output.textContent = applyStat(values, statName); }); };
         const persistFromDom = () => {
