@@ -16,7 +16,7 @@
         --const-h: 74px;
         --formula-h: 56px;
         --keypad-h: 238px;
-        --keypad-min-h: 56px;
+        --keypad-min-h: 50px;
         --keypad-pad: 6px;
         --key-gap: 6px;
         --key-row-h: calc((var(--keypad-h) - (var(--keypad-pad) * 2) - (var(--key-gap) * 5)) / 6);
@@ -83,7 +83,7 @@
         grid-template-columns: 34px minmax(0,1fr) 34px;
         gap: 6px;
         align-items: center;
-        padding: 4px 8px;
+        padding: 2px 8px 6px;
         z-index: 60;
         isolation: isolate;
       }
@@ -386,7 +386,7 @@
         background: var(--panel);
         border-top: 2px solid #a4acb8;
         padding: 4px;
-        height: 58px;
+        height: 56px;
       }
 
       tfoot {
@@ -402,7 +402,7 @@
         border: 0;
         border-radius: 0;
         background: transparent;
-        height: 48px;
+        height: 46px;
         display: grid;
         grid-template-rows: 1fr 1fr;
         align-items: center;
