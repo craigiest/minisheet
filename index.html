@@ -50,7 +50,7 @@
         background: var(--panel);
         border-bottom: 1px solid var(--line);
         display: grid;
-        grid-template-columns: 34px 1fr 34px;
+        grid-template-columns: 34px minmax(0, 1fr) 34px;
         gap: 6px;
         align-items: center;
         padding: 6px 8px;
@@ -63,39 +63,39 @@
         border: 0;
         background: transparent;
         font-size: 18px;
+        position: relative;
+        z-index: 1;
       }
 
       .title-block {
-        display: grid;
-        gap: 1px;
         min-width: 0;
-      }
-
-      .title-line {
-        font-size: 16px;
-        line-height: 1.1;
-        white-space: nowrap;
         overflow: hidden;
-        text-overflow: ellipsis;
       }
 
       .sheet-line {
         display: flex;
-        gap: 8px;
-        align-items: baseline;
-        white-space: nowrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        min-width: 0;
+        width: 100%;
       }
 
       .sheet-index {
         font-size: 12px;
         font-weight: 600;
+        white-space: nowrap;
       }
 
       .sheet-name {
-        font-size: 12px;
-        color: #4f5466;
+        font-size: 16px;
+        line-height: 1.1;
+        color: var(--text);
         overflow: hidden;
         text-overflow: ellipsis;
+        white-space: nowrap;
+        flex: 1;
+        min-width: 0;
       }
 
       .constants-strip {
@@ -399,8 +399,7 @@
     <header class="nav">
       <button class="arrow" aria-label="Previous sheet">◀</button>
       <div class="title-block">
-        <div class="title-line" contenteditable="true" role="textbox" aria-label="Sheet title">Proportion: A/B = C/Result | A:B::C:Result</div>
-        <div class="sheet-line"><span class="sheet-index">2</span><span class="sheet-name">A:B::C:Result</span></div>
+        <div class="sheet-line"><span class="sheet-name" contenteditable="true" role="textbox" aria-label="Sheet title">Proportion: A/B = C/Result | A:B::C:Result</span><span class="sheet-index">1/2</span></div>
       </div>
       <button class="arrow" aria-label="Next sheet">▶</button>
     </header>
@@ -416,7 +415,7 @@
 
     <section class="formula-strip" aria-label="Formula editor strip">
       <div class="fx-eq">=</div>
-      <input class="formula-input" value="(B*C)/A+Y" aria-label="Formula editor" />
+      <input class="formula-input" inputmode="none" value="(B*C)/A+Y" aria-label="Formula editor" />
       <div class="toggle">A / <strong>Name</strong></div>
     </section>
 
@@ -498,15 +497,14 @@
         const resultKey = keys.find((key) => key.textContent.trim() === '=');
         const sheetNavButtons = [...document.querySelectorAll('.nav .arrow')];
         const resultHeaderTrigger = document.querySelector('th.result-head');
+        const sheetNameField = document.querySelector('.sheet-name');
+        const sheetIndexField = document.querySelector('.sheet-index');
 
         const formulaInput = document.querySelector('.formula-input');
         const constantInputs = [...document.querySelectorAll('.const-cell input')];
         const dataRows = [...document.querySelectorAll('tbody tr')];
         const statCells = [...document.querySelectorAll('tfoot .stat-cell')];
-        const titleFields = [
-          document.querySelector('.title-line'),
-          document.querySelector('.sheet-name')
-        ].filter(Boolean);
+        const titleFields = [sheetNameField].filter(Boolean);
 
         dataRows.forEach((row) => {
           [...row.children].forEach((cell, index) => {
@@ -525,6 +523,94 @@
         }));
         const numericTargets = [...constantInputs, formulaInput, ...cellInputs];
         const editableTargets = [...numericTargets, ...titleFields];
+        const rowCount = rowBindings.length;
+        const statDefault = '--';
+
+        const createEmptyRows = () => Array.from({ length: rowCount }, () => ({
+          values: ['', '', '', ''],
+          result: ''
+        }));
+
+        const createBlankSheet = () => ({
+          title: '',
+          formula: formulaInput.value,
+          constants: ['', '', '', '', ''],
+          rows: createEmptyRows(),
+          stats: Array(statCells.length).fill(statDefault)
+        });
+
+        const snapshotCurrentSheet = () => ({
+          title: sheetNameField?.textContent ?? '',
+          formula: formulaInput.value,
+          constants: constantInputs.map((input) => input.value),
+          rows: rowBindings.map((row) => ({
+            values: row.inputs.map((input) => input.value),
+            result: row.resultCell.textContent ?? ''
+          })),
+          stats: statCells.map((cell) => cell.querySelector('select')?.value ?? statDefault)
+        });
+
+        const applySheet = (sheet) => {
+          if (sheetNameField) {
+            sheetNameField.textContent = sheet.title || '';
+          }
+          formulaInput.value = sheet.formula || '';
+          constantInputs.forEach((input, index) => {
+            input.value = sheet.constants[index] ?? '';
+          });
+          rowBindings.forEach((row, rowIndex) => {
+            const rowData = sheet.rows[rowIndex] ?? { values: ['', '', '', ''], result: '' };
+            row.inputs.forEach((input, inputIndex) => {
+              input.value = rowData.values?.[inputIndex] ?? '';
+            });
+            row.resultCell.textContent = rowData.result ?? '';
+          });
+          statCells.forEach((cell, index) => {
+            const select = cell.querySelector('select');
+            if (select) {
+              select.value = sheet.stats[index] ?? statDefault;
+            }
+          });
+          recomputeStats();
+        };
+
+        let sheets = [
+          snapshotCurrentSheet(),
+          {
+            ...createBlankSheet(),
+            title: 'A:B::C:Result'
+          }
+        ];
+        let currentSheetIndex = 0;
+
+        const updateSheetIndex = () => {
+          if (!sheetIndexField) return;
+          sheetIndexField.textContent = `${currentSheetIndex + 1}/${sheets.length}`;
+        };
+
+        const saveCurrentSheet = () => {
+          sheets[currentSheetIndex] = snapshotCurrentSheet();
+        };
+
+        const navigateSheet = (direction) => {
+          saveCurrentSheet();
+
+          if (direction > 0) {
+            if (currentSheetIndex === sheets.length - 1) {
+              sheets.push(createBlankSheet());
+              currentSheetIndex = sheets.length - 1;
+            } else {
+              currentSheetIndex += 1;
+            }
+          } else if (direction < 0) {
+            currentSheetIndex = (currentSheetIndex - 1 + sheets.length) % sheets.length;
+          }
+
+          applySheet(sheets[currentSheetIndex]);
+          updateSheetIndex();
+        };
+
+        updateSheetIndex();
 
         let activeTarget = null;
         let initialValueOnFocus = '';
@@ -1045,9 +1131,23 @@
           });
         });
 
-        sheetNavButtons.forEach((button) => {
-          button.addEventListener('click', () => {
+        sheetNavButtons.forEach((button, index) => {
+          const direction = index === 0 ? -1 : 1;
+          let pointerTriggered = false;
+          button.addEventListener('pointerdown', (event) => {
+            event.preventDefault();
+            pointerTriggered = true;
             blurActiveTarget();
+            navigateSheet(direction);
+          });
+          button.addEventListener('click', (event) => {
+            event.preventDefault();
+            if (pointerTriggered) {
+              pointerTriggered = false;
+              return;
+            }
+            blurActiveTarget();
+            navigateSheet(direction);
           });
         });
 
@@ -1083,6 +1183,7 @@
               activeTarget = null;
               initialValueOnFocus = '';
             }
+            saveCurrentSheet();
           });
         });
 
