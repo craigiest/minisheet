@@ -591,7 +591,7 @@
             <th class="col-head"><div class="head-pill"><div class="letter">A</div><div class="name">value1</div></div></th>
             <th class="col-head"><div class="head-pill"><div class="letter">B</div><div class="name">value2</div></div></th>
             <th class="col-head"><div class="head-pill"><div class="letter">C</div><div class="name">value3</div></div></th>
-            <th class="col-head"><div class="head-pill"><div class="letter">D</div><div class="name">unused</div></div></th>
+            <th class="col-head"><div class="head-pill"><div class="letter">D</div><div class="name">value4</div></div></th>
             <th class="col-head result-head" role="button" tabindex="0" aria-label="Compute results"><div class="head-pill"><div class="letter">Result</div><div class="name"></div></div></th>
           </tr>
         </thead>
@@ -717,7 +717,7 @@
           return { title: 'New Sheet', formula: '' };
         };
 
-        const baseNames = { A: 'value1', B: 'value2', C: 'value3', D: 'unused', V: 'const1', W: 'const2', X: 'const3', Y: 'const4', Z: 'const5' };
+        const baseNames = { A: 'value1', B: 'value2', C: 'value3', D: 'value4', V: 'const1', W: 'const2', X: 'const3', Y: 'const4', Z: 'const5' };
         const makeBlankRows = () => Array.from({ length: ROW_COUNT }, () => ({ A: '', B: '', C: '', D: '', Result: '' }));
         const makeSheet = (idx) => {
           const t = sheetTemplate(idx);
