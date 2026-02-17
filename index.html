@@ -404,7 +404,7 @@
     <header class="nav">
       <button class="arrow" aria-label="Previous sheet">◀</button>
       <div class="title-block">
-        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">Proportion: A/B = C/Result | A:B::C:Result</span><span class="sheet-index">1/2</span></div>
+        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">Proportion: A/B = C/Result</span><span class="sheet-index">1/2</span></div>
       </div>
       <button class="arrow" aria-label="Next sheet">▶</button>
     </header>
@@ -534,16 +534,35 @@
         };
 
         const sheetTemplate = (idx) => {
-          if (idx === 0) return { title: 'Proportion: A/B = C/Result', name: 'A:B::C:Result', formula: '(B*C)/A+Y' };
-          if (idx === 1) return { title: 'Rule of three: A:B::C:Result', name: 'Rule of 3', formula: '(B*C)/A' };
-          return { title: 'Blank sheet', name: `Sheet ${idx + 1}`, formula: '' };
+          if (idx === 0) return { title: 'Proportion: A/B = C/Result', formula: '(B*C)/A+Y' };
+          if (idx === 1) return { title: 'Rule of three: A:B::C:Result', formula: '(B*C)/A' };
+          return { title: 'Blank sheet', formula: '' };
         };
 
         const baseNames = { A: 'value1', B: 'value2', C: 'value3', D: 'unused', V: 'const1', W: 'const2', X: 'const3', Y: 'const4', Z: 'const5' };
         const makeBlankRows = () => Array.from({ length: ROW_COUNT }, () => ({ A: '', B: '', C: '', D: '', Result: '' }));
         const makeSheet = (idx) => {
           const t = sheetTemplate(idx);
-          return { title: t.title, name: t.name, formulaCanonical: t.formula, names: { ...baseNames }, constants: { V: '', W: '', X: '', Y: '', Z: '' }, rows: makeBlankRows(), stats: ['--', '--', '--', '--', '--'] };
+          return { title: t.title, formulaCanonical: t.formula, names: { ...baseNames }, constants: { V: '', W: '', X: '', Y: '', Z: '' }, rows: makeBlankRows(), stats: ['--', '--', '--', '--', '--'] };
+        };
+
+        const hydrateSheet = (rawSheet, idx) => {
+          const fallback = makeSheet(idx);
+          const sheetObj = (rawSheet && typeof rawSheet === 'object') ? rawSheet : {};
+          const { name: _legacyNameField, ...sheet } = sheetObj;
+          const legacyTitle = typeof sheet.title === 'string' ? sheet.title.trim() : '';
+          const legacyName = typeof _legacyNameField === 'string' ? _legacyNameField.trim() : '';
+          const titleFromLegacyComposite = legacyTitle.includes('|') ? legacyTitle.split('|')[0].trim() : legacyTitle;
+          return {
+            ...fallback,
+            ...sheet,
+            title: titleFromLegacyComposite || legacyName || fallback.title,
+            formulaCanonical: typeof sheet.formulaCanonical === 'string' ? sheet.formulaCanonical : fallback.formulaCanonical,
+            names: { ...fallback.names, ...(sheet.names || {}) },
+            constants: { ...fallback.constants, ...(sheet.constants || {}) },
+            rows: Array.isArray(sheet.rows) ? sheet.rows.map((row) => ({ A: '', B: '', C: '', D: '', Result: '', ...(row || {}) })) : fallback.rows,
+            stats: Array.isArray(sheet.stats) ? sheet.stats.slice(0, 5) : fallback.stats
+          };
         };
 
         const state = { sheets: [makeSheet(0), makeSheet(1)], currentSheetIndex: 0, formulaMode: 'name', clearStage: 0 };
@@ -645,14 +664,8 @@
         const persistFromDom = () => {
           const sheet = state.sheets[state.currentSheetIndex];
           const rawTitle = (titleLine?.textContent || '').trim();
-          if (sheetNameLine) {
-            sheet.title = rawTitle || 'Untitled';
-            sheet.name = (sheetNameLine.textContent || '').trim() || `Sheet ${state.currentSheetIndex + 1}`;
-          } else {
-            const [rawSheetTitle, rawSheetName] = rawTitle.split('|').map((part) => part.trim());
-            sheet.title = rawSheetTitle || 'Untitled';
-            sheet.name = rawSheetName || sheet.name || `Sheet ${state.currentSheetIndex + 1}`;
-          }
+          sheet.title = rawTitle || 'Untitled';
+          delete sheet.name;
           sheet.formulaCanonical = displayToCanonical(formulaInput.value, sheet);
           [...headerNameEls, ...constNameEls].forEach((el, idx) => { const key = idx < 4 ? KEY_ORDER[idx] : CONST_ORDER[idx - 4]; sheet.names[key] = (el.textContent || '').trim(); });
           constantInputs.forEach((input, idx) => { sheet.constants[CONST_ORDER[idx]] = input.value; });
@@ -663,12 +676,8 @@
         const renderSheet = () => {
           const sheet = state.sheets[state.currentSheetIndex];
           const clean = sanitizeNameMap(sheet);
-          if (sheetNameLine) {
-            titleLine.textContent = sheet.title;
-            sheetNameLine.textContent = sheet.name;
-          } else if (titleLine) {
-            titleLine.textContent = `${sheet.title} | ${sheet.name}`;
-          }
+          if (titleLine) titleLine.textContent = String(sheet.title ?? '');
+          if (sheetNameLine) sheetNameLine.textContent = '';
           sheetIndexEl.textContent = `${state.currentSheetIndex + 1}/${state.sheets.length}`;
           formulaInput.value = canonicalToDisplay(sheet.formulaCanonical, sheet);
           toggleButton.innerHTML = state.formulaMode === 'letter' ? '<strong>A</strong> / Name' : 'A / <strong>Name</strong>';
@@ -769,7 +778,7 @@
         (async () => {
           const saved = await asyncStorage.get();
           if (saved?.sheets?.length) {
-            state.sheets = saved.sheets;
+            state.sheets = saved.sheets.map((sheet, idx) => hydrateSheet(sheet, idx));
             state.currentSheetIndex = Math.max(0, Math.min(saved.currentSheetIndex || 0, state.sheets.length - 1));
             state.formulaMode = saved.formulaMode === 'letter' ? 'letter' : 'name';
           }
