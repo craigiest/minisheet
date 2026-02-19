@@ -927,7 +927,7 @@
         };
         const canonicalToDisplay = (canonical, sheet) => {
           const expr = String(canonical || '');
-          if (state.formulaMode === 'letter') return expr.replace(/[VWXYZ]/g, (m) => m.toLowerCase());
+          if (state.formulaMode === 'letter') return expr.replace(/\b[VWXYZ]\b/g, (m) => m.toLowerCase());
           return expr.replace(/\b[A-Za-z]\b/g, (m) => buildNameMaps(sheet).clean[m.toUpperCase()] || m);
         };
         const displayToCanonical = (display, sheet) => {
