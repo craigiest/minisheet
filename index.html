@@ -690,7 +690,7 @@
         const headerPills = [...document.querySelectorAll('thead .head-pill')];
         const getKeyLabel = (key) => key?.textContent.trim() || '';
         const NUMBER_ENTRY_KEY_LABELS = new Set(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '−', UNDO_KEY_LABEL, '⌫', '=', MINIMIZE_KEY_LABEL, MAXIMIZE_KEY_LABEL]);
-        const FORMULA_ENTRY_KEY_LABELS = new Set(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '−', '+', '*', '/', '^', '(', ')', ',', ':', '⌫', UNDO_KEY_LABEL, MINIMIZE_KEY_LABEL, MAXIMIZE_KEY_LABEL, '⌨︎']);
+        const FORMULA_ENTRY_KEY_LABELS = new Set(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '−', '+', '*', '/', '^', '(', ')', ',', '√', '⌫', UNDO_KEY_LABEL, MINIMIZE_KEY_LABEL, MAXIMIZE_KEY_LABEL, '⌨︎']);
 
         const asyncStorage = {
           async get() {
@@ -968,6 +968,23 @@
           setSelection(activeTarget, start + text.length);
           resetClearStage();
         };
+        const insertRootCall = () => {
+          if (!activeTarget) return;
+          captureUndoForFocusedTarget();
+          const value = getText(activeTarget);
+          const { start, end } = getSelection(activeTarget);
+          if (start !== end) {
+            const selected = value.slice(start, end);
+            const inserted = `√(${selected})`;
+            setText(activeTarget, value.slice(0, start) + inserted + value.slice(end));
+            setSelection(activeTarget, start + inserted.length);
+          } else {
+            const inserted = '√()';
+            setText(activeTarget, value.slice(0, start) + inserted + value.slice(end));
+            setSelection(activeTarget, start + 2);
+          }
+          resetClearStage();
+        };
         const deleteBackward = () => {
           if (!activeTarget) return;
           const value = getText(activeTarget);
@@ -1200,7 +1217,7 @@
           if (key === resultKey) { blurActiveTarget(); computeAllRows(); resetClearStage(); return; }
           if (label === '⌨︎') return;
           if (label === '√') {
-            insertIntoTarget('√(');
+            insertRootCall();
           } else {
             insertIntoTarget(label === '−' ? '-' : label);
           }
