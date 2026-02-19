@@ -929,7 +929,7 @@
         };
         const canonicalToDisplay = (canonical, sheet) => {
           const expr = String(canonical || '');
-          if (state.formulaMode === 'letter') return expr.replace(/\b[VWXYZ]\b/g, (m) => m.toLowerCase());
+          if (state.formulaMode === 'letter') return expr;
           return expr.replace(/\b[A-Z]\b/g, (m) => buildNameMaps(sheet).clean[m.toUpperCase()] || m);
         };
         const displayToCanonical = (display, sheet) => {
@@ -1146,6 +1146,7 @@
           updateKeyAvailability();
         };
 
+        const astHasVariableReference = (node) => { if (!node || typeof node !== 'object') return false; if (node.type === 'variable') return true; if (node.type === 'range') return astHasVariableReference(node.start) || astHasVariableReference(node.end); return Object.values(node).some((value) => Array.isArray(value) ? value.some((item) => astHasVariableReference(item)) : astHasVariableReference(value)); };
         const computeAllRows = () => {
           persistFromDom();
           const sheet = state.sheets[state.currentSheetIndex];
@@ -1157,11 +1158,12 @@
             return;
           }
           let ast;
-          try { ast = parse(tokenize(sheet.formulaCanonical)); } catch (error) { sheet.rows.forEach((row) => { row.Result = rowIsEmpty(row) ? '' : mapErrorToCellText(error); }); renderSheet(); return; }
+          try { ast = parse(tokenize(sheet.formulaCanonical)); } catch (error) { sheet.rows.forEach((row, ri) => { row.Result = !ri || !rowIsEmpty(row) ? mapErrorToCellText(error) : ''; }); renderSheet(); return; }
+          const formulaUsesVariables = astHasVariableReference(ast);
           let constants;
-          try { constants = Object.fromEntries(CONST_ORDER.map((k) => [k, toNumericOrZero(sheet.constants[k])])); } catch (error) { sheet.rows.forEach((row) => { row.Result = rowIsEmpty(row) ? '' : mapErrorToCellText(error); }); renderSheet(); return; }
-          sheet.rows.forEach((row) => {
-            if (rowIsEmpty(row)) { row.Result = ''; return; }
+          try { constants = Object.fromEntries(CONST_ORDER.map((k) => [k, toNumericOrZero(sheet.constants[k])])); } catch (error) { sheet.rows.forEach((row, ri) => { row.Result = (!formulaUsesVariables && ri === 0) || !rowIsEmpty(row) ? mapErrorToCellText(error) : ''; }); renderSheet(); return; }
+          sheet.rows.forEach((row, ri) => {
+            if (rowIsEmpty(row) && (formulaUsesVariables || ri > 0)) { row.Result = ''; return; }
             try { const scope = { ...constants, ...Object.fromEntries(KEY_ORDER.map((k) => [k, toNumericOrZero(row[k])])), __blankByLetter: Object.fromEntries(KEY_ORDER.map((k) => [k, !String(row[k] ?? '').trim()])) }; row.Result = formatNumber(evaluateAst(ast, scope)); }
             catch (error) { row.Result = mapErrorToCellText(error); }
           });
@@ -1244,6 +1246,7 @@
           state.currentSheetIndex = 2;
           clearAllUndoHistory();
           renderSheet();
+          activateTarget(formulaInput);
           resetClearStage();
           scheduleSave();
         };
@@ -1424,6 +1427,7 @@
           clearAllUndoHistory();
           ensureUndoHistoryAlignment();
           renderSheet();
+          if (state.currentSheetIndex === 2 && !String(state.sheets[2]?.formulaCanonical || '').trim()) activateTarget(formulaInput);
           resetClearStage();
           updateKeyAvailability();
         })();
