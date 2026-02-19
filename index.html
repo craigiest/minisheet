@@ -630,11 +630,11 @@
         <tfoot>
           <tr>
             <td class="num">#</td>
-            <td><div class="stat-cell"><select><option>--</option><option>Sum</option><option>Avg</option><option>Min</option><option>Max</option><option>Count</option></select><output>—</output></div></td>
-            <td><div class="stat-cell"><select><option>--</option><option>Sum</option><option>Avg</option><option>Min</option><option>Max</option><option>Count</option></select><output>—</output></div></td>
-            <td><div class="stat-cell"><select><option>--</option><option>Sum</option><option>Avg</option><option>Min</option><option>Max</option><option>Count</option></select><output>—</output></div></td>
-            <td><div class="stat-cell"><select><option>--</option><option>Sum</option><option>Avg</option><option>Min</option><option>Max</option><option>Count</option></select><output>—</output></div></td>
-            <td><div class="stat-cell"><select><option>--</option><option>Sum</option><option>Avg</option><option>Min</option><option>Max</option><option>Count</option></select><output>—</output></div></td>
+            <td><div class="stat-cell"><select><option>--</option><option>Sum</option><option>Mean</option><option>Min</option><option>Max</option><option>Count</option></select><output>—</output></div></td>
+            <td><div class="stat-cell"><select><option>--</option><option>Sum</option><option>Mean</option><option>Min</option><option>Max</option><option>Count</option></select><output>—</output></div></td>
+            <td><div class="stat-cell"><select><option>--</option><option>Sum</option><option>Mean</option><option>Min</option><option>Max</option><option>Count</option></select><output>—</output></div></td>
+            <td><div class="stat-cell"><select><option>--</option><option>Sum</option><option>Mean</option><option>Min</option><option>Max</option><option>Count</option></select><output>—</output></div></td>
+            <td><div class="stat-cell"><select><option>--</option><option>Sum</option><option>Mean</option><option>Min</option><option>Max</option><option>Count</option></select><output>—</output></div></td>
           </tr>
         </tfoot>
       </table>
@@ -701,8 +701,8 @@
         const headerPills = [...document.querySelectorAll('thead .head-pill')];
         const getKeyLabel = (key) => key?.textContent.trim() || '';
         const NUMBER_ENTRY_KEY_LABELS = new Set(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '−', UNDO_KEY_LABEL, '⌫', '=', MINIMIZE_KEY_LABEL, MAXIMIZE_KEY_LABEL]);
-        const FORMULA_ENTRY_KEY_LABELS = new Set(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '−', '+', '*', '/', '^', '(', ')', ',', '√', 'SUM', 'MAX', 'MIN', '⌫', UNDO_KEY_LABEL, MINIMIZE_KEY_LABEL, MAXIMIZE_KEY_LABEL]);
-        const TEMP_DISABLED_KEY_LABELS = new Set(['LOG', '!', 'SIN', 'COS', 'TAN', 'MEAN', 'COUNT', 'MEDIAN', 'MODE', 'G.MN', 'ASIN', 'ACOS', 'ATAN', 'e', 'π', 'c', 'g', ':']);
+        const FORMULA_ENTRY_KEY_LABELS = new Set(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '−', '+', '*', '/', '^', '(', ')', ',', ':', '√', 'SUM', 'MEAN', 'MAX', 'MIN', 'COUNT', '⌫', UNDO_KEY_LABEL, MINIMIZE_KEY_LABEL, MAXIMIZE_KEY_LABEL]);
+        const TEMP_DISABLED_KEY_LABELS = new Set(['LOG', '!', 'SIN', 'COS', 'TAN', 'MEDIAN', 'MODE', 'G.MN', 'ASIN', 'ACOS', 'ATAN', 'e', 'π', 'c', 'g']);
 
         const asyncStorage = {
           async get() {
@@ -927,13 +927,13 @@
         };
         const canonicalToDisplay = (canonical, sheet) => {
           const expr = String(canonical || '');
-          if (state.formulaMode === 'letter') return expr.replace(/[VWXYZ]/g, (m) => m.toLowerCase());
-          return expr.replace(/[A-Za-z]/g, (m) => buildNameMaps(sheet).clean[m.toUpperCase()] || m);
+          if (state.formulaMode === 'letter') return expr.replace(/\b[VWXYZ]\b/g, (m) => m.toLowerCase());
+          return expr.replace(/\b[A-Za-z]\b/g, (m) => buildNameMaps(sheet).clean[m.toUpperCase()] || m);
         };
         const displayToCanonical = (display, sheet) => {
           let expr = String(display || '');
           Object.entries(buildNameMaps(sheet).map).sort((a, b) => b[0].length - a[0].length).forEach(([name, letter]) => { expr = expr.split(name).join(letter); });
-          return expr.replace(/[vwxyz]/g, (m) => m.toUpperCase());
+          return expr.replace(/\b[vwxyz]\b/g, (m) => m.toUpperCase());
         };
         const formulaTokenFor = (letter) => {
           if (state.formulaMode === 'letter') return CONST_ORDER.includes(letter) ? letter.toLowerCase() : letter;
@@ -1029,6 +1029,41 @@
           }
           resetClearStage();
         };
+        const insertFunctionCall = (functionName) => {
+          if (!activeTarget) return;
+          captureUndoForFocusedTarget();
+          const value = getText(activeTarget);
+          const { start, end } = getSelection(activeTarget);
+          if (start !== end) {
+            const selected = value.slice(start, end);
+            const inserted = `${functionName}(${selected})`;
+            setText(activeTarget, value.slice(0, start) + inserted + value.slice(end));
+            setSelection(activeTarget, start + inserted.length);
+          } else {
+            const inserted = `${functionName}()`;
+            setText(activeTarget, value.slice(0, start) + inserted + value.slice(end));
+            setSelection(activeTarget, start + inserted.length - 1);
+          }
+          resetClearStage();
+        };
+        const insertFormulaReferenceToken = (token) => {
+          if (activeTarget !== formulaInput) return;
+          captureUndoForFocusedTarget();
+          const value = getText(formulaInput);
+          const { start, end } = getSelection(formulaInput);
+          const selected = value.slice(start, end);
+          const needsCommaBefore = start > 0 && value[start - 1] !== '(' && value[start - 1] !== ',';
+          const needsCommaAfter = end < value.length && value[end] !== ')' && value[end] !== ',';
+          const betweenFunctionParens = value[start - 1] === '(' && value[end] === ')';
+          let inserted = token;
+          if (betweenFunctionParens && !selected) {
+            if (needsCommaBefore) inserted = `,${inserted}`;
+            if (needsCommaAfter) inserted = `${inserted},`;
+          }
+          setText(formulaInput, value.slice(0, start) + inserted + value.slice(end));
+          setSelection(formulaInput, start + inserted.length);
+          resetClearStage();
+        };
         const deleteBackward = () => {
           if (!activeTarget) return;
           const value = getText(activeTarget);
@@ -1068,13 +1103,13 @@
         const moveCursor = (delta) => { if (!activeTarget) return; const { start, end } = getSelection(activeTarget); const base = delta < 0 ? start : end; setSelection(activeTarget, Math.max(0, Math.min(base + delta, getText(activeTarget).length))); };
         const toNumericOrZero = (rawValue) => { const value = String(rawValue ?? '').trim(); if (!value) return 0; const numeric = Number(value); if (!Number.isFinite(numeric)) throw new Error('NON_NUMERIC'); return numeric; };
 
-        const tokenize = (source) => { const tokens = []; const text = String(source ?? ''); let index = 0; while (index < text.length) { const char = text[index]; if (/\s/.test(char)) { index += 1; continue; } if ((char >= '0' && char <= '9') || char === '.') { let end = index; while (end < text.length && /[0-9.]/.test(text[end])) end += 1; const literal = text.slice(index, end); if ((literal.match(/\./g) || []).length > 1 || literal === '.') throw new SyntaxError('Invalid number'); tokens.push({ type: 'number', value: Number(literal) }); index = end; continue; } const normalized = char === '−' ? '-' : char; if ('+-*/^'.includes(normalized)) { tokens.push({ type: 'operator', value: normalized }); index += 1; continue; } if (normalized === '(' || normalized === ')') { tokens.push({ type: 'paren', value: normalized }); index += 1; continue; } if (normalized === ',') { tokens.push({ type: 'comma', value: ',' }); index += 1; continue; } if (normalized === '√') { tokens.push({ type: 'root', value: '√' }); index += 1; continue; } if (/[A-Za-z]/.test(normalized)) { const upper = normalized.toUpperCase(); if (!ALL_LETTERS.includes(upper)) throw new SyntaxError('Unknown variable'); tokens.push({ type: 'variable', value: upper }); index += 1; continue; } throw new SyntaxError('Unexpected token'); } return tokens; };
-        const parse = (tokens) => { let cursor = 0; const peek = () => tokens[cursor]; const consume = () => tokens[cursor++]; const primary = () => { const token = peek(); if (!token) throw new SyntaxError('Unexpected end'); if (token.type === 'number') return consume(), { type: 'number', value: token.value }; if (token.type === 'variable') return consume(), { type: 'variable', name: token.value }; if (token.type === 'paren' && token.value === '(') { consume(); const expr = expression(); const close = consume(); if (!close || close.type !== 'paren' || close.value !== ')') throw new SyntaxError('Missing close paren'); return expr; } if (token.type === 'root') { consume(); const open = consume(); if (!open || open.type !== 'paren' || open.value !== '(') throw new SyntaxError('Root call requires parenthesis'); const first = expression(); if (peek()?.type === 'comma') { consume(); const second = expression(); const close = consume(); if (!close || close.type !== 'paren' || close.value !== ')') throw new SyntaxError('Missing close paren'); return { type: 'root', degree: first, radicand: second }; } const close = consume(); if (!close || close.type !== 'paren' || close.value !== ')') throw new SyntaxError('Missing close paren'); return { type: 'root', degree: null, radicand: first }; } throw new SyntaxError('Unexpected token'); }; const unary = () => peek()?.type === 'operator' && '+-'.includes(peek().value) ? { type: 'unary', operator: consume().value, argument: unary() } : primary(); const power = () => { let left = unary(); while (peek()?.type === 'operator' && peek().value === '^') left = { type: 'binary', operator: consume().value, left, right: unary() }; return left; }; const term = () => { let left = power(); while (peek()?.type === 'operator' && '*/'.includes(peek().value)) left = { type: 'binary', operator: consume().value, left, right: power() }; return left; }; const expression = () => { let left = term(); while (peek()?.type === 'operator' && '+-'.includes(peek().value)) left = { type: 'binary', operator: consume().value, left, right: term() }; return left; }; const ast = expression(); if (cursor < tokens.length) throw new SyntaxError('Trailing tokens'); return ast; };
-        const evaluateAst = (node, scope) => { if (node.type === 'number') return node.value; if (node.type === 'variable') return scope[node.name] ?? 0; if (node.type === 'unary') return node.operator === '-' ? -evaluateAst(node.argument, scope) : evaluateAst(node.argument, scope); if (node.type === 'binary') { const left = evaluateAst(node.left, scope); const right = evaluateAst(node.right, scope); if (node.operator === '+') return left + right; if (node.operator === '-') return left - right; if (node.operator === '*') return left * right; if (node.operator === '/') { if (right === 0) throw new Error('DIV_0'); return left / right; } return left ** right; } const radicand = evaluateAst(node.radicand, scope); if (!node.degree) return Math.sqrt(radicand); const degree = evaluateAst(node.degree, scope); if (degree === 0) throw new Error('DIV_0'); return radicand ** (1 / degree); };
+        const tokenize = (source) => { const tokens = []; const text = String(source ?? ''); let index = 0; while (index < text.length) { const char = text[index]; if (/\s/.test(char)) { index += 1; continue; } if ((char >= '0' && char <= '9') || char === '.') { let end = index; while (end < text.length && /[0-9.]/.test(text[end])) end += 1; const literal = text.slice(index, end); if ((literal.match(/\./g) || []).length > 1 || literal === '.') throw new SyntaxError('Invalid number'); tokens.push({ type: 'number', value: Number(literal) }); index = end; continue; } const normalized = char === '−' ? '-' : char; if ('+-*/^'.includes(normalized)) { tokens.push({ type: 'operator', value: normalized }); index += 1; continue; } if (normalized === '(' || normalized === ')') { tokens.push({ type: 'paren', value: normalized }); index += 1; continue; } if (normalized === ',') { tokens.push({ type: 'comma', value: ',' }); index += 1; continue; } if (normalized === ':') { tokens.push({ type: 'colon', value: ':' }); index += 1; continue; } if (normalized === '√') { tokens.push({ type: 'root', value: '√' }); index += 1; continue; } if (/[A-Za-z]/.test(normalized)) { let end = index; while (end < text.length && /[A-Za-z]/.test(text[end])) end += 1; const upper = text.slice(index, end).toUpperCase(); if (upper.length === 1 && ALL_LETTERS.includes(upper)) tokens.push({ type: 'variable', value: upper }); else tokens.push({ type: 'identifier', value: upper }); index = end; continue; } throw new SyntaxError('Unexpected token'); } return tokens; };
+        const parse = (tokens) => { let cursor = 0; const peek = () => tokens[cursor]; const consume = () => tokens[cursor++]; const consumeType = (type, value = null) => { const token = consume(); if (!token || token.type !== type || (value !== null && token.value !== value)) throw new SyntaxError('Unexpected token'); return token; }; const functionArgument = () => { const start = expression(); if (peek()?.type === 'colon') { consume(); const end = expression(); return { type: 'range', start, end }; } return start; }; const functionCall = (name) => { consumeType('paren', '('); const args = []; if (!(peek()?.type === 'paren' && peek().value === ')')) { args.push(functionArgument()); while (peek()?.type === 'comma') { consume(); args.push(functionArgument()); } } consumeType('paren', ')'); return { type: 'function', name, args }; }; const primary = () => { const token = peek(); if (!token) throw new SyntaxError('Unexpected end'); if (token.type === 'number') return consume(), { type: 'number', value: token.value }; if (token.type === 'variable') return consume(), { type: 'variable', name: token.value }; if (token.type === 'identifier') { const name = consume().value; if (peek()?.type === 'paren' && peek().value === '(') return functionCall(name); throw new SyntaxError('Unknown function'); } if (token.type === 'paren' && token.value === '(') { consume(); const expr = expression(); const close = consume(); if (!close || close.type !== 'paren' || close.value !== ')') throw new SyntaxError('Missing close paren'); return expr; } if (token.type === 'root') { consume(); const open = consume(); if (!open || open.type !== 'paren' || open.value !== '(') throw new SyntaxError('Root call requires parenthesis'); const first = expression(); if (peek()?.type === 'comma') { consume(); const second = expression(); const close = consume(); if (!close || close.type !== 'paren' || close.value !== ')') throw new SyntaxError('Missing close paren'); return { type: 'root', degree: first, radicand: second }; } const close = consume(); if (!close || close.type !== 'paren' || close.value !== ')') throw new SyntaxError('Missing close paren'); return { type: 'root', degree: null, radicand: first }; } throw new SyntaxError('Unexpected token'); }; const unary = () => peek()?.type === 'operator' && '+-'.includes(peek().value) ? { type: 'unary', operator: consume().value, argument: unary() } : primary(); const power = () => { let left = unary(); while (peek()?.type === 'operator' && peek().value === '^') left = { type: 'binary', operator: consume().value, left, right: unary() }; return left; }; const term = () => { let left = power(); while (peek()?.type === 'operator' && '*/'.includes(peek().value)) left = { type: 'binary', operator: consume().value, left, right: power() }; return left; }; const expression = () => { let left = term(); while (peek()?.type === 'operator' && '+-'.includes(peek().value)) left = { type: 'binary', operator: consume().value, left, right: term() }; return left; }; const ast = expression(); if (cursor < tokens.length) throw new SyntaxError('Trailing tokens'); return ast; };
+        const evaluateAst = (node, scope) => { const variableRange = (start, end) => { if (start?.type !== 'variable' || end?.type !== 'variable') throw new SyntaxError('Invalid range'); const startIndex = ALL_LETTERS.indexOf(start.name); const endIndex = ALL_LETTERS.indexOf(end.name); if (startIndex === -1 || endIndex === -1) throw new SyntaxError('Invalid range'); const [from, to] = startIndex <= endIndex ? [startIndex, endIndex] : [endIndex, startIndex]; return ALL_LETTERS.slice(from, to + 1).map((letter) => scope[letter] ?? 0); }; const evaluateFunctionValues = (args) => args.flatMap((arg) => arg.type === 'range' ? variableRange(arg.start, arg.end) : [evaluateAst(arg, scope)]); if (node.type === 'number') return node.value; if (node.type === 'variable') return scope[node.name] ?? 0; if (node.type === 'unary') return node.operator === '-' ? -evaluateAst(node.argument, scope) : evaluateAst(node.argument, scope); if (node.type === 'binary') { const left = evaluateAst(node.left, scope); const right = evaluateAst(node.right, scope); if (node.operator === '+') return left + right; if (node.operator === '-') return left - right; if (node.operator === '*') return left * right; if (node.operator === '/') { if (right === 0) throw new Error('DIV_0'); return left / right; } return left ** right; } if (node.type === 'function') { const values = evaluateFunctionValues(node.args || []); if (!values.length) throw new SyntaxError('Missing function arguments'); if (node.name === 'SUM') return values.reduce((total, value) => total + value, 0); if (node.name === 'MEAN') return values.reduce((total, value) => total + value, 0) / values.length; if (node.name === 'MAX') return Math.max(...values); if (node.name === 'MIN') return Math.min(...values); if (node.name === 'COUNT') return values.length; throw new SyntaxError('Unknown function'); } const radicand = evaluateAst(node.radicand, scope); if (!node.degree) return Math.sqrt(radicand); const degree = evaluateAst(node.degree, scope); if (degree === 0) throw new Error('DIV_0'); return radicand ** (1 / degree); };
         const mapErrorToCellText = (error) => error instanceof SyntaxError ? 'Syntax Err' : (error?.message === 'DIV_0' ? 'DIV/0' : 'Error');
         const formatNumber = (value) => Number.isFinite(value) ? (Number.isInteger(value) ? String(value) : value.toFixed(8).replace(/\.?0+$/, '')) : 'Error';
         const sheetIsBlank = (sheet) => !sheet.formulaCanonical.trim() && Object.values(sheet.constants).every((v) => !String(v).trim()) && sheet.rows.every((row) => KEY_ORDER.every((k) => !String(row[k] || '').trim()) && !String(row.Result || '').trim());
-        const applyStat = (values, statName) => !values.length ? '—' : (statName === 'Sum' ? formatNumber(values.reduce((a, b) => a + b, 0)) : statName === 'Avg' ? formatNumber(values.reduce((a, b) => a + b, 0) / values.length) : statName === 'Min' ? formatNumber(Math.min(...values)) : statName === 'Max' ? formatNumber(Math.max(...values)) : statName === 'Count' ? String(values.length) : '—');
+        const applyStat = (values, statName) => !values.length ? '—' : (statName === 'Sum' ? formatNumber(values.reduce((a, b) => a + b, 0)) : (statName === 'Mean' || statName === 'Avg') ? formatNumber(values.reduce((a, b) => a + b, 0) / values.length) : statName === 'Min' ? formatNumber(Math.min(...values)) : statName === 'Max' ? formatNumber(Math.max(...values)) : statName === 'Count' ? String(values.length) : '—');
 
         const recomputeStatsFromSheet = (sheet) => { statCells.forEach((cell, index) => { const output = cell.querySelector('output'); const statName = sheet.stats[index] || '--'; if (statName === '--') { output.textContent = '—'; return; } const values = sheet.rows.map((row) => index < 4 ? String(row[KEY_ORDER[index]] || '').trim() : String(row.Result || '').trim()).filter((v) => v !== '').map(Number).filter((n) => Number.isFinite(n)); output.textContent = applyStat(values, statName); }); };
         const persistFromDom = () => {
@@ -1131,25 +1166,27 @@
           scheduleSave();
         };
 
-        const deleteBlankDynamicCurrentSheet = () => {
-          const idx = state.currentSheetIndex;
-          if (idx < 3 || state.sheets.length <= 3) return;
-          if (sheetIsBlank(state.sheets[idx])) {
-            state.sheets.splice(idx, 1);
-            undoHistoryBySheet.splice(idx, 1);
-            if (state.currentSheetIndex >= state.sheets.length) state.currentSheetIndex = 0;
-          }
+        const deleteBlankDynamicSheetAt = (idx) => {
+          if (idx < 3 || state.sheets.length <= 3) return false;
+          if (!sheetIsBlank(state.sheets[idx])) return false;
+          state.sheets.splice(idx, 1);
+          undoHistoryBySheet.splice(idx, 1);
+          return true;
         };
         const nav = (dir) => {
           persistFromDom();
-          const wasLast = state.currentSheetIndex === state.sheets.length - 1;
-          deleteBlankDynamicCurrentSheet();
+          const oldIndex = state.currentSheetIndex;
+          const oldLength = state.sheets.length;
+          const wasLast = oldIndex === oldLength - 1;
+          let nextIndex = (oldIndex + dir + oldLength) % oldLength;
+          const deletedCurrent = deleteBlankDynamicSheetAt(oldIndex);
+          if (deletedCurrent && oldIndex < nextIndex) nextIndex -= 1;
           if (dir > 0 && wasLast) {
             state.sheets.push(makeSheet(state.sheets.length));
             undoHistoryBySheet.push([]);
             state.currentSheetIndex = state.sheets.length - 1;
           } else {
-            state.currentSheetIndex = (state.currentSheetIndex + dir + state.sheets.length) % state.sheets.length;
+            state.currentSheetIndex = ((nextIndex % state.sheets.length) + state.sheets.length) % state.sheets.length;
           }
           ensureUndoHistoryAlignment();
           renderSheet();
@@ -1226,6 +1263,10 @@
               return;
             }
             activateTarget(target);
+            if (labelEditableFields.has(target)) {
+              const textLength = getText(target).length;
+              setSelection(target, 0, textLength);
+            }
           }));
           target.addEventListener('beforeinput', () => { if (activeTarget === target) captureUndoForFocusedTarget(); });
           target.addEventListener('input', () => { resetClearStage(); persistFromDom(); });
@@ -1264,8 +1305,10 @@
           if (key === leftKey) return moveCursor(-1);
           if (key === rightKey) return moveCursor(1);
           if (key === resultKey) { blurActiveTarget(); computeAllRows(); resetClearStage(); return; }
-                    if (label === '√') {
+          if (label === '√') {
             insertRootCall();
+          } else if (activeTarget === formulaInput && ['SUM', 'MEAN', 'MAX', 'MIN', 'COUNT'].includes(label)) {
+            insertFunctionCall(label);
           } else {
             insertIntoTarget(label === '−' ? '-' : label);
           }
@@ -1302,7 +1345,7 @@
             event.preventDefault();
             event.stopPropagation();
             pointerTriggered = true;
-            insertIntoTarget(formulaTokenFor(letter));
+            insertFormulaReferenceToken(formulaTokenFor(letter));
             persistFromDom();
           };
           button.addEventListener('pointerdown', insertToken, true);
@@ -1314,7 +1357,7 @@
               pointerTriggered = false;
               return;
             }
-            insertIntoTarget(formulaTokenFor(letter));
+            insertFormulaReferenceToken(formulaTokenFor(letter));
             persistFromDom();
           }, true);
         };
@@ -1362,7 +1405,7 @@
           if (shouldRecompute) computeAllRows();
           else persistFromDom();
         }));
-        statCells.forEach((cell, idx) => { const select = cell.querySelector('select'); select?.addEventListener('change', () => { state.sheets[state.currentSheetIndex].stats[idx] = select.value; scheduleSave(); resetClearStage(); }); });
+        statCells.forEach((cell, idx) => { const select = cell.querySelector('select'); select?.addEventListener('change', () => { state.sheets[state.currentSheetIndex].stats[idx] = select.value; recomputeStatsFromSheet(state.sheets[state.currentSheetIndex]); scheduleSave(); resetClearStage(); }); });
         document.addEventListener('keydown', (event) => { if (event.key !== 'Enter') return; if (!activeTarget || !editableTargets.includes(activeTarget)) return; event.preventDefault(); blurActiveTarget(); computeAllRows(); resetClearStage(); });
 
         (async () => {
