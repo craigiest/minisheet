@@ -700,9 +700,9 @@
         const statCells = [...document.querySelectorAll('tfoot .stat-cell')];
         const headerPills = [...document.querySelectorAll('thead .head-pill')];
         const getKeyLabel = (key) => key?.textContent.trim() || '';
-        const NUMBER_ENTRY_KEY_LABELS = new Set(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '−', UNDO_KEY_LABEL, '⌫', '=', MINIMIZE_KEY_LABEL, MAXIMIZE_KEY_LABEL]);
-        const FORMULA_ENTRY_KEY_LABELS = new Set(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '−', '+', '*', '/', '^', '(', ')', ',', ':', '√', 'SUM', 'MEAN', 'MAX', 'MIN', 'COUNT', 'e', 'π', 'c', 'g', '⌫', UNDO_KEY_LABEL, MINIMIZE_KEY_LABEL, MAXIMIZE_KEY_LABEL]);
-        const TEMP_DISABLED_KEY_LABELS = new Set(['LOG', '!', 'SIN', 'COS', 'TAN', 'MEDIAN', 'MODE', 'G.MN', 'ASIN', 'ACOS', 'ATAN']);
+        const NUMBER_ENTRY_KEY_LABELS = new Set(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '−', 'e', 'π', 'c', 'g', UNDO_KEY_LABEL, '⌫', '=', MINIMIZE_KEY_LABEL, MAXIMIZE_KEY_LABEL]);
+        const FORMULA_ENTRY_KEY_LABELS = new Set(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '−', '+', '*', '/', '^', '(', ')', ',', ':', '√', 'SUM', 'MEAN', 'MAX', 'MIN', 'COUNT', 'CNT', 'MDN', 'MODE', 'GMN', 'e', 'π', 'c', 'g', '⌫', UNDO_KEY_LABEL, MINIMIZE_KEY_LABEL, MAXIMIZE_KEY_LABEL]);
+        const TEMP_DISABLED_KEY_LABELS = new Set(['LOG', '!', 'SIN', 'COS', 'TAN', 'ASIN', 'ACOS', 'ATAN']);
 
         const asyncStorage = {
           async get() {
@@ -892,7 +892,7 @@
 
         const OPERATOR_LIKE_CHARS_RE = /[+\-*/^(),:!√\[\]]/;
         const NUMERIC_NAME_RE = /^[-+]?\d+(?:\.\d+)?$/;
-        const RESERVED_FORMULA_TERMS = new Set(['SUM', 'MEAN', 'MAX', 'MIN', 'COUNT', 'PI', 'E', 'C', 'G']);
+        const RESERVED_FORMULA_TERMS = new Set(['SUM', 'MEAN', 'MAX', 'MIN', 'COUNT', 'CNT', 'MDN', 'MEDIAN', 'MODE', 'GMN', 'PI', 'E', 'C', 'G']);
         const buildNameMaps = (sheet) => {
           const rawByLetter = {};
           const effectiveByLetter = {};
@@ -929,7 +929,7 @@
         };
         const canonicalToDisplay = (canonical, sheet) => {
           const expr = String(canonical || '');
-          if (state.formulaMode === 'letter') return expr.replace(/\b[VWXYZ]\b/g, (m) => m.toLowerCase());
+          if (state.formulaMode === 'letter') return expr;
           return expr.replace(/\b[A-Z]\b/g, (m) => buildNameMaps(sheet).clean[m.toUpperCase()] || m);
         };
         const displayToCanonical = (display, sheet) => {
@@ -938,7 +938,7 @@
           return expr.replace(/\b[vwxyz]\b/g, (m) => m.toUpperCase());
         };
         const formulaTokenFor = (letter) => {
-          if (state.formulaMode === 'letter') return CONST_ORDER.includes(letter) ? letter.toLowerCase() : letter;
+          if (state.formulaMode === 'letter') return letter;
           const clean = buildNameMaps(state.sheets[state.currentSheetIndex]).clean;
           return clean[letter] || letter;
         };
@@ -950,10 +950,10 @@
           sin: { normal: 'SIN', shifted: 'ASIN' },
           cos: { normal: 'COS', shifted: 'ACOS' },
           tan: { normal: 'TAN', shifted: 'ATAN' },
-          sum: { normal: 'SUM', shifted: 'COUNT' },
-          mean: { normal: 'MEAN', shifted: 'MEDIAN' },
+          sum: { normal: 'SUM', shifted: 'CNT' },
+          mean: { normal: 'MEAN', shifted: 'MDN' },
           max: { normal: 'MAX', shifted: 'MODE' },
-          min: { normal: 'MIN', shifted: 'G.MN' }
+          min: { normal: 'MIN', shifted: 'GMN' }
         };
         const updateShiftLabels = () => {
           Object.entries(SHIFT_LABELS).forEach(([slot, labels]) => {
@@ -1103,11 +1103,12 @@
           resetClearStage();
         };
         const moveCursor = (delta) => { if (!activeTarget) return; const { start, end } = getSelection(activeTarget); const base = delta < 0 ? start : end; setSelection(activeTarget, Math.max(0, Math.min(base + delta, getText(activeTarget).length))); };
-        const toNumericOrZero = (rawValue) => { const value = String(rawValue ?? '').trim(); if (!value) return 0; const numeric = Number(value); if (!Number.isFinite(numeric)) throw new Error('NON_NUMERIC'); return numeric; };
+        const NAMED_NUMERIC_CONSTANTS = { PI: Math.PI, E: Math.E, C: 299792458, G: 9.80665 };
+        const toNumericOrZero = (rawValue) => { const value = String(rawValue ?? '').trim(); if (!value) return 0; const normalized = value === 'π' ? 'PI' : value.toUpperCase(); if (Object.prototype.hasOwnProperty.call(NAMED_NUMERIC_CONSTANTS, normalized)) return NAMED_NUMERIC_CONSTANTS[normalized]; const numeric = Number(value); if (!Number.isFinite(numeric)) throw new Error('NON_NUMERIC'); return numeric; };
 
         const tokenize = (source) => { const tokens = []; const text = String(source ?? ''); let index = 0; while (index < text.length) { const char = text[index]; if (/\s/.test(char)) { index += 1; continue; } if ((char >= '0' && char <= '9') || char === '.') { let end = index; while (end < text.length && /[0-9.]/.test(text[end])) end += 1; const literal = text.slice(index, end); if ((literal.match(/\./g) || []).length > 1 || literal === '.') throw new SyntaxError('Invalid number'); tokens.push({ type: 'number', value: Number(literal) }); index = end; continue; } const normalized = char === '−' ? '-' : char; if ('+-*/^'.includes(normalized)) { tokens.push({ type: 'operator', value: normalized }); index += 1; continue; } if (normalized === '(' || normalized === ')') { tokens.push({ type: 'paren', value: normalized }); index += 1; continue; } if (normalized === ',') { tokens.push({ type: 'comma', value: ',' }); index += 1; continue; } if (normalized === ':') { tokens.push({ type: 'colon', value: ':' }); index += 1; continue; } if (normalized === '√') { tokens.push({ type: 'root', value: '√' }); index += 1; continue; } if (normalized === 'π') { tokens.push({ type: 'constant', name: 'PI' }); index += 1; continue; } if (/[A-Za-z]/.test(normalized)) { let end = index; while (end < text.length && /[A-Za-z]/.test(text[end])) end += 1; const raw = text.slice(index, end); const upper = raw.toUpperCase(); if (upper === 'PI' || raw === 'e' || raw === 'c' || raw === 'g') tokens.push({ type: 'constant', name: upper }); else if (upper.length === 1 && ALL_LETTERS.includes(upper)) tokens.push({ type: 'variable', value: upper }); else tokens.push({ type: 'identifier', value: upper }); index = end; continue; } throw new SyntaxError('Unexpected token'); } return tokens; };
         const parse = (tokens) => { let cursor = 0; const peek = () => tokens[cursor]; const consume = () => tokens[cursor++]; const consumeType = (type, value = null) => { const token = consume(); if (!token || token.type !== type || (value !== null && token.value !== value)) throw new SyntaxError('Unexpected token'); return token; }; const functionArgument = () => { const start = expression(); if (peek()?.type === 'colon') { consume(); const end = expression(); return { type: 'range', start, end }; } return start; }; const functionCall = (name) => { consumeType('paren', '('); const args = []; if (!(peek()?.type === 'paren' && peek().value === ')')) { args.push(functionArgument()); while (peek()?.type === 'comma') { consume(); args.push(functionArgument()); } } consumeType('paren', ')'); return { type: 'function', name, args }; }; const primary = () => { const token = peek(); if (!token) throw new SyntaxError('Unexpected end'); if (token.type === 'number') return consume(), { type: 'number', value: token.value }; if (token.type === 'variable') return consume(), { type: 'variable', name: token.value }; if (token.type === 'constant') return consume(), { type: 'constant', name: token.name }; if (token.type === 'identifier') { const name = consume().value; if (peek()?.type === 'paren' && peek().value === '(') return functionCall(name); throw new SyntaxError('Unknown function'); } if (token.type === 'paren' && token.value === '(') { consume(); const expr = expression(); const close = consume(); if (!close || close.type !== 'paren' || close.value !== ')') throw new SyntaxError('Missing close paren'); return expr; } if (token.type === 'root') { consume(); const open = consume(); if (!open || open.type !== 'paren' || open.value !== '(') throw new SyntaxError('Root call requires parenthesis'); const first = expression(); if (peek()?.type === 'comma') { consume(); const second = expression(); const close = consume(); if (!close || close.type !== 'paren' || close.value !== ')') throw new SyntaxError('Missing close paren'); return { type: 'root', degree: first, radicand: second }; } const close = consume(); if (!close || close.type !== 'paren' || close.value !== ')') throw new SyntaxError('Missing close paren'); return { type: 'root', degree: null, radicand: first }; } throw new SyntaxError('Unexpected token'); }; const unary = () => peek()?.type === 'operator' && '+-'.includes(peek().value) ? { type: 'unary', operator: consume().value, argument: unary() } : primary(); const power = () => { let left = unary(); while (peek()?.type === 'operator' && peek().value === '^') left = { type: 'binary', operator: consume().value, left, right: unary() }; return left; }; const term = () => { let left = power(); while (peek()?.type === 'operator' && '*/'.includes(peek().value)) left = { type: 'binary', operator: consume().value, left, right: power() }; return left; }; const expression = () => { let left = term(); while (peek()?.type === 'operator' && '+-'.includes(peek().value)) left = { type: 'binary', operator: consume().value, left, right: term() }; return left; }; const ast = expression(); if (cursor < tokens.length) throw new SyntaxError('Trailing tokens'); return ast; };
-        const evaluateAst = (node, scope) => { const variableRangeLetters = (start, end) => { if (start?.type !== 'variable' || end?.type !== 'variable') throw new SyntaxError('Invalid range'); const startIndex = ALL_LETTERS.indexOf(start.name); const endIndex = ALL_LETTERS.indexOf(end.name); if (startIndex === -1 || endIndex === -1) throw new SyntaxError('Invalid range'); const [from, to] = startIndex <= endIndex ? [startIndex, endIndex] : [endIndex, startIndex]; return ALL_LETTERS.slice(from, to + 1); }; const evaluateFunctionValues = (args) => args.flatMap((arg) => { if (arg.type === 'range') return variableRangeLetters(arg.start, arg.end).flatMap((letter) => scope.__blankByLetter?.[letter] ? [] : [scope[letter] ?? 0]); if (arg.type === 'variable' && scope.__blankByLetter?.[arg.name]) return []; return [evaluateAst(arg, scope)]; }); if (node.type === 'number') return node.value; if (node.type === 'constant') { if (node.name === 'PI') return Math.PI; if (node.name === 'E') return Math.E; if (node.name === 'C') return 299792458; if (node.name === 'G') return 9.80665; throw new SyntaxError('Unknown constant'); } if (node.type === 'variable') return scope[node.name] ?? 0; if (node.type === 'unary') return node.operator === '-' ? -evaluateAst(node.argument, scope) : evaluateAst(node.argument, scope); if (node.type === 'binary') { const left = evaluateAst(node.left, scope); const right = evaluateAst(node.right, scope); if (node.operator === '+') return left + right; if (node.operator === '-') return left - right; if (node.operator === '*') return left * right; if (node.operator === '/') { if (right === 0) throw new Error('DIV_0'); return left / right; } return left ** right; } if (node.type === 'function') { const values = evaluateFunctionValues(node.args || []); if (!values.length) throw new SyntaxError('Missing function arguments'); if (node.name === 'SUM') return values.reduce((total, value) => total + value, 0); if (node.name === 'MEAN') return values.reduce((total, value) => total + value, 0) / values.length; if (node.name === 'MAX') return Math.max(...values); if (node.name === 'MIN') return Math.min(...values); if (node.name === 'COUNT') return values.length; throw new SyntaxError('Unknown function'); } const radicand = evaluateAst(node.radicand, scope); if (!node.degree) return Math.sqrt(radicand); const degree = evaluateAst(node.degree, scope); if (degree === 0) throw new Error('DIV_0'); return radicand ** (1 / degree); };
+        const evaluateAst = (node, scope) => { const variableRangeLetters = (start, end) => { if (start?.type !== 'variable' || end?.type !== 'variable') throw new SyntaxError('Invalid range'); const startIndex = ALL_LETTERS.indexOf(start.name); const endIndex = ALL_LETTERS.indexOf(end.name); if (startIndex === -1 || endIndex === -1) throw new SyntaxError('Invalid range'); const [from, to] = startIndex <= endIndex ? [startIndex, endIndex] : [endIndex, startIndex]; return ALL_LETTERS.slice(from, to + 1); }; const evaluateFunctionValues = (args) => args.flatMap((arg) => { if (arg.type === 'range') return variableRangeLetters(arg.start, arg.end).flatMap((letter) => scope.__blankByLetter?.[letter] ? [] : [scope[letter] ?? 0]); if (arg.type === 'variable' && scope.__blankByLetter?.[arg.name]) return []; return [evaluateAst(arg, scope)]; }); if (node.type === 'number') return node.value; if (node.type === 'constant') { if (node.name === 'PI') return Math.PI; if (node.name === 'E') return Math.E; if (node.name === 'C') return 299792458; if (node.name === 'G') return 9.80665; throw new SyntaxError('Unknown constant'); } if (node.type === 'variable') return scope[node.name] ?? 0; if (node.type === 'unary') return node.operator === '-' ? -evaluateAst(node.argument, scope) : evaluateAst(node.argument, scope); if (node.type === 'binary') { const left = evaluateAst(node.left, scope); const right = evaluateAst(node.right, scope); if (node.operator === '+') return left + right; if (node.operator === '-') return left - right; if (node.operator === '*') return left * right; if (node.operator === '/') { if (right === 0) throw new Error('DIV_0'); return left / right; } return left ** right; } if (node.type === 'function') { const values = evaluateFunctionValues(node.args || []); if (!values.length) throw new SyntaxError('Missing function arguments'); if (node.name === 'SUM') return values.reduce((total, value) => total + value, 0); if (node.name === 'MEAN') return values.reduce((total, value) => total + value, 0) / values.length; if (node.name === 'MAX') return Math.max(...values); if (node.name === 'MIN') return Math.min(...values); if (node.name === 'COUNT' || node.name === 'CNT') return values.length; if (node.name === 'MEDIAN' || node.name === 'MDN') { const sorted = [...values].sort((a, b) => a - b); const mid = Math.floor(sorted.length / 2); return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2; } if (node.name === 'MODE') { const counts = new Map(); values.forEach((value) => counts.set(value, (counts.get(value) || 0) + 1)); let bestValue = values[0]; let bestCount = 0; counts.forEach((count, value) => { if (count > bestCount || (count === bestCount && value < bestValue)) { bestCount = count; bestValue = value; } }); return bestValue; } if (node.name === 'GMN') { if (values.some((value) => value < 0)) throw new SyntaxError('Invalid GMN arguments'); if (values.some((value) => value === 0)) return 0; return Math.exp(values.reduce((sum, value) => sum + Math.log(value), 0) / values.length); } throw new SyntaxError('Unknown function'); } const radicand = evaluateAst(node.radicand, scope); if (!node.degree) return Math.sqrt(radicand); const degree = evaluateAst(node.degree, scope); if (degree === 0) throw new Error('DIV_0'); return radicand ** (1 / degree); };
         const mapErrorToCellText = (error) => error instanceof SyntaxError ? 'Syntax Err' : (error?.message === 'DIV_0' ? 'DIV/0' : 'Error');
         const formatNumber = (value) => Number.isFinite(value) ? (Number.isInteger(value) ? String(value) : value.toFixed(8).replace(/\.?0+$/, '')) : 'Error';
         const sheetIsBlank = (sheet) => !sheet.formulaCanonical.trim() && Object.values(sheet.constants).every((v) => !String(v).trim()) && sheet.rows.every((row) => KEY_ORDER.every((k) => !String(row[k] || '').trim()) && !String(row.Result || '').trim());
@@ -1145,6 +1146,7 @@
           updateKeyAvailability();
         };
 
+        const astHasVariableReference = (node) => { if (!node || typeof node !== 'object') return false; if (node.type === 'variable') return true; if (node.type === 'range') return astHasVariableReference(node.start) || astHasVariableReference(node.end); return Object.values(node).some((value) => Array.isArray(value) ? value.some((item) => astHasVariableReference(item)) : astHasVariableReference(value)); };
         const computeAllRows = () => {
           persistFromDom();
           const sheet = state.sheets[state.currentSheetIndex];
@@ -1156,11 +1158,12 @@
             return;
           }
           let ast;
-          try { ast = parse(tokenize(sheet.formulaCanonical)); } catch (error) { sheet.rows.forEach((row) => { row.Result = rowIsEmpty(row) ? '' : mapErrorToCellText(error); }); renderSheet(); return; }
+          try { ast = parse(tokenize(sheet.formulaCanonical)); } catch (error) { sheet.rows.forEach((row, ri) => { row.Result = !ri || !rowIsEmpty(row) ? mapErrorToCellText(error) : ''; }); renderSheet(); return; }
+          const formulaUsesVariables = astHasVariableReference(ast);
           let constants;
-          try { constants = Object.fromEntries(CONST_ORDER.map((k) => [k, toNumericOrZero(sheet.constants[k])])); } catch (error) { sheet.rows.forEach((row) => { row.Result = rowIsEmpty(row) ? '' : mapErrorToCellText(error); }); renderSheet(); return; }
-          sheet.rows.forEach((row) => {
-            if (rowIsEmpty(row)) { row.Result = ''; return; }
+          try { constants = Object.fromEntries(CONST_ORDER.map((k) => [k, toNumericOrZero(sheet.constants[k])])); } catch (error) { sheet.rows.forEach((row, ri) => { row.Result = (!formulaUsesVariables && ri === 0) || !rowIsEmpty(row) ? mapErrorToCellText(error) : ''; }); renderSheet(); return; }
+          sheet.rows.forEach((row, ri) => {
+            if (rowIsEmpty(row) && (formulaUsesVariables || ri > 0)) { row.Result = ''; return; }
             try { const scope = { ...constants, ...Object.fromEntries(KEY_ORDER.map((k) => [k, toNumericOrZero(row[k])])), __blankByLetter: Object.fromEntries(KEY_ORDER.map((k) => [k, !String(row[k] ?? '').trim()])) }; row.Result = formatNumber(evaluateAst(ast, scope)); }
             catch (error) { row.Result = mapErrorToCellText(error); }
           });
@@ -1243,6 +1246,7 @@
           state.currentSheetIndex = 2;
           clearAllUndoHistory();
           renderSheet();
+          activateTarget(formulaInput);
           resetClearStage();
           scheduleSave();
         };
@@ -1252,7 +1256,7 @@
         const labelEditableFields = new Set([...headerNameEls, ...constNameEls].filter(Boolean));
         const recalcOnBlurTargets = new Set([...constantInputs, formulaInput, ...cellInputs]);
         const editableTargets = [...numericTargets, ...titleFields];
-        numericTargets.forEach((target) => { target.setAttribute('inputmode', 'none'); ['focus', 'pointerdown', 'click'].forEach((eventName) => target.addEventListener(eventName, () => activateTarget(target))); target.addEventListener('beforeinput', () => { if (activeTarget === target) captureUndoForFocusedTarget(); }); target.addEventListener('input', () => { resetClearStage(); persistFromDom(); }); });
+        numericTargets.forEach((target) => { target.setAttribute('inputmode', 'none'); ['focus', 'pointerdown', 'click'].forEach((eventName) => target.addEventListener(eventName, () => activateTarget(target))); target.addEventListener('beforeinput', () => { if (activeTarget === target) captureUndoForFocusedTarget(); }); target.addEventListener('input', () => { if (target === formulaInput && state.formulaMode === 'letter') { const selectionStart = formulaInput.selectionStart; const selectionEnd = formulaInput.selectionEnd; const normalized = formulaInput.value.replace(/\b[vwxyz]\b/g, (m) => m.toUpperCase()); if (normalized !== formulaInput.value) { formulaInput.value = normalized; if (selectionStart !== null && selectionEnd !== null) formulaInput.setSelectionRange(selectionStart, selectionEnd); } } resetClearStage(); persistFromDom(); }); });
         titleFields.forEach((target) => {
           ['focus', 'pointerup', 'click'].forEach((eventName) => target.addEventListener(eventName, (event) => {
             if (activeTarget === formulaInput && labelEditableFields.has(target)) {
@@ -1309,7 +1313,7 @@
           if (key === resultKey) { blurActiveTarget(); computeAllRows(); resetClearStage(); return; }
           if (label === '√') {
             insertRootCall();
-          } else if (activeTarget === formulaInput && ['SUM', 'MEAN', 'MAX', 'MIN', 'COUNT'].includes(label)) {
+          } else if (activeTarget === formulaInput && ['SUM', 'MEAN', 'MAX', 'MIN', 'COUNT', 'CNT', 'MDN', 'MODE', 'GMN'].includes(label)) {
             insertFunctionCall(label);
           } else {
             insertIntoTarget(label === '−' ? '-' : label);
@@ -1423,6 +1427,7 @@
           clearAllUndoHistory();
           ensureUndoHistoryAlignment();
           renderSheet();
+          if (state.currentSheetIndex === 2 && !String(state.sheets[2]?.formulaCanonical || '').trim()) activateTarget(formulaInput);
           resetClearStage();
           updateKeyAvailability();
         })();
