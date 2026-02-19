@@ -485,12 +485,16 @@
         border: 1px solid transparent;
       }
 
-      .key.is-active {
-        background: #f0f3fa;
-        color: #4f628d;
-        border-color: #f0f3fa;
+      .key.light:not(.is-inactive) {
+        background: var(--active);
+        color: #fff;
       }
 
+      .key.is-active {
+        background: var(--active);
+        color: #fff;
+        border-color: transparent;
+      }
 
       .key.is-inactive,
       .key.light.is-inactive {
@@ -782,6 +786,7 @@
         const getInputContext = () => isNumberEntryContext() ? 'number' : (isFormulaEntryContext() ? 'formula' : 'default');
         const isKeyEnabled = (key) => {
           if (key === undoKey) return currentUndoStack().length > 0;
+          if (key === shiftKey) return true;
           const label = getKeyLabel(key);
           if (TEMP_DISABLED_KEY_LABELS.has(label)) return false;
           const context = getInputContext();
