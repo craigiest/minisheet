@@ -590,7 +590,7 @@
       <input class="formula-input" value="(B*C)/A" aria-label="Formula editor" />
       <div>
         <button class="toggle" type="button" aria-label="Toggle formula labels">A / <strong>Name</strong></button>
-        <div class="formula-note" aria-label="Formula blank note">Blank scalar refs error; aggregate functions skip blank cells.</div>
+        <div class="formula-note" aria-label="Formula blank note">Blanks act as 0 in scalar math; aggregate functions skip blank cells.</div>
       </div>
     </section>
 
@@ -1118,9 +1118,9 @@
         const tokenize = (source) => { const tokens = []; const text = String(source ?? ''); let index = 0; while (index < text.length) { const char = text[index]; if (/\s/.test(char)) { index += 1; continue; } if ((char >= '0' && char <= '9') || char === '.') { let end = index; while (end < text.length && /[0-9.]/.test(text[end])) end += 1; const literal = text.slice(index, end); if ((literal.match(/\./g) || []).length > 1 || literal === '.') throw new SyntaxError('Invalid number'); tokens.push({ type: 'number', value: Number(literal) }); index = end; continue; } const normalized = char === '−' ? '-' : char; if ('+-*/^'.includes(normalized)) { tokens.push({ type: 'operator', value: normalized }); index += 1; continue; } if (normalized === '(' || normalized === ')') { tokens.push({ type: 'paren', value: normalized }); index += 1; continue; } if (normalized === ',') { tokens.push({ type: 'comma', value: ',' }); index += 1; continue; } if (normalized === ':') { tokens.push({ type: 'colon', value: ':' }); index += 1; continue; } if (normalized === '√') { tokens.push({ type: 'root', value: '√' }); index += 1; continue; } if (normalized === '!') { tokens.push({ type: 'factorial' }); index += 1; continue; } if (normalized === 'π') { tokens.push({ type: 'constant', name: 'PI' }); index += 1; continue; } if (/[A-Za-z]/.test(normalized)) { let end = index; while (end < text.length && /[A-Za-z]/.test(text[end])) end += 1; const raw = text.slice(index, end); const upper = raw.toUpperCase(); if (upper === 'PI' || raw === 'e' || raw === 'c' || raw === 'g') tokens.push({ type: 'constant', name: upper }); else if (upper.length === 1 && ALL_LETTERS.includes(upper)) tokens.push({ type: 'variable', value: upper }); else tokens.push({ type: 'identifier', value: upper }); index = end; continue; } throw new SyntaxError('Unexpected token'); } return tokens; };
         const parse = (tokens) => { let cursor = 0; const peek = () => tokens[cursor]; const consume = () => tokens[cursor++]; const consumeType = (type, value = null) => { const token = consume(); if (!token || token.type !== type || (value !== null && token.value !== value)) throw new SyntaxError('Unexpected token'); return token; }; const functionArgument = () => { const start = expression(); if (peek()?.type === 'colon') { consume(); const end = expression(); return { type: 'range', start, end }; } return start; }; const functionCall = (name) => { consumeType('paren', '('); const args = []; if (!(peek()?.type === 'paren' && peek().value === ')')) { args.push(functionArgument()); while (peek()?.type === 'comma') { consume(); args.push(functionArgument()); } } consumeType('paren', ')'); return { type: 'function', name, args }; }; const primary = () => { const token = peek(); if (!token) throw new SyntaxError('Unexpected end'); if (token.type === 'number') return consume(), { type: 'number', value: token.value }; if (token.type === 'variable') return consume(), { type: 'variable', name: token.value }; if (token.type === 'constant') return consume(), { type: 'constant', name: token.name }; if (token.type === 'identifier') { const name = consume().value; if (peek()?.type === 'paren' && peek().value === '(') return functionCall(name); throw new SyntaxError('Unknown function'); } if (token.type === 'paren' && token.value === '(') { consume(); const expr = expression(); const close = consume(); if (!close || close.type !== 'paren' || close.value !== ')') throw new SyntaxError('Missing close paren'); return expr; } if (token.type === 'root') { consume(); const open = consume(); if (!open || open.type !== 'paren' || open.value !== '(') throw new SyntaxError('Root call requires parenthesis'); const first = expression(); if (peek()?.type === 'comma') { consume(); const second = expression(); const close = consume(); if (!close || close.type !== 'paren' || close.value !== ')') throw new SyntaxError('Missing close paren'); return { type: 'root', degree: first, radicand: second }; } const close = consume(); if (!close || close.type !== 'paren' || close.value !== ')') throw new SyntaxError('Missing close paren'); return { type: 'root', degree: null, radicand: first }; } throw new SyntaxError('Unexpected token'); }; const postfix = () => { let node = primary(); while (peek()?.type === 'factorial') { consume(); node = { type: 'factorial', argument: node }; } return node; }; const unary = () => peek()?.type === 'operator' && '+-'.includes(peek().value) ? { type: 'unary', operator: consume().value, argument: unary() } : postfix(); const power = () => { let left = unary(); while (peek()?.type === 'operator' && peek().value === '^') left = { type: 'binary', operator: consume().value, left, right: unary() }; return left; }; const term = () => { let left = power(); while (peek()?.type === 'operator' && '*/'.includes(peek().value)) left = { type: 'binary', operator: consume().value, left, right: power() }; return left; }; const expression = () => { let left = term(); while (peek()?.type === 'operator' && '+-'.includes(peek().value)) left = { type: 'binary', operator: consume().value, left, right: term() }; return left; }; const ast = expression(); if (cursor < tokens.length) throw new SyntaxError('Trailing tokens'); return ast; };
         // Blank-value policy:
-        // - Scalar expressions (variables, + - * / ^, √, factorial, LOG/trig args) raise SyntaxError on blank letter references.
+        // - Scalar expressions (variables, + - * / ^, √, factorial, LOG/trig args) treat blank letters as 0.
         // - Aggregate functions (SUM/MEAN/MAX/MIN/COUNT/CNT/MDN/MODE/GMN) intentionally ignore blank direct variable/range entries.
-        const BLANK_VALUE_POLICY = Object.freeze({ SCALAR_BLANK_ERROR: 'BLANK_SCALAR', SCALAR_DEFAULT: 0 });
+        const BLANK_VALUE_POLICY = Object.freeze({ SCALAR_DEFAULT: 0 });
         const evaluateAst = (node, scope) => {
           const variableRangeLetters = (start, end) => {
             if (start?.type !== 'variable' || end?.type !== 'variable') throw new SyntaxError('Invalid range');
@@ -1131,10 +1131,7 @@
             return ALL_LETTERS.slice(from, to + 1);
           };
           const isBlankLetter = (letter) => Boolean(scope.__blankByLetter?.[letter]);
-          const scalarValueForLetter = (letter) => {
-            if (isBlankLetter(letter)) throw new SyntaxError(BLANK_VALUE_POLICY.SCALAR_BLANK_ERROR);
-            return scope[letter] ?? BLANK_VALUE_POLICY.SCALAR_DEFAULT;
-          };
+          const scalarValueForLetter = (letter) => isBlankLetter(letter) ? BLANK_VALUE_POLICY.SCALAR_DEFAULT : (scope[letter] ?? BLANK_VALUE_POLICY.SCALAR_DEFAULT);
           const evaluateAggregateValues = (args) => args.flatMap((arg) => {
             if (arg.type === 'range') return variableRangeLetters(arg.start, arg.end).flatMap((letter) => isBlankLetter(letter) ? [] : [scalarValueForLetter(letter)]);
             if (arg.type === 'variable' && isBlankLetter(arg.name)) return [];
@@ -1238,14 +1235,13 @@
 
         const runBlankSemanticsRegressionChecks = () => {
           const checks = [
-            { formula: 'A+B', scope: { A: 7, B: 0, __blankByLetter: { A: false, B: true } }, expectSyntaxError: true },
-            { formula: 'A*B', scope: { A: 7, B: 0, __blankByLetter: { A: false, B: true } }, expectSyntaxError: true },
-            { formula: 'A/B', scope: { A: 7, B: 0, __blankByLetter: { A: false, B: true } }, expectSyntaxError: true },
-            { formula: 'A^B', scope: { A: 7, B: 0, __blankByLetter: { A: false, B: true } }, expectSyntaxError: true },
-            { formula: 'B!', scope: { B: 0, __blankByLetter: { B: true } }, expectSyntaxError: true },
+            { formula: 'A+B', scope: { A: 7, B: 0, __blankByLetter: { A: false, B: true } }, expected: 7 },
+            { formula: 'A*B', scope: { A: 7, B: 0, __blankByLetter: { A: false, B: true } }, expected: 0 },
+            { formula: 'A/B', scope: { A: 7, B: 0, __blankByLetter: { A: false, B: true } }, expectError: 'DIV_0' },
+            { formula: 'A^B', scope: { A: 7, B: 0, __blankByLetter: { A: false, B: true } }, expected: 1 },
+            { formula: 'B!', scope: { B: 0, __blankByLetter: { B: true } }, expected: 1 },
             { formula: 'LOG(B)', scope: { B: 0, __blankByLetter: { B: true } }, expectSyntaxError: true },
-            { formula: 'SIN(B)', scope: { B: 0, __blankByLetter: { B: true } }, expectSyntaxError: true },
-            { formula: 'SUM(A:B)', scope: { A: 7, B: 0, __blankByLetter: { A: false, B: true } }, expected: 7 },
+            { formula: 'SIN(B)', scope: { B: 0, __blankByLetter: { B: true } }, expected: 0 },
           ];
           checks.forEach((check) => {
             try {
