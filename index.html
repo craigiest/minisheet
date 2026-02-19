@@ -1261,6 +1261,10 @@
               return;
             }
             activateTarget(target);
+            if (labelEditableFields.has(target)) {
+              const textLength = getText(target).length;
+              setSelection(target, 0, textLength);
+            }
           }));
           target.addEventListener('beforeinput', () => { if (activeTarget === target) captureUndoForFocusedTarget(); });
           target.addEventListener('input', () => { resetClearStage(); persistFromDom(); });
@@ -1399,7 +1403,7 @@
           if (shouldRecompute) computeAllRows();
           else persistFromDom();
         }));
-        statCells.forEach((cell, idx) => { const select = cell.querySelector('select'); select?.addEventListener('change', () => { state.sheets[state.currentSheetIndex].stats[idx] = select.value; scheduleSave(); resetClearStage(); }); });
+        statCells.forEach((cell, idx) => { const select = cell.querySelector('select'); select?.addEventListener('change', () => { state.sheets[state.currentSheetIndex].stats[idx] = select.value; recomputeStatsFromSheet(state.sheets[state.currentSheetIndex]); scheduleSave(); resetClearStage(); }); });
         document.addEventListener('keydown', (event) => { if (event.key !== 'Enter') return; if (!activeTarget || !editableTargets.includes(activeTarget)) return; event.preventDefault(); blurActiveTarget(); computeAllRows(); resetClearStage(); });
 
         (async () => {
