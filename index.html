@@ -928,12 +928,12 @@
         const canonicalToDisplay = (canonical, sheet) => {
           const expr = String(canonical || '');
           if (state.formulaMode === 'letter') return expr.replace(/[VWXYZ]/g, (m) => m.toLowerCase());
-          return expr.replace(/[A-Za-z]/g, (m) => buildNameMaps(sheet).clean[m.toUpperCase()] || m);
+          return expr.replace(/\b[A-Za-z]\b/g, (m) => buildNameMaps(sheet).clean[m.toUpperCase()] || m);
         };
         const displayToCanonical = (display, sheet) => {
           let expr = String(display || '');
           Object.entries(buildNameMaps(sheet).map).sort((a, b) => b[0].length - a[0].length).forEach(([name, letter]) => { expr = expr.split(name).join(letter); });
-          return expr.replace(/[vwxyz]/g, (m) => m.toUpperCase());
+          return expr.replace(/\b[vwxyz]\b/g, (m) => m.toUpperCase());
         };
         const formulaTokenFor = (letter) => {
           if (state.formulaMode === 'letter') return CONST_ORDER.includes(letter) ? letter.toLowerCase() : letter;
@@ -1055,8 +1055,7 @@
           const needsCommaBefore = start > 0 && value[start - 1] !== '(' && value[start - 1] !== ',';
           const needsCommaAfter = end < value.length && value[end] !== ')' && value[end] !== ',';
           const betweenFunctionParens = value[start - 1] === '(' && value[end] === ')';
-          const baseToken = selected || token;
-          let inserted = baseToken;
+          let inserted = token;
           if (betweenFunctionParens && !selected) {
             if (needsCommaBefore) inserted = `,${inserted}`;
             if (needsCommaAfter) inserted = `${inserted},`;
