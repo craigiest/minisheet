@@ -485,6 +485,12 @@
         border: 1px solid transparent;
       }
 
+      .key.is-active {
+        background: #f0f3fa;
+        color: #4f628d;
+        border-color: #f0f3fa;
+      }
+
 
       .key.is-inactive,
       .key.light.is-inactive {
@@ -692,7 +698,7 @@
         const getKeyLabel = (key) => key?.textContent.trim() || '';
         const NUMBER_ENTRY_KEY_LABELS = new Set(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '−', UNDO_KEY_LABEL, '⌫', '=', MINIMIZE_KEY_LABEL, MAXIMIZE_KEY_LABEL]);
         const FORMULA_ENTRY_KEY_LABELS = new Set(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '−', '+', '*', '/', '^', '(', ')', ',', '√', 'SUM', 'MAX', 'MIN', '⌫', UNDO_KEY_LABEL, MINIMIZE_KEY_LABEL, MAXIMIZE_KEY_LABEL]);
-        const TEMP_DISABLED_KEY_LABELS = new Set(['LOG', '!', 'SIN', 'COS', 'TAN', 'MEAN', 'COUNT', 'MEDIAN', 'MODE', 'G.MN', 'ASIN', 'ACOS', 'ATAN', 'e', 'π', 'c', 'g', ':', '⇧']);
+        const TEMP_DISABLED_KEY_LABELS = new Set(['LOG', '!', 'SIN', 'COS', 'TAN', 'MEAN', 'COUNT', 'MEDIAN', 'MODE', 'G.MN', 'ASIN', 'ACOS', 'ATAN', 'e', 'π', 'c', 'g', ':']);
 
         const asyncStorage = {
           async get() {
@@ -790,6 +796,7 @@
             key.classList.toggle('is-inactive', !enabled);
             key.setAttribute('aria-disabled', enabled ? 'false' : 'true');
           });
+          shiftKey?.classList.toggle('is-active', keypadShiftActive);
           document.body.classList.toggle('formula-entry-active', isFormulaEntryContext());
           const clearEnabled = true;
           clearButton?.classList.toggle('is-inactive', !clearEnabled);
@@ -945,7 +952,11 @@
           Object.entries(SHIFT_LABELS).forEach(([slot, labels]) => {
             const btn = keypad?.querySelector(`[data-shift-slot="${slot}"]`);
             if (!btn) return;
-            btn.textContent = keypadShiftActive ? labels.shifted : labels.normal;
+            if (slot === 'e') {
+              btn.innerHTML = keypadShiftActive ? labels.shifted : '<em>e</em>';
+            } else {
+              btn.textContent = keypadShiftActive ? labels.shifted : labels.normal;
+            }
           });
           updateKeyAvailability();
         };
