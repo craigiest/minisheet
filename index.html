@@ -986,14 +986,22 @@
           const selection = window.getSelection(); selection.removeAllRanges(); selection.addRange(range);
         };
 
-        const activateTarget = (target) => {
-          if (!target || activeTarget === target) return;
-          if (activeTarget) activeTarget.classList.remove('is-active-target');
+        const activateTarget = (target, options = {}) => {
+          if (!target) return;
+          const { selectAll = false } = options;
+          const isSameTarget = activeTarget === target;
+          if (!isSameTarget && activeTarget) activeTarget.classList.remove('is-active-target');
           activeTarget = target;
           target.classList.add('is-active-target');
           if (isInput(target) && document.activeElement !== target) target.focus({ preventScroll: true });
-          initialValueOnFocus = getText(target);
-          hasCapturedFocusUndo = false;
+          if (!isSameTarget) {
+            initialValueOnFocus = getText(target);
+            hasCapturedFocusUndo = false;
+          }
+          if (selectAll) {
+            const textLength = getText(target).length;
+            setSelection(target, 0, textLength);
+          }
           resetClearStage();
           updateKeyAvailability();
         };
@@ -1258,7 +1266,13 @@
         const labelEditableFields = new Set([...headerNameEls, ...constNameEls].filter(Boolean));
         const recalcOnBlurTargets = new Set([...constantInputs, formulaInput, ...cellInputs]);
         const editableTargets = [...numericTargets, ...titleFields];
-        numericTargets.forEach((target) => { target.setAttribute('inputmode', 'none'); ['focus', 'pointerdown', 'click'].forEach((eventName) => target.addEventListener(eventName, () => activateTarget(target))); target.addEventListener('beforeinput', () => { if (activeTarget === target) captureUndoForFocusedTarget(); }); target.addEventListener('input', () => { if (target === formulaInput && state.formulaMode === 'letter') { const selectionStart = formulaInput.selectionStart; const selectionEnd = formulaInput.selectionEnd; const normalized = formulaInput.value.replace(/\b[vwxyz]\b/g, (m) => m.toUpperCase()); if (normalized !== formulaInput.value) { formulaInput.value = normalized; if (selectionStart !== null && selectionEnd !== null) formulaInput.setSelectionRange(selectionStart, selectionEnd); } } resetClearStage(); persistFromDom(); }); });
+        numericTargets.forEach((target) => {
+          target.setAttribute('inputmode', 'none');
+          target.addEventListener('focus', () => activateTarget(target));
+          ['pointerup', 'click'].forEach((eventName) => target.addEventListener(eventName, () => activateTarget(target, { selectAll: true })));
+          target.addEventListener('beforeinput', () => { if (activeTarget === target) captureUndoForFocusedTarget(); });
+          target.addEventListener('input', () => { if (target === formulaInput && state.formulaMode === 'letter') { const selectionStart = formulaInput.selectionStart; const selectionEnd = formulaInput.selectionEnd; const normalized = formulaInput.value.replace(/\b[vwxyz]\b/g, (m) => m.toUpperCase()); if (normalized !== formulaInput.value) { formulaInput.value = normalized; if (selectionStart !== null && selectionEnd !== null) formulaInput.setSelectionRange(selectionStart, selectionEnd); } } resetClearStage(); persistFromDom(); });
+        });
         titleFields.forEach((target) => {
           ['focus', 'pointerup', 'click'].forEach((eventName) => target.addEventListener(eventName, (event) => {
             if (activeTarget === formulaInput && labelEditableFields.has(target)) {
@@ -1270,15 +1284,25 @@
               setSelection(formulaInput, start, end);
               return;
             }
-            activateTarget(target);
-            if (labelEditableFields.has(target)) {
-              const textLength = getText(target).length;
-              setSelection(target, 0, textLength);
-            }
+            const shouldSelectAll = eventName !== 'focus';
+            activateTarget(target, { selectAll: shouldSelectAll });
           }));
           target.addEventListener('beforeinput', () => { if (activeTarget === target) captureUndoForFocusedTarget(); });
           target.addEventListener('input', () => { resetClearStage(); persistFromDom(); });
         });
+
+        const moveVariableSelectionDown = () => {
+          if (!activeTarget || !cellInputs.includes(activeTarget)) return;
+          const currentIndex = cellInputs.indexOf(activeTarget);
+          const nextIndex = currentIndex + KEY_ORDER.length;
+          if (nextIndex >= cellInputs.length) return;
+          activateTarget(cellInputs[nextIndex], { selectAll: true });
+        };
+        const runResultAction = () => {
+          computeAllRows();
+          moveVariableSelectionDown();
+          resetClearStage();
+        };
 
         const handleKeyPress = (key) => {
           const label = getKeyLabel(key);
@@ -1312,7 +1336,7 @@
           if (key === backspaceKey) return deleteBackward();
           if (key === leftKey) return moveCursor(-1);
           if (key === rightKey) return moveCursor(1);
-          if (key === resultKey) { blurActiveTarget(); computeAllRows(); resetClearStage(); return; }
+          if (key === resultKey) { runResultAction(); return; }
           if (label === '√') {
             insertRootCall();
           } else if (activeTarget === formulaInput && ['LOG', 'SUM', 'MEAN', 'MAX', 'MIN', 'COUNT', 'CNT', 'MDN', 'MODE', 'GMN', 'SIN', 'COS', 'TAN', 'ASIN', 'ACOS', 'ATAN'].includes(label)) {
@@ -1398,9 +1422,9 @@
         }, true);
         if (resultHeaderTrigger) {
           let pointer = false;
-          resultHeaderTrigger.addEventListener('pointerdown', (event) => { event.preventDefault(); pointer = true; blurActiveTarget(); computeAllRows(); resetClearStage(); });
-          resultHeaderTrigger.addEventListener('click', (event) => { event.preventDefault(); if (pointer) { pointer = false; return; } blurActiveTarget(); computeAllRows(); resetClearStage(); });
-          resultHeaderTrigger.addEventListener('keydown', (event) => { if (!['Enter', ' '].includes(event.key)) return; event.preventDefault(); blurActiveTarget(); computeAllRows(); resetClearStage(); });
+          resultHeaderTrigger.addEventListener('pointerdown', (event) => { event.preventDefault(); pointer = true; runResultAction(); });
+          resultHeaderTrigger.addEventListener('click', (event) => { event.preventDefault(); if (pointer) { pointer = false; return; } runResultAction(); });
+          resultHeaderTrigger.addEventListener('keydown', (event) => { if (!['Enter', ' '].includes(event.key)) return; event.preventDefault(); runResultAction(); });
         }
         editableTargets.forEach((target) => target.addEventListener('blur', () => {
           const shouldRecompute = recalcOnBlurTargets.has(target);
