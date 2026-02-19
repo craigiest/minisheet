@@ -938,7 +938,7 @@
           return expr.replace(/\b[vwxyz]\b/g, (m) => m.toUpperCase());
         };
         const formulaTokenFor = (letter) => {
-          if (state.formulaMode === 'letter') return CONST_ORDER.includes(letter) ? letter.toLowerCase() : letter;
+          if (state.formulaMode === 'letter') return letter;
           const clean = buildNameMaps(state.sheets[state.currentSheetIndex]).clean;
           return clean[letter] || letter;
         };
@@ -1256,7 +1256,7 @@
         const labelEditableFields = new Set([...headerNameEls, ...constNameEls].filter(Boolean));
         const recalcOnBlurTargets = new Set([...constantInputs, formulaInput, ...cellInputs]);
         const editableTargets = [...numericTargets, ...titleFields];
-        numericTargets.forEach((target) => { target.setAttribute('inputmode', 'none'); ['focus', 'pointerdown', 'click'].forEach((eventName) => target.addEventListener(eventName, () => activateTarget(target))); target.addEventListener('beforeinput', () => { if (activeTarget === target) captureUndoForFocusedTarget(); }); target.addEventListener('input', () => { resetClearStage(); persistFromDom(); }); });
+        numericTargets.forEach((target) => { target.setAttribute('inputmode', 'none'); ['focus', 'pointerdown', 'click'].forEach((eventName) => target.addEventListener(eventName, () => activateTarget(target))); target.addEventListener('beforeinput', () => { if (activeTarget === target) captureUndoForFocusedTarget(); }); target.addEventListener('input', () => { if (target === formulaInput && state.formulaMode === 'letter') { const selectionStart = formulaInput.selectionStart; const selectionEnd = formulaInput.selectionEnd; const normalized = formulaInput.value.replace(/\b[vwxyz]\b/g, (m) => m.toUpperCase()); if (normalized !== formulaInput.value) { formulaInput.value = normalized; if (selectionStart !== null && selectionEnd !== null) formulaInput.setSelectionRange(selectionStart, selectionEnd); } } resetClearStage(); persistFromDom(); }); });
         titleFields.forEach((target) => {
           ['focus', 'pointerup', 'click'].forEach((eventName) => target.addEventListener(eventName, (event) => {
             if (activeTarget === formulaInput && labelEditableFields.has(target)) {
