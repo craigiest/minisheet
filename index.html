@@ -1166,25 +1166,27 @@
           scheduleSave();
         };
 
-        const deleteBlankDynamicCurrentSheet = () => {
-          const idx = state.currentSheetIndex;
-          if (idx < 3 || state.sheets.length <= 3) return;
-          if (sheetIsBlank(state.sheets[idx])) {
-            state.sheets.splice(idx, 1);
-            undoHistoryBySheet.splice(idx, 1);
-            if (state.currentSheetIndex >= state.sheets.length) state.currentSheetIndex = 0;
-          }
+        const deleteBlankDynamicSheetAt = (idx) => {
+          if (idx < 3 || state.sheets.length <= 3) return false;
+          if (!sheetIsBlank(state.sheets[idx])) return false;
+          state.sheets.splice(idx, 1);
+          undoHistoryBySheet.splice(idx, 1);
+          return true;
         };
         const nav = (dir) => {
           persistFromDom();
-          const wasLast = state.currentSheetIndex === state.sheets.length - 1;
-          deleteBlankDynamicCurrentSheet();
+          const oldIndex = state.currentSheetIndex;
+          const oldLength = state.sheets.length;
+          const wasLast = oldIndex === oldLength - 1;
+          let nextIndex = (oldIndex + dir + oldLength) % oldLength;
+          const deletedCurrent = deleteBlankDynamicSheetAt(oldIndex);
+          if (deletedCurrent && oldIndex < nextIndex) nextIndex -= 1;
           if (dir > 0 && wasLast) {
             state.sheets.push(makeSheet(state.sheets.length));
             undoHistoryBySheet.push([]);
             state.currentSheetIndex = state.sheets.length - 1;
           } else {
-            state.currentSheetIndex = (state.currentSheetIndex + dir + state.sheets.length) % state.sheets.length;
+            state.currentSheetIndex = ((nextIndex % state.sheets.length) + state.sheets.length) % state.sheets.length;
           }
           ensureUndoHistoryAlignment();
           renderSheet();
