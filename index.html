@@ -1029,6 +1029,42 @@
           }
           resetClearStage();
         };
+        const insertFunctionCall = (functionName) => {
+          if (!activeTarget) return;
+          captureUndoForFocusedTarget();
+          const value = getText(activeTarget);
+          const { start, end } = getSelection(activeTarget);
+          if (start !== end) {
+            const selected = value.slice(start, end);
+            const inserted = `${functionName}(${selected})`;
+            setText(activeTarget, value.slice(0, start) + inserted + value.slice(end));
+            setSelection(activeTarget, start + inserted.length);
+          } else {
+            const inserted = `${functionName}()`;
+            setText(activeTarget, value.slice(0, start) + inserted + value.slice(end));
+            setSelection(activeTarget, start + inserted.length - 1);
+          }
+          resetClearStage();
+        };
+        const insertFormulaReferenceToken = (token) => {
+          if (activeTarget !== formulaInput) return;
+          captureUndoForFocusedTarget();
+          const value = getText(formulaInput);
+          const { start, end } = getSelection(formulaInput);
+          const selected = value.slice(start, end);
+          const needsCommaBefore = start > 0 && value[start - 1] !== '(' && value[start - 1] !== ',';
+          const needsCommaAfter = end < value.length && value[end] !== ')' && value[end] !== ',';
+          const betweenFunctionParens = value[start - 1] === '(' && value[end] === ')';
+          const baseToken = selected || token;
+          let inserted = baseToken;
+          if (betweenFunctionParens && !selected) {
+            if (needsCommaBefore) inserted = `,${inserted}`;
+            if (needsCommaAfter) inserted = `${inserted},`;
+          }
+          setText(formulaInput, value.slice(0, start) + inserted + value.slice(end));
+          setSelection(formulaInput, start + inserted.length);
+          resetClearStage();
+        };
         const deleteBackward = () => {
           if (!activeTarget) return;
           const value = getText(activeTarget);
@@ -1264,8 +1300,10 @@
           if (key === leftKey) return moveCursor(-1);
           if (key === rightKey) return moveCursor(1);
           if (key === resultKey) { blurActiveTarget(); computeAllRows(); resetClearStage(); return; }
-                    if (label === '√') {
+          if (label === '√') {
             insertRootCall();
+          } else if (activeTarget === formulaInput && ['SUM', 'MAX', 'MIN'].includes(label)) {
+            insertFunctionCall(label);
           } else {
             insertIntoTarget(label === '−' ? '-' : label);
           }
@@ -1302,7 +1340,7 @@
             event.preventDefault();
             event.stopPropagation();
             pointerTriggered = true;
-            insertIntoTarget(formulaTokenFor(letter));
+            insertFormulaReferenceToken(formulaTokenFor(letter));
             persistFromDom();
           };
           button.addEventListener('pointerdown', insertToken, true);
@@ -1314,7 +1352,7 @@
               pointerTriggered = false;
               return;
             }
-            insertIntoTarget(formulaTokenFor(letter));
+            insertFormulaReferenceToken(formulaTokenFor(letter));
             persistFromDom();
           }, true);
         };
