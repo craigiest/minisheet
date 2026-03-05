@@ -682,6 +682,8 @@
         const MAXIMIZE_KEY_LABEL = '⤒';
 
         const keypad = document.querySelector('.keypad');
+        const constantsStrip = document.querySelector('.constants-strip');
+        const gridHeaderRow = document.querySelector('thead');
         const keys = [...document.querySelectorAll('.keypad .key')];
         const minimizeKey = keypad?.querySelector('[data-key="minimize"]') || null;
         const undoKey = keypad?.querySelector('[data-key="undo"]') || null;
@@ -1437,6 +1439,15 @@
             clearAction();
           });
         }
+        const focusSafeContainers = [keypad, constantsStrip, gridHeaderRow].filter(Boolean);
+        document.addEventListener('pointerdown', (event) => {
+          if (!activeTarget) return;
+          if (editableTargets.includes(event.target)) return;
+          if (event.target.closest('.key, .key-active, .const-top, .head-pill')) return;
+          if (!focusSafeContainers.some((container) => container.contains(event.target))) return;
+          if (event.cancelable) event.preventDefault();
+        }, true);
+
         document.addEventListener('pointerdown', (event) => {
           if (state.clearStage < 3) return;
           if (clearButton?.contains(event.target)) return;
