@@ -1289,11 +1289,8 @@
             activateTarget(target, { selectAll: shouldSelectAll });
           });
           ['pointerup', 'click'].forEach((eventName) => target.addEventListener(eventName, () => {
-            const shouldSelectAll = target === formulaInput
-              ? activeTarget !== target || !formulaSelectionWasAllOnPointerDown
-              : true;
+            const shouldSelectAll = target === formulaInput ? activeTarget !== target : true;
             activateTarget(target, { selectAll: shouldSelectAll });
-            if (target === formulaInput) formulaSelectionWasAllOnPointerDown = false;
           }));
           target.addEventListener('beforeinput', () => { if (activeTarget === target) captureUndoForFocusedTarget(); });
           target.addEventListener('input', () => { if (target === formulaInput && state.formulaMode === 'letter') { const selectionStart = formulaInput.selectionStart; const selectionEnd = formulaInput.selectionEnd; const normalized = formulaInput.value.replace(/\b[vwxyz]\b/g, (m) => m.toUpperCase()); if (normalized !== formulaInput.value) { formulaInput.value = normalized; if (selectionStart !== null && selectionEnd !== null) formulaInput.setSelectionRange(selectionStart, selectionEnd); } } resetClearStage(); persistFromDom(); });
