@@ -826,6 +826,7 @@
         let activeTarget = null;
         let initialValueOnFocus = '';
         let hasCapturedFocusUndo = false;
+        let formulaSelectionWasAllOnPointerDown = false;
         const MAX_UNDO_HISTORY = 5;
         const undoHistoryBySheet = state.sheets.map(() => []);
 
@@ -1271,6 +1272,16 @@
         const labelEditableFields = new Set([...headerNameEls, ...constNameEls].filter(Boolean));
         const recalcOnBlurTargets = new Set([...constantInputs, formulaInput, ...cellInputs]);
         const editableTargets = [...numericTargets, ...titleFields];
+        formulaInput?.addEventListener('pointerdown', () => {
+          if (activeTarget !== formulaInput) {
+            formulaSelectionWasAllOnPointerDown = false;
+            return;
+          }
+          const { start, end } = getSelection(formulaInput);
+          const textLength = getText(formulaInput).length;
+          formulaSelectionWasAllOnPointerDown = textLength > 0 && start === 0 && end === textLength;
+        });
+
         numericTargets.forEach((target) => {
           target.setAttribute('inputmode', 'none');
           target.addEventListener('focus', () => {
