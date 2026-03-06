@@ -397,6 +397,7 @@
         user-select: text;
         -webkit-user-select: text;
         -webkit-touch-callout: default;
+        touch-action: manipulation;
       }
 
       .result-head { z-index: 9; }
@@ -1497,16 +1498,47 @@
           selection.addRange(range);
         };
 
+        const getSelectedResultCells = () => {
+          const selection = window.getSelection();
+          if (!selection || selection.rangeCount === 0) return [];
+          const range = selection.getRangeAt(0);
+          return resultCells.filter((cell) => rangeIntersectsNode(range, cell));
+        };
+
         resultCells.forEach((cell) => {
+          let tapStartX = 0;
+          let tapStartY = 0;
+          let tapStartAt = 0;
+          let tapCandidate = false;
+
+          cell.addEventListener('pointerdown', (event) => {
+            if (activeTarget) blurActiveTarget();
+            tapStartX = event.clientX;
+            tapStartY = event.clientY;
+            tapStartAt = Date.now();
+            tapCandidate = true;
+            if (event.pointerType !== 'mouse' && event.cancelable) event.preventDefault();
+          });
+
+          cell.addEventListener('pointermove', (event) => {
+            if (!tapCandidate) return;
+            const moved = Math.hypot(event.clientX - tapStartX, event.clientY - tapStartY);
+            if (moved > 8) tapCandidate = false;
+          });
+
           cell.addEventListener('pointerup', () => {
+            const wasTap = tapCandidate && (Date.now() - tapStartAt) < 350;
+            tapCandidate = false;
+            if (!wasTap) return;
             setTimeout(() => {
-              const selection = window.getSelection();
-              if (!selection || selection.rangeCount === 0) return;
-              const range = selection.getRangeAt(0);
-              if (!selection.isCollapsed) return;
-              if (!cell.contains(range.startContainer) || !cell.contains(range.endContainer)) return;
+              const selectedResultCells = getSelectedResultCells();
+              if (selectedResultCells.length > 1) return;
               selectNodeContents(cell);
             }, 0);
+          });
+
+          cell.addEventListener('dblclick', (event) => {
+            if (event.cancelable) event.preventDefault();
           });
         });
 
