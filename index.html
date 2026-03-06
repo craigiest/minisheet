@@ -1511,6 +1511,12 @@
           let tapStartAt = 0;
           let tapCandidate = false;
 
+          const commitSingleCellSelection = () => {
+            const selectedResultCells = getSelectedResultCells();
+            if (selectedResultCells.length > 1) return;
+            selectNodeContents(cell);
+          };
+
           cell.addEventListener('pointerdown', (event) => {
             if (activeTarget) blurActiveTarget();
             tapStartX = event.clientX;
@@ -1526,15 +1532,20 @@
             if (moved > 8) tapCandidate = false;
           });
 
-          cell.addEventListener('pointerup', () => {
+          cell.addEventListener('pointerup', (event) => {
             const wasTap = tapCandidate && (Date.now() - tapStartAt) < 350;
             tapCandidate = false;
             if (!wasTap) return;
-            setTimeout(() => {
-              const selectedResultCells = getSelectedResultCells();
-              if (selectedResultCells.length > 1) return;
-              selectNodeContents(cell);
-            }, 0);
+            if (event.cancelable) event.preventDefault();
+            requestAnimationFrame(() => {
+              commitSingleCellSelection();
+              requestAnimationFrame(commitSingleCellSelection);
+            });
+          });
+
+          cell.addEventListener('click', (event) => {
+            if (event.cancelable) event.preventDefault();
+            commitSingleCellSelection();
           });
 
           cell.addEventListener('dblclick', (event) => {
