@@ -263,7 +263,7 @@
         top: calc(env(safe-area-inset-top) + var(--nav-h) + var(--const-h) + var(--formula-h));
         left: 0;
         right: 0;
-        bottom: calc(env(safe-area-inset-bottom) + var(--keypad-active-h));
+        bottom: var(--keypad-active-h);
         overflow-y: auto;
         overflow-x: hidden;
         -webkit-overflow-scrolling: touch;
@@ -451,9 +451,10 @@
         position: fixed;
         left: 0;
         right: 0;
-        bottom: env(safe-area-inset-bottom);
+        bottom: 0;
         height: var(--keypad-h);
         padding: var(--keypad-pad);
+        padding-bottom: calc(var(--keypad-pad) + env(safe-area-inset-bottom));
         background: var(--keypad-bg);
         border-top: 1px solid #5d6f97;
         z-index: 41;
