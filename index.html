@@ -4,6 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
     <title>MiniSheet</title>
+    <meta name="theme-color" content="#305596" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="MiniSheet" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon-180.png" />
     <style>
       :root {
         --bg: #ececef;
@@ -64,7 +70,6 @@
 
       html,
       body,
-      .grid-wrap,
       .constants-strip,
       .formula-strip,
       .keypad {
@@ -237,6 +242,11 @@
         padding: 6px 10px;
       }
 
+      .formula-input::placeholder {
+        color: #a7acb7;
+        font-style: italic;
+      }
+
       .formula-input.is-active-target {
         border-color: var(--active-soft);
         box-shadow: 0 0 0 1px rgba(106, 168, 241, 0.35) inset;
@@ -248,11 +258,12 @@
       }
 
       .grid-wrap {
+        touch-action: pan-y;
         position: fixed;
         top: calc(env(safe-area-inset-top) + var(--nav-h) + var(--const-h) + var(--formula-h));
         left: 0;
         right: 0;
-        bottom: calc(env(safe-area-inset-bottom) + var(--keypad-active-h));
+        bottom: var(--keypad-active-h);
         overflow-y: auto;
         overflow-x: hidden;
         -webkit-overflow-scrolling: touch;
@@ -292,6 +303,13 @@
 
       tbody td {
         height: 24px;
+      }
+
+      thead th,
+      tfoot td,
+      tbody td:not(.editable-cell):not(.result-cell) {
+        user-select: none;
+        -webkit-user-select: none;
       }
 
       .num-head,
@@ -376,6 +394,10 @@
       .result-cell {
         text-align: right;
         padding-right: 8px;
+        user-select: text;
+        -webkit-user-select: text;
+        -webkit-touch-callout: default;
+        touch-action: manipulation;
       }
 
       .result-head { z-index: 9; }
@@ -440,9 +462,10 @@
         position: fixed;
         left: 0;
         right: 0;
-        bottom: env(safe-area-inset-bottom);
+        bottom: 0;
         height: var(--keypad-h);
         padding: var(--keypad-pad);
+        padding-bottom: calc(var(--keypad-pad) + env(safe-area-inset-bottom));
         background: var(--keypad-bg);
         border-top: 1px solid #5d6f97;
         z-index: 41;
@@ -543,6 +566,8 @@
         padding: 0 8px;
         text-align: right;
         font-size: 15px;
+        user-select: text;
+        -webkit-user-select: text;
       }
 
       .is-active-target {
@@ -581,7 +606,7 @@
 
     <section class="formula-strip" aria-label="Formula editor strip">
       <div class="fx-eq">=</div>
-      <input class="formula-input" value="(B*C)/A" aria-label="Formula editor" />
+      <input class="formula-input" value="(B*C)/A" placeholder="Enter formula here" aria-label="Formula editor" />
       <button class="toggle" type="button" aria-label="Toggle formula labels">A / <strong>Name</strong></button>
     </section>
 
@@ -677,6 +702,8 @@
         const MAXIMIZE_KEY_LABEL = '⤒';
 
         const keypad = document.querySelector('.keypad');
+        const constantsStrip = document.querySelector('.constants-strip');
+        const gridHeaderRow = document.querySelector('thead');
         const keys = [...document.querySelectorAll('.keypad .key')];
         const minimizeKey = keypad?.querySelector('[data-key="minimize"]') || null;
         const undoKey = keypad?.querySelector('[data-key="undo"]') || null;
@@ -780,6 +807,7 @@
 
         const cellInputs = [...document.querySelectorAll('.cell-input')];
         const rowBindings = dataRows.map((row) => ({ inputs: [...row.querySelectorAll('.cell-input')], resultCell: row.querySelector('.result-cell') }));
+        const resultCells = rowBindings.map(({ resultCell }) => resultCell).filter(Boolean);
         const numberEntryTargets = new Set([...constantInputs, ...cellInputs]);
         const isNumberEntryContext = () => !!activeTarget && numberEntryTargets.has(activeTarget);
         const isFormulaEntryContext = () => activeTarget === formulaInput;
@@ -1268,8 +1296,14 @@
         const editableTargets = [...numericTargets, ...titleFields];
         numericTargets.forEach((target) => {
           target.setAttribute('inputmode', 'none');
-          target.addEventListener('focus', () => activateTarget(target));
-          ['pointerup', 'click'].forEach((eventName) => target.addEventListener(eventName, () => activateTarget(target, { selectAll: true })));
+          target.addEventListener('focus', () => {
+            const shouldSelectAll = target === formulaInput ? activeTarget !== target : false;
+            activateTarget(target, { selectAll: shouldSelectAll });
+          });
+          ['pointerup', 'click'].forEach((eventName) => target.addEventListener(eventName, () => {
+            const shouldSelectAll = target === formulaInput ? activeTarget !== target : true;
+            activateTarget(target, { selectAll: shouldSelectAll });
+          }));
           target.addEventListener('beforeinput', () => { if (activeTarget === target) captureUndoForFocusedTarget(); });
           target.addEventListener('input', () => { if (target === formulaInput && state.formulaMode === 'letter') { const selectionStart = formulaInput.selectionStart; const selectionEnd = formulaInput.selectionEnd; const normalized = formulaInput.value.replace(/\b[vwxyz]\b/g, (m) => m.toUpperCase()); if (normalized !== formulaInput.value) { formulaInput.value = normalized; if (selectionStart !== null && selectionEnd !== null) formulaInput.setSelectionRange(selectionStart, selectionEnd); } } resetClearStage(); persistFromDom(); });
         });
@@ -1415,6 +1449,15 @@
             clearAction();
           });
         }
+        const focusSafeContainers = [keypad, constantsStrip, gridHeaderRow].filter(Boolean);
+        document.addEventListener('pointerdown', (event) => {
+          if (!activeTarget) return;
+          if (editableTargets.includes(event.target)) return;
+          if (event.target.closest('.key, .key-active, .const-top, .head-pill')) return;
+          if (!focusSafeContainers.some((container) => container.contains(event.target))) return;
+          if (event.cancelable) event.preventDefault();
+        }, true);
+
         document.addEventListener('pointerdown', (event) => {
           if (state.clearStage < 3) return;
           if (clearButton?.contains(event.target)) return;
@@ -1426,6 +1469,78 @@
           resultHeaderTrigger.addEventListener('click', (event) => { event.preventDefault(); if (pointer) { pointer = false; return; } runResultAction(); });
           resultHeaderTrigger.addEventListener('keydown', (event) => { if (!['Enter', ' '].includes(event.key)) return; event.preventDefault(); runResultAction(); });
         }
+
+        const rangeIntersectsNode = (range, node) => {
+          if (!range || !node) return false;
+          const nodeRange = document.createRange();
+          nodeRange.selectNodeContents(node);
+          return range.compareBoundaryPoints(Range.END_TO_START, nodeRange) < 0 && range.compareBoundaryPoints(Range.START_TO_END, nodeRange) > 0;
+        };
+
+        const selectNodeContents = (node) => {
+          if (!node) return;
+          const selection = window.getSelection();
+          if (!selection) return;
+          const range = document.createRange();
+          range.selectNodeContents(node);
+          selection.removeAllRanges();
+          selection.addRange(range);
+        };
+
+        const getSelectedResultCells = () => {
+          const selection = window.getSelection();
+          if (!selection || selection.rangeCount === 0) return [];
+          const range = selection.getRangeAt(0);
+          return resultCells.filter((cell) => rangeIntersectsNode(range, cell));
+        };
+
+        resultCells.forEach((cell) => {
+          let tapStartX = 0;
+          let tapStartY = 0;
+          let tapStartAt = 0;
+          let tapCandidate = false;
+
+          cell.addEventListener('pointerdown', (event) => {
+            if (activeTarget) blurActiveTarget();
+            tapStartX = event.clientX;
+            tapStartY = event.clientY;
+            tapStartAt = Date.now();
+            tapCandidate = true;
+            if (event.pointerType !== 'mouse' && event.cancelable) event.preventDefault();
+          });
+
+          cell.addEventListener('pointermove', (event) => {
+            if (!tapCandidate) return;
+            const moved = Math.hypot(event.clientX - tapStartX, event.clientY - tapStartY);
+            if (moved > 8) tapCandidate = false;
+          });
+
+          cell.addEventListener('pointerup', () => {
+            const wasTap = tapCandidate && (Date.now() - tapStartAt) < 350;
+            tapCandidate = false;
+            if (!wasTap) return;
+            setTimeout(() => {
+              const selectedResultCells = getSelectedResultCells();
+              if (selectedResultCells.length > 1) return;
+              selectNodeContents(cell);
+            }, 0);
+          });
+
+          cell.addEventListener('dblclick', (event) => {
+            if (event.cancelable) event.preventDefault();
+          });
+        });
+
+        document.addEventListener('copy', (event) => {
+          const selection = window.getSelection();
+          if (!selection || selection.rangeCount === 0 || selection.isCollapsed) return;
+          const range = selection.getRangeAt(0);
+          const selectedResultCells = resultCells.filter((cell) => rangeIntersectsNode(range, cell));
+          if (!selectedResultCells.length) return;
+          event.preventDefault();
+          event.clipboardData?.setData('text/plain', selectedResultCells.map((cell) => cell.textContent?.trim() || '').join('\n'));
+        });
+
         editableTargets.forEach((target) => target.addEventListener('blur', () => {
           const shouldRecompute = recalcOnBlurTargets.has(target);
           if (activeTarget === target) {
