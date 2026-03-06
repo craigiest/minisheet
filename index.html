@@ -70,7 +70,6 @@
 
       html,
       body,
-      .grid-wrap,
       .constants-strip,
       .formula-strip,
       .keypad {
@@ -259,6 +258,7 @@
       }
 
       .grid-wrap {
+        touch-action: pan-y;
         position: fixed;
         top: calc(env(safe-area-inset-top) + var(--nav-h) + var(--const-h) + var(--formula-h));
         left: 0;
@@ -387,6 +387,9 @@
       .result-cell {
         text-align: right;
         padding-right: 8px;
+        user-select: text;
+        -webkit-user-select: text;
+        -webkit-touch-callout: default;
       }
 
       .result-head { z-index: 9; }
