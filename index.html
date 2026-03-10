@@ -107,8 +107,8 @@
         position: relative;
         z-index: 1;
         min-width: 0;
-        overflow: hidden;
-        pointer-events: none;
+        overflow: visible;
+        pointer-events: auto;
       }
 
       .sheet-line {
@@ -121,9 +121,61 @@
       }
 
       .sheet-index {
+        border: 0;
+        background: transparent;
+        color: var(--text);
+        font-family: inherit;
+        -webkit-appearance: none;
+        appearance: none;
+        padding: 2px 6px;
+        margin: -2px -6px;
+        border-radius: 8px;
         font-size: 12px;
         font-weight: 600;
         white-space: nowrap;
+        cursor: pointer;
+      }
+
+      .sheet-index:active {
+        background: rgba(48, 85, 150, 0.12);
+      }
+
+      .sheet-menu {
+        position: absolute;
+        top: calc(100% + 4px);
+        right: 0;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.16);
+        display: grid;
+        gap: 2px;
+        padding: 4px;
+        min-width: 84px;
+        pointer-events: auto;
+        z-index: 10;
+      }
+
+      .sheet-menu[hidden] {
+        display: none;
+      }
+
+      .sheet-option {
+        border: 0;
+        border-radius: 8px;
+        background: transparent;
+        text-align: left;
+        font-size: 13px;
+        padding: 6px 8px;
+      }
+
+      .sheet-option.is-current {
+        background: rgba(48, 85, 150, 0.14);
+        font-weight: 700;
+      }
+
+      .sheet-option:active {
+        background: rgba(48, 85, 150, 0.2);
       }
 
       .sheet-title {
@@ -595,7 +647,8 @@
     <header class="nav">
       <button class="arrow" aria-label="Previous sheet">◀</button>
       <div class="title-block">
-        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">Proportion: A/B = C/Result</span><span class="sheet-index">1/2</span></div>
+        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">Proportion: A/B = C/Result</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/2</button></div>
+        <div class="sheet-menu" hidden role="menu" aria-label="Sheet selector"></div>
       </div>
       <button class="arrow" aria-label="Next sheet">▶</button>
     </header>
@@ -724,6 +777,7 @@
         const toggleButton = document.querySelector('.toggle');
         const titleLine = document.querySelector('.title-line') || sheetTitleEl;
         const sheetIndexEl = document.querySelector('.sheet-index');
+        const sheetMenuEl = document.querySelector('.sheet-menu');
         const sheetNameLine = document.querySelector('.sheet-name');
         const formulaInput = document.querySelector('.formula-input');
         const constantInputs = [...document.querySelectorAll('.const-cell input')];
@@ -1267,12 +1321,59 @@
           statCells.forEach((cell, idx) => { const select = cell.querySelector('select'); sheet.stats[idx] = select?.value || '--'; });
           scheduleSave();
         };
+        const closeSheetMenu = () => {
+          if (!sheetMenuEl || !sheetIndexEl) return;
+          sheetMenuEl.hidden = true;
+          sheetIndexEl.setAttribute('aria-expanded', 'false');
+        };
+        const buildSheetMenu = () => {
+          if (!sheetMenuEl || !sheetIndexEl) return;
+          sheetMenuEl.innerHTML = '';
+          state.sheets.forEach((sheet, idx) => {
+            const option = document.createElement('button');
+            option.type = 'button';
+            option.className = 'sheet-option';
+            if (idx === state.currentSheetIndex) option.classList.add('is-current');
+            const title = String(sheet?.title || `Sheet ${idx + 1}`).trim() || `Sheet ${idx + 1}`;
+            option.textContent = `${idx + 1}. ${title}`;
+            option.setAttribute('role', 'menuitem');
+            option.setAttribute('aria-label', `Go to sheet ${idx + 1}`);
+            option.addEventListener('click', (event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              if (idx !== state.currentSheetIndex) {
+                blurActiveTarget();
+                persistFromDom();
+                state.currentSheetIndex = idx;
+                ensureUndoHistoryAlignment();
+                renderSheet();
+                resetClearStage();
+                scheduleSave();
+              }
+              closeSheetMenu();
+            });
+            sheetMenuEl.appendChild(option);
+          });
+        };
+        const toggleSheetMenu = () => {
+          if (!sheetMenuEl || !sheetIndexEl) return;
+          const opening = sheetMenuEl.hidden;
+          if (!opening) {
+            closeSheetMenu();
+            return;
+          }
+          buildSheetMenu();
+          sheetMenuEl.hidden = false;
+          sheetIndexEl.setAttribute('aria-expanded', 'true');
+        };
+
         const renderSheet = () => {
           const sheet = state.sheets[state.currentSheetIndex];
           const { ui } = buildNameMaps(sheet);
           if (titleLine) titleLine.textContent = String(sheet.title ?? '');
           if (sheetNameLine) sheetNameLine.textContent = '';
           sheetIndexEl.textContent = `${state.currentSheetIndex + 1}/${state.sheets.length}`;
+          closeSheetMenu();
           formulaInput.value = canonicalToDisplay(sheet.formulaCanonical, sheet);
           toggleButton.innerHTML = state.formulaMode === 'letter' ? '<strong>A</strong> / Name' : 'A / <strong>Name</strong>';
           document.body.classList.toggle('formula-mode-name', state.formulaMode === 'name');
@@ -1512,6 +1613,40 @@
         };
         bindSheetArrow(sheetNavButtons[0], -1);
         bindSheetArrow(sheetNavButtons[1], 1);
+
+        if (sheetIndexEl) {
+          let sheetIndexPointerTriggered = false;
+          sheetIndexEl.addEventListener('pointerdown', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            sheetIndexPointerTriggered = true;
+            toggleSheetMenu();
+          });
+          sheetIndexEl.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            if (sheetIndexPointerTriggered) {
+              sheetIndexPointerTriggered = false;
+              return;
+            }
+            toggleSheetMenu();
+          });
+          sheetIndexEl.addEventListener('keydown', (event) => {
+            if (!['Enter', ' ', 'ArrowDown'].includes(event.key)) return;
+            event.preventDefault();
+            event.stopPropagation();
+            toggleSheetMenu();
+          });
+        }
+        document.addEventListener('pointerdown', (event) => {
+          if (!sheetMenuEl || sheetMenuEl.hidden) return;
+          if (sheetMenuEl.contains(event.target) || sheetIndexEl?.contains(event.target)) return;
+          closeSheetMenu();
+        });
+        document.addEventListener('keydown', (event) => {
+          if (event.key !== 'Escape' || !sheetMenuEl || sheetMenuEl.hidden) return;
+          closeSheetMenu();
+        });
 
         const bindFormulaInsertButton = (button, letter) => {
           if (!button) return;
