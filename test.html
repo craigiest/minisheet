@@ -626,6 +626,19 @@
         gap: var(--key-gap);
       }
 
+      .keys[hidden] {
+        display: none;
+      }
+
+      .numpad-keys {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-rows: repeat(4, minmax(0, 1fr));
+      }
+
+      .numpad-keys .key {
+        font-size: 24px;
+      }
+
       .key {
         appearance: none;
         -webkit-appearance: none;
@@ -736,7 +749,7 @@
     <header class="nav">
       <button class="arrow" aria-label="Previous sheet">◀</button>
       <div class="title-block">
-        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">Proportion: A/B = C/Result</span><span class="version-tag">v0.0.10</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/2</button></div>
+        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">Proportion: A/B = C/Result</span><span class="version-tag">v0.0.11</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/2</button></div>
         <div class="sheet-menu" hidden role="menu" aria-label="Sheet selector"></div>
       </div>
       <button class="arrow" aria-label="Next sheet">▶</button>
@@ -759,7 +772,7 @@
 
     <section class="settings-panel" aria-label="App info and settings" hidden>
       <h2>MiniSheet</h2>
-      <p class="settings-version">Version <span class="version-tag-settings">v0.0.10</span></p>
+      <p class="settings-version">Version <span class="version-tag-settings">v0.0.11</span></p>
       <p>MiniSheet is a formula-driven mini spreadsheet for quick calculations. This page (Sheet 0) is reserved for app info, settings, and developer controls.</p>
       <div class="settings-group">
         <h3>Developer</h3>
@@ -824,13 +837,19 @@
     </main>
 
     <section class="keypad" aria-label="Bottom keypad">
-      <div class="keys">
+      <div class="keys full-keys">
         <button class="key key-undo" data-key="undo">⤺</button><button class="key" data-key="minimize">⤓</button><button class="key">√</button><button class="key" data-shift-slot="e"><em>e</em></button><button class="key" data-shift-slot="pi">π</button><button class="key" data-key="backspace">⌫</button>
         <button class="key light">LOG</button><button class="key light">!</button><button class="key">^</button><button class="key">(</button><button class="key">)</button><button class="key">/</button>
         <button class="key light" data-shift-slot="sin">SIN</button><button class="key light" data-shift-slot="sum">SUM</button><button class="key">7</button><button class="key">8</button><button class="key">9</button><button class="key">*</button>
         <button class="key light" data-shift-slot="cos">COS</button><button class="key light" data-shift-slot="mean">MEAN</button><button class="key">4</button><button class="key">5</button><button class="key">6</button><button class="key">−</button>
         <button class="key light" data-shift-slot="tan">TAN</button><button class="key light" data-shift-slot="max">MAX</button><button class="key">1</button><button class="key">2</button><button class="key">3</button><button class="key">+</button>
         <button class="key light" data-key="shift">⇧</button><button class="key light" data-shift-slot="min">MIN</button><button class="key">0</button><button class="key">.</button><button class="key">,</button><button class="key">:</button>
+      </div>
+      <div class="keys numpad-keys" hidden>
+        <button class="key">7</button><button class="key">8</button><button class="key">9</button><button class="key" data-key="backspace">⌫</button>
+        <button class="key">4</button><button class="key">5</button><button class="key">6</button><button class="key">/</button>
+        <button class="key">1</button><button class="key">2</button><button class="key">3</button><button class="key">−</button>
+        <button class="key">0</button><button class="key">.</button><button class="key" data-key="np-enter">↩</button><button class="key" data-key="full-keypad">⇲</button>
       </div>
     </section>
 
@@ -867,14 +886,18 @@
         const UNDO_KEY_LABEL = '⤺';
         const MINIMIZE_KEY_LABEL = '⤓';
         const MAXIMIZE_KEY_LABEL = '⤒';
+        const NUMPAD_SWITCH_LABEL = '⇱';
+        const FULL_KEYPAD_LABEL = '⇲';
+        const NUMPAD_ENTER_LABEL = '↩';
 
         const keypad = document.querySelector('.keypad');
         const constantsStrip = document.querySelector('.constants-strip');
         const gridHeaderRow = document.querySelector('thead');
+        const fullKeysEl = keypad?.querySelector('.full-keys') || null;
+        const numpadKeysEl = keypad?.querySelector('.numpad-keys') || null;
         const keys = [...document.querySelectorAll('.keypad .key')];
         const minimizeKey = keypad?.querySelector('[data-key="minimize"]') || null;
         const undoKey = keypad?.querySelector('[data-key="undo"]') || null;
-        const backspaceKey = keypad?.querySelector('[data-key="backspace"]') || null;
         const shiftKey = keypad?.querySelector('[data-key="shift"]') || null;
         const leftKey = keys.find((key) => key.textContent.trim() === '<');
         const rightKey = keys.find((key) => key.textContent.trim() === '>');
@@ -897,7 +920,7 @@
         const statCells = [...document.querySelectorAll('tfoot .stat-cell')];
         const headerPills = [...document.querySelectorAll('thead .head-pill')];
         const getKeyLabel = (key) => key?.textContent.trim() || '';
-        const NUMBER_ENTRY_KEY_LABELS = new Set(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '−', '/', 'e', 'π', 'c', 'g', UNDO_KEY_LABEL, '⌫', '=', MINIMIZE_KEY_LABEL, MAXIMIZE_KEY_LABEL]);
+        const NUMBER_ENTRY_KEY_LABELS = new Set(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '−', '/', 'e', 'π', 'c', 'g', UNDO_KEY_LABEL, '⌫', '=', MINIMIZE_KEY_LABEL, MAXIMIZE_KEY_LABEL, NUMPAD_SWITCH_LABEL, FULL_KEYPAD_LABEL, NUMPAD_ENTER_LABEL]);
         const FORMULA_ENTRY_KEY_LABELS = new Set(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '−', '+', '*', '/', '^', '!', '(', ')', ',', ':', '√', 'LOG', 'SUM', 'MEAN', 'MAX', 'MIN', 'COUNT', 'CNT', 'MDN', 'MODE', 'GMN', 'SIN', 'COS', 'TAN', 'ASIN', 'ACOS', 'ATAN', 'e', 'π', 'c', 'g', '⌫', UNDO_KEY_LABEL, MINIMIZE_KEY_LABEL, MAXIMIZE_KEY_LABEL]);
         const TEMP_DISABLED_KEY_LABELS = new Set([]);
 
@@ -959,7 +982,7 @@
           };
         };
 
-        const state = { sheets: [makeSheet(0), makeSheet(1), makeSheet(2)], currentSheetIndex: 0, formulaMode: 'name', clearStage: 0, acConfirmPresses: 0, settingsView: false };
+        const state = { sheets: [makeSheet(0), makeSheet(1), makeSheet(2)], currentSheetIndex: 0, formulaMode: 'name', clearStage: 0, acConfirmPresses: 0, settingsView: false, numpadActive: false };
 
         let saveTimer = null;
         const scheduleSave = () => {
@@ -992,7 +1015,21 @@
           if (context === 'formula') return FORMULA_ENTRY_KEY_LABELS.has(label);
           return true;
         };
+        const getMinimizeKeyLabel = () => {
+          const isMinimized = !!keypad?.classList.contains('minimized');
+          if (isFormulaEntryContext() || keypadShiftActive) {
+            return isMinimized ? MAXIMIZE_KEY_LABEL : MINIMIZE_KEY_LABEL;
+          }
+          return NUMPAD_SWITCH_LABEL;
+        };
+        const syncKeypadMode = () => {
+          const showNumpad = isNumberEntryContext() && state.numpadActive;
+          if (fullKeysEl) fullKeysEl.hidden = showNumpad;
+          if (numpadKeysEl) numpadKeysEl.hidden = !showNumpad;
+        };
         const updateKeyAvailability = () => {
+          syncKeypadMode();
+          if (minimizeKey) minimizeKey.textContent = getMinimizeKeyLabel();
           keys.forEach((key) => {
             const enabled = isKeyEnabled(key);
             key.disabled = !enabled;
@@ -1710,9 +1747,24 @@
           if (key?.disabled) return;
           if (!isKeyEnabled(key)) return;
           if (key === minimizeKey) {
+            if (!isFormulaEntryContext() && !keypadShiftActive) {
+              state.numpadActive = !state.numpadActive;
+              updateKeyAvailability();
+              return;
+            }
             const isMinimized = keypad.classList.toggle('minimized');
             document.body.classList.toggle('keypad-is-minimized', isMinimized);
-            minimizeKey.textContent = isMinimized ? MAXIMIZE_KEY_LABEL : MINIMIZE_KEY_LABEL;
+            updateKeyAvailability();
+            return;
+          }
+          if (key?.dataset.key === 'full-keypad') {
+            state.numpadActive = false;
+            updateKeyAvailability();
+            return;
+          }
+          if (key?.dataset.key === 'np-enter') {
+            moveVariableSelectionDown();
+            resetClearStage();
             return;
           }
           if (key === shiftKey) {
@@ -1734,7 +1786,7 @@
             resetClearStage();
             return;
           }
-          if (key === backspaceKey) return deleteBackward();
+          if (key?.dataset.key === 'backspace') return deleteBackward();
           if (key === leftKey) return moveCursor(-1);
           if (key === rightKey) return moveCursor(1);
           if (key === resultKey) { runResultAction(); return; }
