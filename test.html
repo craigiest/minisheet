@@ -29,12 +29,13 @@
         --keypad-pad: 6px;
         --key-gap: 6px;
         --key-row-h: calc((var(--keypad-h) - (var(--keypad-pad) * 2) - (var(--key-gap) * 5)) / 6);
-        --keypad-active-h: calc(var(--keypad-h) + env(safe-area-inset-bottom));
+        --keypad-safe-bottom: calc(env(safe-area-inset-bottom) / 2);
+        --keypad-active-h: calc(var(--keypad-h) + var(--keypad-safe-bottom));
         --keypad-bg: #7082a7;
       }
 
       body.keypad-is-minimized {
-        --keypad-active-h: calc(var(--keypad-min-h) + env(safe-area-inset-bottom));
+        --keypad-active-h: calc(var(--keypad-min-h) + var(--keypad-safe-bottom));
       }
 
       * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -531,9 +532,9 @@
         left: 0;
         right: 0;
         bottom: 0;
-        height: calc(var(--keypad-h) + env(safe-area-inset-bottom));
+        height: calc(var(--keypad-h) + var(--keypad-safe-bottom));
         padding: var(--keypad-pad);
-        padding-bottom: calc(var(--keypad-pad) + env(safe-area-inset-bottom));
+        padding-bottom: calc(var(--keypad-pad) + var(--keypad-safe-bottom));
         background: var(--keypad-bg);
         border-top: 1px solid #5d6f97;
         z-index: 41;
@@ -606,7 +607,7 @@
       }
 
       .keypad.minimized {
-        height: calc(var(--keypad-min-h) + env(safe-area-inset-bottom));
+        height: calc(var(--keypad-min-h) + var(--keypad-safe-bottom));
       }
 
       .keypad.minimized .keys {
@@ -658,7 +659,7 @@
     <header class="nav">
       <button class="arrow" aria-label="Previous sheet">◀</button>
       <div class="title-block">
-        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">Proportion: A/B = C/Result</span><span class="version-tag">v0.0.3</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/2</button></div>
+        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">Proportion: A/B = C/Result</span><span class="version-tag">v0.0.4</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/2</button></div>
         <div class="sheet-menu" hidden role="menu" aria-label="Sheet selector"></div>
       </div>
       <button class="arrow" aria-label="Next sheet">▶</button>
