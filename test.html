@@ -775,7 +775,7 @@
     <header class="nav">
       <button class="arrow" aria-label="Previous sheet">◀</button>
       <div class="title-block">
-        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">Proportion: A/B = C/Result</span><span class="version-tag">v0.0.14</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/2</button></div>
+        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">Proportion: A/B = C/Result</span><span class="version-tag">v0.0.15</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/2</button></div>
         <div class="sheet-menu" hidden role="menu" aria-label="Sheet selector"></div>
       </div>
       <button class="arrow" aria-label="Next sheet">▶</button>
@@ -798,7 +798,7 @@
 
     <section class="settings-panel" aria-label="App info and settings" hidden>
       <h2>MiniSheet</h2>
-      <p class="settings-version">Version <span class="version-tag-settings">v0.0.14</span></p>
+      <p class="settings-version">Version <span class="version-tag-settings">v0.0.15</span></p>
       <p>MiniSheet is a formula-driven mini spreadsheet for quick calculations. This page (Sheet 0) is reserved for app info, settings, and developer controls.</p>
       <div class="settings-group">
         <h3>Developer</h3>
@@ -1606,6 +1606,7 @@
             return;
           }
           const sheet = state.sheets[state.currentSheetIndex];
+          syncDomRowCount(sheet.rows.length);
           const { ui } = buildNameMaps(sheet);
           if (titleLine) titleLine.textContent = String(sheet.title ?? '');
           if (sheetNameLine) sheetNameLine.textContent = '';
@@ -1626,6 +1627,7 @@
         const computeAllRows = () => {
           persistFromDom();
           const sheet = state.sheets[state.currentSheetIndex];
+          if (!state.settingsView) applyRowAutoSize(sheet);
           const rowIsEmpty = (row) => KEY_ORDER.every((k) => !String(row[k] || '').trim());
           if (!String(sheet.formulaCanonical || '').trim()) {
             sheet.rows.forEach((row) => { row.Result = ''; });
@@ -1763,7 +1765,7 @@
           formulaSelectionWasAllOnPointerDown = textLength > 0 && start === 0 && end === textLength;
         });
 
-        numericTargets.forEach((target) => {
+        const bindNumericTarget = (target) => {
           target.setAttribute('inputmode', 'none');
           target.addEventListener('focus', () => {
             const shouldSelectAll = target === formulaInput ? activeTarget !== target : false;
@@ -1775,7 +1777,8 @@
           }));
           target.addEventListener('beforeinput', () => { if (activeTarget === target) captureUndoForFocusedTarget(); });
           target.addEventListener('input', () => { if (target === formulaInput && state.formulaMode === 'letter') { const selectionStart = formulaInput.selectionStart; const selectionEnd = formulaInput.selectionEnd; const normalized = formulaInput.value.replace(/\b[vwxyz]\b/g, (m) => m.toUpperCase()); if (normalized !== formulaInput.value) { formulaInput.value = normalized; if (selectionStart !== null && selectionEnd !== null) formulaInput.setSelectionRange(selectionStart, selectionEnd); } } resetClearStage(); persistFromDom(); });
-        });
+        };
+        numericTargets.forEach(bindNumericTarget);
         titleFields.forEach((target) => {
           ['focus', 'pointerup', 'click'].forEach((eventName) => target.addEventListener(eventName, (event) => {
             if (activeTarget === formulaInput && labelEditableFields.has(target)) {
@@ -2086,7 +2089,7 @@
           event.clipboardData?.setData('text/plain', selectedResultCells.map((cell) => cell.textContent?.trim() || '').join('\n'));
         });
 
-        editableTargets.forEach((target) => target.addEventListener('blur', () => {
+        const bindEditableBlur = (target) => target.addEventListener('blur', () => {
           const shouldRecompute = recalcOnBlurTargets.has(target);
           if (activeTarget === target) {
             target.classList.remove('is-active-target');
@@ -2096,7 +2099,81 @@
           }
           if (shouldRecompute) computeAllRows();
           else persistFromDom();
-        }));
+        });
+        editableTargets.forEach(bindEditableBlur);
+
+        const MIN_ROWS = ROW_COUNT;
+        const tbodyEl = document.querySelector('tbody');
+        const buildRowDom = (rowNumber) => {
+          const tr = document.createElement('tr');
+          const numTd = document.createElement('td');
+          numTd.className = 'num';
+          numTd.textContent = String(rowNumber);
+          tr.appendChild(numTd);
+          KEY_ORDER.forEach(() => {
+            const td = document.createElement('td');
+            td.className = 'editable-cell';
+            td.innerHTML = '<input class="cell-input" inputmode="none" value="" aria-label="Grid cell value" />';
+            tr.appendChild(td);
+          });
+          const resultTd = document.createElement('td');
+          resultTd.className = 'result-cell';
+          tr.appendChild(resultTd);
+          return tr;
+        };
+        const appendRowToDom = () => {
+          if (!tbodyEl) return;
+          const tr = buildRowDom(dataRows.length + 1);
+          tbodyEl.appendChild(tr);
+          dataRows.push(tr);
+          const inputs = [...tr.querySelectorAll('.cell-input')];
+          inputs.forEach((input) => {
+            cellInputs.push(input);
+            numberEntryTargets.add(input);
+            recalcOnBlurTargets.add(input);
+            editableTargets.push(input);
+            bindNumericTarget(input);
+            bindEditableBlur(input);
+          });
+          const resultCell = tr.querySelector('.result-cell');
+          rowBindings.push({ inputs, resultCell });
+          if (resultCell) resultCells.push(resultCell);
+        };
+        const removeLastRowFromDom = () => {
+          const tr = dataRows.pop();
+          if (!tr) return;
+          const inputs = [...tr.querySelectorAll('.cell-input')];
+          inputs.forEach((input) => {
+            const ci = cellInputs.indexOf(input);
+            if (ci !== -1) cellInputs.splice(ci, 1);
+            numberEntryTargets.delete(input);
+            recalcOnBlurTargets.delete(input);
+            const ei = editableTargets.indexOf(input);
+            if (ei !== -1) editableTargets.splice(ei, 1);
+            if (activeTarget === input) activeTarget = null;
+          });
+          rowBindings.pop();
+          const resultCell = tr.querySelector('.result-cell');
+          if (resultCell) {
+            const ri = resultCells.indexOf(resultCell);
+            if (ri !== -1) resultCells.splice(ri, 1);
+          }
+          tr.remove();
+        };
+        const syncDomRowCount = (targetLength) => {
+          while (dataRows.length < targetLength) appendRowToDom();
+          while (dataRows.length > targetLength) removeLastRowFromDom();
+        };
+        const rowIsBlankForSizing = (row) => KEY_ORDER.every((k) => !String(row[k] || '').trim());
+        const applyRowAutoSize = (sheet) => {
+          let lastFilled = -1;
+          for (let i = sheet.rows.length - 1; i >= 0; i--) {
+            if (!rowIsBlankForSizing(sheet.rows[i])) { lastFilled = i; break; }
+          }
+          const targetLength = Math.max(MIN_ROWS, lastFilled + 2);
+          while (sheet.rows.length < targetLength) sheet.rows.push({ A: '', B: '', C: '', D: '', Result: '' });
+          while (sheet.rows.length > targetLength) sheet.rows.pop();
+        };
         statCells.forEach((cell, idx) => { const select = cell.querySelector('select'); select?.addEventListener('change', () => { state.sheets[state.currentSheetIndex].stats[idx] = select.value; recomputeStatsFromSheet(state.sheets[state.currentSheetIndex]); scheduleSave(); resetClearStage(); }); });
         document.addEventListener('keydown', (event) => { if (event.key !== 'Enter') return; if (!activeTarget || !editableTargets.includes(activeTarget)) return; event.preventDefault(); blurActiveTarget(); computeAllRows(); resetClearStage(); });
 
