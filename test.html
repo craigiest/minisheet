@@ -749,7 +749,7 @@
     <header class="nav">
       <button class="arrow" aria-label="Previous sheet">◀</button>
       <div class="title-block">
-        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">Proportion: A/B = C/Result</span><span class="version-tag">v0.0.11</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/2</button></div>
+        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">Proportion: A/B = C/Result</span><span class="version-tag">v0.0.12</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/2</button></div>
         <div class="sheet-menu" hidden role="menu" aria-label="Sheet selector"></div>
       </div>
       <button class="arrow" aria-label="Next sheet">▶</button>
@@ -772,7 +772,7 @@
 
     <section class="settings-panel" aria-label="App info and settings" hidden>
       <h2>MiniSheet</h2>
-      <p class="settings-version">Version <span class="version-tag-settings">v0.0.11</span></p>
+      <p class="settings-version">Version <span class="version-tag-settings">v0.0.12</span></p>
       <p>MiniSheet is a formula-driven mini spreadsheet for quick calculations. This page (Sheet 0) is reserved for app info, settings, and developer controls.</p>
       <div class="settings-group">
         <h3>Developer</h3>
@@ -849,7 +849,7 @@
         <button class="key">7</button><button class="key">8</button><button class="key">9</button><button class="key" data-key="backspace">⌫</button>
         <button class="key">4</button><button class="key">5</button><button class="key">6</button><button class="key">/</button>
         <button class="key">1</button><button class="key">2</button><button class="key">3</button><button class="key">−</button>
-        <button class="key">0</button><button class="key">.</button><button class="key" data-key="np-enter">↩</button><button class="key" data-key="full-keypad">⇲</button>
+        <button class="key">0</button><button class="key">.</button><button class="key" data-key="np-enter">↩︎</button><button class="key" data-key="full-keypad">⇲</button>
       </div>
     </section>
 
@@ -888,7 +888,7 @@
         const MAXIMIZE_KEY_LABEL = '⤒';
         const NUMPAD_SWITCH_LABEL = '⇱';
         const FULL_KEYPAD_LABEL = '⇲';
-        const NUMPAD_ENTER_LABEL = '↩';
+        const NUMPAD_ENTER_LABEL = '↩︎';
 
         const keypad = document.querySelector('.keypad');
         const constantsStrip = document.querySelector('.constants-strip');
@@ -1023,7 +1023,7 @@
           return NUMPAD_SWITCH_LABEL;
         };
         const syncKeypadMode = () => {
-          const showNumpad = isNumberEntryContext() && state.numpadActive;
+          const showNumpad = !isFormulaEntryContext() && state.numpadActive;
           if (fullKeysEl) fullKeysEl.hidden = showNumpad;
           if (numpadKeysEl) numpadKeysEl.hidden = !showNumpad;
         };
