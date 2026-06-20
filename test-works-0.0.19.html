@@ -1,0 +1,2254 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <title>MiniSheet</title>
+    <meta name="theme-color" content="#305596" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="MiniSheet" />
+    <link rel="manifest" href="manifest-test.webmanifest" />
+    <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon-180.png" />
+    <style>
+      :root {
+        --bg: #ececef;
+        --panel: #f3f3f5;
+        --line: #d5d5da;
+        --text: #1d2029;
+        --active: #305596;
+        --active-soft: #6aa8f1;
+        --nav-h: 34px;
+        --const-h: 74px;
+        --formula-h: 56px;
+        --keypad-h: 266px;
+        --keypad-min-h: 50px;
+        --keypad-pad: 6px;
+        --key-gap: 6px;
+        --keypad-safe-bottom: calc(env(safe-area-inset-bottom) / 2);
+        --key-row-h: calc((var(--keypad-h) - (var(--keypad-pad) * 2) - (var(--key-gap) * 5)) / 6);
+        --keypad-active-h: calc(var(--keypad-h) + var(--keypad-safe-bottom));
+        --keypad-bg: #7082a7;
+      }
+
+      body.keypad-is-minimized {
+        --keypad-active-h: calc(var(--keypad-min-h) + var(--keypad-safe-bottom));
+      }
+
+      * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+        background: var(--bg);
+        color: var(--text);
+      }
+
+      body {
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
+      }
+
+      button,
+      input,
+      select {
+        font: inherit;
+      }
+
+      button,
+      .key,
+      .arrow,
+      .sheet-title,
+      .cell-input,
+      .formula-input,
+      .const-cell input,
+      select {
+        touch-action: manipulation;
+      }
+
+      html,
+      body,
+      .constants-strip,
+      .formula-strip,
+      .keypad {
+        touch-action: manipulation;
+      }
+
+      .nav {
+        position: fixed;
+        top: env(safe-area-inset-top);
+        left: 0;
+        right: 0;
+        height: var(--nav-h);
+        background: var(--panel);
+        border-bottom: 1px solid var(--line);
+        display: grid;
+        grid-template-columns: 34px minmax(0,1fr) 34px;
+        gap: 6px;
+        align-items: center;
+        padding: 2px 8px 6px;
+        z-index: 60;
+        isolation: isolate;
+      }
+
+      .arrow {
+        width: 34px;
+        height: 30px;
+        border: 0;
+        background: transparent;
+        font-size: 18px;
+        position: relative;
+        z-index: 3;
+      }
+
+      .title-block {
+        position: relative;
+        z-index: 1;
+        min-width: 0;
+        overflow: visible;
+        pointer-events: auto;
+      }
+
+      .sheet-line {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        min-width: 0;
+        width: 100%;
+      }
+
+      .sheet-index {
+        border: 0;
+        background: transparent;
+        color: var(--text);
+        font-family: inherit;
+        -webkit-appearance: none;
+        appearance: none;
+        padding: 2px 6px;
+        margin: -2px -6px;
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 600;
+        white-space: nowrap;
+        cursor: pointer;
+      }
+
+      .sheet-index:active {
+        background: rgba(48, 85, 150, 0.12);
+      }
+
+      .sheet-menu {
+        position: absolute;
+        top: calc(100% + 4px);
+        right: 0;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.16);
+        display: grid;
+        gap: 2px;
+        padding: 4px;
+        min-width: 84px;
+        pointer-events: auto;
+        z-index: 10;
+      }
+
+      .sheet-menu[hidden] {
+        display: none;
+      }
+
+      .sheet-option {
+        border: 0;
+        border-radius: 8px;
+        background: transparent;
+        text-align: left;
+        font-size: 13px;
+        padding: 6px 8px;
+      }
+
+      .sheet-option-row {
+        display: flex;
+        align-items: stretch;
+        gap: 2px;
+      }
+
+      .sheet-option-row .sheet-option {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .sheet-duplicate-btn {
+        border: 0;
+        border-radius: 8px;
+        background: transparent;
+        color: var(--text-muted, #8a94a8);
+        font-size: 14px;
+        line-height: 1;
+        padding: 6px 8px;
+        flex-shrink: 0;
+      }
+
+      .sheet-duplicate-btn:active {
+        background: rgba(48, 85, 150, 0.2);
+      }
+
+      .sheet-option.is-current {
+        background: rgba(48, 85, 150, 0.14);
+        font-weight: 700;
+      }
+
+      .sheet-option:active {
+        background: rgba(48, 85, 150, 0.2);
+      }
+
+      .sheet-title {
+        font-size: 16px;
+        pointer-events: auto;
+        line-height: 1.1;
+        color: var(--text);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        flex: 1;
+        min-width: 0;
+      }
+
+      .version-tag {
+        font-size: 11px;
+        color: var(--text-muted, #8a94a8);
+        flex: 0 0 auto;
+        padding: 0 6px;
+        white-space: nowrap;
+      }
+
+      .constants-strip {
+        position: fixed;
+        top: calc(env(safe-area-inset-top) + var(--nav-h));
+        left: 0;
+        right: 0;
+        height: var(--const-h);
+        background: var(--panel);
+        border-bottom: 1px solid var(--line);
+        display: grid;
+        grid-template-columns: 52px repeat(5, minmax(0, 1fr));
+        z-index: 50;
+      }
+
+      .clear-cell,
+      .const-cell {
+        border-right: 1px solid var(--line);
+        padding: 4px;
+        display: grid;
+        gap: 2px;
+        align-content: center;
+      }
+
+      .clear-cell {
+        place-items: center;
+      }
+
+      .key-active {
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 8px;
+        background: var(--active);
+        color: #fff;
+        display: grid;
+        place-items: center;
+        width: 42px;
+        height: 42px;
+        font-size: 16px;
+      }
+
+      .const-top {
+        border-radius: 8px;
+        background: #f1f1f3;
+        color: var(--text);
+        min-height: 34px;
+        display: grid;
+        align-content: center;
+        justify-items: center;
+        padding: 4px;
+      }
+
+      .const-top .letter {
+        font-size: 12px;
+        line-height: 1;
+        font-weight: 700;
+      }
+
+      .const-top .name {
+        font-size: 11px;
+        font-weight: 400;
+      }
+
+      .const-cell input {
+        width: 100%;
+        height: 30px;
+        border: 1px solid #c7c7ce;
+        border-radius: 7px;
+        background: #efefef;
+        font-size: 14px;
+        padding: 2px 6px;
+      }
+
+      .formula-strip {
+        position: fixed;
+        top: calc(env(safe-area-inset-top) + var(--nav-h) + var(--const-h));
+        left: 0;
+        right: 0;
+        height: var(--formula-h);
+        background: var(--panel);
+        border-bottom: 1px solid var(--line);
+        display: grid;
+        grid-template-columns: 30px 1fr auto;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 8px;
+        z-index: 49;
+      }
+
+      .fx-eq {
+        font-size: 26px;
+        font-weight: 700;
+        text-align: center;
+      }
+
+      .formula-input {
+        width: 100%;
+        min-width: 0;
+        height: 42px;
+        border: 2px solid #c7c7ce;
+        border-radius: 10px;
+        box-shadow: none;
+        background: #f0f0f2;
+        font-size: 14px;
+        padding: 6px 10px;
+      }
+
+      .formula-input::placeholder {
+        color: #a7acb7;
+        font-style: italic;
+      }
+
+      .formula-input.is-active-target {
+        border-color: var(--active-soft);
+        box-shadow: 0 0 0 1px rgba(106, 168, 241, 0.35) inset;
+      }
+
+      .toggle {
+        font-size: 12px;
+        white-space: nowrap;
+      }
+
+      .grid-wrap {
+        touch-action: pan-y;
+        position: fixed;
+        top: calc(env(safe-area-inset-top) + var(--nav-h) + var(--const-h) + var(--formula-h));
+        left: 0;
+        right: 0;
+        bottom: var(--keypad-active-h);
+        overflow-y: auto;
+        overflow-x: hidden;
+        -webkit-overflow-scrolling: touch;
+        background: #f7f7f8;
+        z-index: 20;
+      }
+
+      .settings-panel {
+        position: fixed;
+        top: calc(env(safe-area-inset-top) + var(--nav-h));
+        left: 0;
+        right: 0;
+        bottom: 0;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        background: #fff;
+        z-index: 25;
+        padding: 20px;
+        padding-bottom: calc(20px + env(safe-area-inset-bottom));
+      }
+
+      .settings-panel h2 {
+        margin: 0 0 4px;
+        font-size: 20px;
+        color: var(--text);
+      }
+
+      .settings-panel h3 {
+        margin: 0 0 8px;
+        font-size: 15px;
+        color: var(--text);
+      }
+
+      .settings-version {
+        color: #8a94a8;
+        font-size: 13px;
+        margin: 0 0 16px;
+      }
+
+      .settings-panel p {
+        font-size: 14px;
+        line-height: 1.4;
+        color: var(--text);
+      }
+
+      .settings-group {
+        margin-top: 24px;
+        padding-top: 16px;
+        border-top: 1px solid var(--line);
+      }
+
+      .settings-btn {
+        appearance: none;
+        -webkit-appearance: none;
+        border: 0;
+        border-radius: 8px;
+        background: #305596;
+        color: #fff;
+        font-size: 15px;
+        padding: 10px 16px;
+      }
+
+      .settings-btn:active {
+        background: #24407a;
+      }
+
+      .settings-hint {
+        margin-top: 8px;
+        font-size: 12px;
+        color: #8a94a8;
+      }
+
+      body.settings-view .constants-strip,
+      body.settings-view .formula-strip,
+      body.settings-view .grid-wrap,
+      body.settings-view .keypad {
+        display: none;
+      }
+
+      body.settings-view .settings-panel {
+        display: block;
+      }
+
+      .settings-panel[hidden] {
+        display: none;
+      }
+
+      table {
+        border-collapse: separate;
+        border-spacing: 0;
+        width: 100%;
+        height: 100%;
+        table-layout: fixed;
+      }
+
+      col.col-num { width: 6%; }
+      col.col-main { width: 18%; }
+      col.col-result { width: 22%; }
+
+      th,
+      td {
+        border-right: 1px solid var(--line);
+        border-bottom: 1px solid var(--line);
+        background: #f1f1f3;
+      }
+
+      th:last-child,
+      td:last-child {
+        border-right: 0;
+      }
+
+      thead th {
+        position: sticky;
+        top: 0;
+        z-index: 7;
+        height: 48px;
+      }
+
+      tbody td {
+        height: 24px;
+      }
+
+      thead th,
+      tfoot td,
+      tbody td:not(.editable-cell):not(.result-cell) {
+        user-select: none;
+        -webkit-user-select: none;
+      }
+
+      .num-head,
+      .num {
+        position: sticky;
+        left: 0;
+        background: #f1f1f3;
+        font-size: 15px;
+      }
+
+      .num-head {
+        top: 0;
+        z-index: 10;
+        text-align: center;
+      }
+
+      .num {
+        z-index: 6;
+        text-align: right;
+        padding-right: 6px;
+      }
+
+      .num-head {
+        font-size: 17px;
+        font-weight: 700;
+      }
+
+      .col-head {
+        padding: 4px;
+        background: #ececef;
+      }
+
+      .head-pill {
+        background: #f1f1f3;
+        color: var(--text);
+        border-radius: 8px;
+        min-height: 34px;
+        display: grid;
+        align-content: center;
+        justify-items: center;
+      }
+
+      body.formula-entry-active .col-head:not(.result-head) .head-pill,
+      body.formula-entry-active .const-top {
+        background: var(--active);
+        color: #fff;
+      }
+
+      .head-pill .letter { font-size: 14px; font-weight: 700; }
+      .head-pill .name { font-size: 11px; font-weight: 400; }
+
+      .result-head .head-pill {
+        background: var(--active);
+        color: #fff;
+        min-height: 34px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .result-head .head-pill .name {
+        display: none;
+      }
+
+      body.formula-mode-name .head-pill .letter,
+      body.formula-mode-name .const-top .letter {
+        font-weight: 400;
+      }
+
+      body.formula-mode-name .head-pill .name,
+      body.formula-mode-name .const-top .name {
+        font-weight: 700;
+      }
+
+      .result-head,
+      .result-cell {
+        position: sticky;
+        right: 0;
+        z-index: 6;
+      }
+
+      .result-cell {
+        text-align: right;
+        padding-right: 8px;
+        user-select: text;
+        -webkit-user-select: text;
+        -webkit-touch-callout: default;
+        touch-action: manipulation;
+      }
+
+      .result-cell.is-selected {
+        background: rgba(93, 141, 213, 0.25);
+        box-shadow: inset 0 0 0 2px rgba(93, 141, 213, 0.55);
+      }
+
+      .result-head { z-index: 9; }
+
+      tfoot td {
+        position: sticky;
+        bottom: 0;
+        z-index: 10;
+        background: var(--panel);
+        border-top: 2px solid #a4acb8;
+        padding: 4px;
+        height: 56px;
+      }
+
+      tfoot {
+        box-shadow: inset 0 2px 0 #a4acb8;
+      }
+
+      tfoot .num {
+        font-weight: 700;
+        font-size: 18px;
+      }
+
+      .stat-cell {
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        height: 46px;
+        display: grid;
+        grid-template-rows: 1fr 1fr;
+        align-items: center;
+        padding: 0 4px;
+      }
+
+      .stat-cell select {
+        width: 100%;
+        height: 22px;
+        line-height: 22px;
+        border: 1px solid #d2d7e2;
+        border-radius: 6px;
+        background: #f6f8fb;
+        color: #2f5f9f;
+        font-size: 12px;
+        padding: 0 4px;
+      }
+
+      .stat-cell output {
+        width: 100%;
+        height: 22px;
+        display: grid;
+        align-items: center;
+        justify-items: end;
+        text-align: right;
+        border: 0;
+        background: transparent;
+        color: #596275;
+        font-size: 15px;
+        font-weight: 700;
+      }
+
+      .keypad {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: calc(var(--keypad-h) + var(--keypad-safe-bottom));
+        padding: var(--keypad-pad);
+        padding-bottom: calc(var(--keypad-pad) + var(--keypad-safe-bottom));
+        background: var(--keypad-bg);
+        border-top: 1px solid #5d6f97;
+        z-index: 41;
+        transition: height 0.2s ease;
+      }
+
+      .keys {
+        height: 100%;
+        display: grid;
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        grid-template-rows: repeat(6, minmax(0, 1fr));
+        gap: var(--key-gap);
+      }
+
+      .keys[hidden] {
+        display: none;
+      }
+
+      .numpad-keys {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-rows: repeat(4, minmax(0, 1fr));
+      }
+
+      .numpad-keys .key {
+        font-size: 24px;
+      }
+
+      .key {
+        appearance: none;
+        -webkit-appearance: none;
+        border: 0;
+        border-radius: 8px;
+        background: var(--active);
+        box-shadow: none;
+        color: #fff;
+        font-size: 18px;
+        outline: none;
+      }
+
+      .key-undo {
+        font-size: 24px;
+        line-height: 1;
+      }
+
+      .key:focus-visible {
+        outline: 2px solid #f0f3fa;
+        outline-offset: 2px;
+      }
+
+      .key.light {
+        background: transparent;
+        color: #f0f3fa;
+        border: 1px solid transparent;
+      }
+
+      .key.light:not(.is-inactive) {
+        background: var(--active);
+        color: #fff;
+      }
+
+      .key.is-active {
+        background: var(--active);
+        color: #fff;
+        border-color: transparent;
+      }
+
+      .key.is-inactive,
+      .key.light.is-inactive {
+        background: var(--keypad-bg);
+        color: #d8deea;
+        border-color: transparent;
+      }
+
+      .key-active.is-inactive {
+        background: var(--panel);
+        color: #8a94a8;
+        border-color: transparent;
+      }
+
+      .key-active.is-danger {
+        background: #b43e4c;
+        color: #fff;
+      }
+
+      .keypad.minimized {
+        height: calc(var(--keypad-min-h) + var(--keypad-safe-bottom));
+      }
+
+      .keypad.minimized .keys {
+        grid-template-rows: var(--key-row-h);
+        align-content: start;
+      }
+
+      .keypad.minimized .key {
+        height: var(--key-row-h);
+      }
+
+      .keypad.minimized .key:nth-child(n + 7) {
+        display: none;
+      }
+
+      .editable-cell {
+        padding: 0;
+      }
+
+      .cell-input {
+        width: 100%;
+        height: 100%;
+        border: 0;
+        background: transparent;
+        padding: 0 8px;
+        text-align: right;
+        font-size: 15px;
+        user-select: text;
+        -webkit-user-select: text;
+      }
+
+      .is-active-target {
+        outline: 2px solid var(--active-soft);
+        outline-offset: -2px;
+      }
+
+
+      @media (pointer: coarse) {
+        .cell-input,
+        .formula-input,
+        .const-cell input {
+          font-size: 16px;
+        }
+      }
+
+    </style>
+  </head>
+  <body>
+    <header class="nav">
+      <button class="arrow" aria-label="Previous sheet">◀</button>
+      <div class="title-block">
+        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">Proportion: A/B = C/Result</span><span class="version-tag">v0.0.19</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/2</button></div>
+        <div class="sheet-menu" hidden role="menu" aria-label="Sheet selector"></div>
+      </div>
+      <button class="arrow" aria-label="Next sheet">▶</button>
+    </header>
+
+    <section class="constants-strip" aria-label="Constants strip">
+      <div class="clear-cell"><button class="key-active" aria-label="Clear">C</button></div>
+      <div class="const-cell"><div class="const-top"><div class="letter">V</div><div class="name">const1</div></div><input inputmode="none" value="" /></div>
+      <div class="const-cell"><div class="const-top"><div class="letter">W</div><div class="name">const2</div></div><input inputmode="none" value="" /></div>
+      <div class="const-cell"><div class="const-top"><div class="letter">X</div><div class="name">const3</div></div><input inputmode="none" value="" /></div>
+      <div class="const-cell"><div class="const-top"><div class="letter">Y</div><div class="name">const4</div></div><input inputmode="none" value="" /></div>
+      <div class="const-cell"><div class="const-top"><div class="letter">Z</div><div class="name">const5</div></div><input inputmode="none" value="" /></div>
+    </section>
+
+    <section class="formula-strip" aria-label="Formula editor strip">
+      <div class="fx-eq">=</div>
+      <input class="formula-input" value="(B*C)/A" placeholder="Enter formula here" aria-label="Formula editor" />
+      <button class="toggle" type="button" aria-label="Toggle formula labels">A / <strong>Name</strong></button>
+    </section>
+
+    <section class="settings-panel" aria-label="App info and settings" hidden>
+      <h2>MiniSheet</h2>
+      <p class="settings-version">Version <span class="version-tag-settings">v0.0.19</span></p>
+      <p>MiniSheet is a formula-driven mini spreadsheet for quick calculations. This page (Sheet 0) is reserved for app info, settings, and developer controls.</p>
+      <div class="settings-group">
+        <h3>Developer</h3>
+        <button type="button" class="settings-btn" id="force-refresh-btn">Force Code Refresh</button>
+        <p class="settings-hint">Clears the cached app files and service worker, then reloads from the network. Use this if the app seems stuck on an old version.</p>
+      </div>
+    </section>
+
+    <main class="grid-wrap" aria-label="Grid area">
+      <table>
+        <colgroup>
+          <col class="col-num" />
+          <col class="col-main" />
+          <col class="col-main" />
+          <col class="col-main" />
+          <col class="col-main" />
+          <col class="col-result" />
+        </colgroup>
+        <thead>
+          <tr>
+            <th class="num-head">#</th>
+            <th class="col-head"><div class="head-pill"><div class="letter">A</div><div class="name">value1</div></div></th>
+            <th class="col-head"><div class="head-pill"><div class="letter">B</div><div class="name">value2</div></div></th>
+            <th class="col-head"><div class="head-pill"><div class="letter">C</div><div class="name">value3</div></div></th>
+            <th class="col-head"><div class="head-pill"><div class="letter">D</div><div class="name">value4</div></div></th>
+            <th class="col-head result-head" role="button" tabindex="0" aria-label="Compute results"><div class="head-pill"><div class="letter">Result</div><div class="name"></div></div></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="num">1</td><td></td><td></td><td></td><td></td><td class="result-cell"></td></tr>
+          <tr><td class="num">2</td><td></td><td></td><td></td><td></td><td class="result-cell"></td></tr>
+          <tr><td class="num">3</td><td></td><td></td><td></td><td></td><td class="result-cell"></td></tr>
+          <tr><td class="num">4</td><td></td><td></td><td></td><td></td><td class="result-cell"></td></tr>
+          <tr><td class="num">5</td><td></td><td></td><td></td><td></td><td class="result-cell"></td></tr>
+          <tr><td class="num">6</td><td></td><td></td><td></td><td></td><td class="result-cell"></td></tr>
+          <tr><td class="num">7</td><td></td><td></td><td></td><td></td><td class="result-cell"></td></tr>
+          <tr><td class="num">8</td><td></td><td></td><td></td><td></td><td class="result-cell"></td></tr>
+          <tr><td class="num">9</td><td></td><td></td><td></td><td></td><td class="result-cell"></td></tr>
+          <tr><td class="num">10</td><td></td><td></td><td></td><td></td><td class="result-cell"></td></tr>
+          <tr><td class="num">11</td><td></td><td></td><td></td><td></td><td class="result-cell"></td></tr>
+          <tr><td class="num">12</td><td></td><td></td><td></td><td></td><td class="result-cell"></td></tr>
+          <tr><td class="num">13</td><td></td><td></td><td></td><td></td><td class="result-cell"></td></tr>
+          <tr><td class="num">14</td><td></td><td></td><td></td><td></td><td class="result-cell"></td></tr>
+          <tr><td class="num">15</td><td></td><td></td><td></td><td></td><td class="result-cell"></td></tr>
+          <tr><td class="num">16</td><td></td><td></td><td></td><td></td><td class="result-cell"></td></tr>
+          <tr><td class="num">17</td><td></td><td></td><td></td><td></td><td class="result-cell"></td></tr>
+          <tr><td class="num">18</td><td></td><td></td><td></td><td></td><td class="result-cell"></td></tr>
+          <tr><td class="num">19</td><td></td><td></td><td></td><td></td><td class="result-cell"></td></tr>
+          <tr><td class="num">20</td><td></td><td></td><td></td><td></td><td class="result-cell"></td></tr>
+        </tbody>
+        <tfoot>
+          <tr>
+            <td class="num">#</td>
+            <td><div class="stat-cell"><select><option>--</option><option>Sum</option><option>Mean</option><option>Min</option><option>Max</option><option>Count</option></select><output>—</output></div></td>
+            <td><div class="stat-cell"><select><option>--</option><option>Sum</option><option>Mean</option><option>Min</option><option>Max</option><option>Count</option></select><output>—</output></div></td>
+            <td><div class="stat-cell"><select><option>--</option><option>Sum</option><option>Mean</option><option>Min</option><option>Max</option><option>Count</option></select><output>—</output></div></td>
+            <td><div class="stat-cell"><select><option>--</option><option>Sum</option><option>Mean</option><option>Min</option><option>Max</option><option>Count</option></select><output>—</output></div></td>
+            <td><div class="stat-cell"><select><option>--</option><option>Sum</option><option>Mean</option><option>Min</option><option>Max</option><option>Count</option></select><output>—</output></div></td>
+          </tr>
+        </tfoot>
+      </table>
+    </main>
+
+    <section class="keypad" aria-label="Bottom keypad">
+      <div class="keys full-keys">
+        <button class="key key-undo" data-key="undo">⤺</button><button class="key" data-key="minimize">⤓</button><button class="key">√</button><button class="key" data-shift-slot="e"><em>e</em></button><button class="key" data-shift-slot="pi">π</button><button class="key" data-key="backspace">⌫</button>
+        <button class="key light">LOG</button><button class="key light">!</button><button class="key">^</button><button class="key">(</button><button class="key">)</button><button class="key">/</button>
+        <button class="key light" data-shift-slot="sin">SIN</button><button class="key light" data-shift-slot="sum">SUM</button><button class="key">7</button><button class="key">8</button><button class="key">9</button><button class="key">*</button>
+        <button class="key light" data-shift-slot="cos">COS</button><button class="key light" data-shift-slot="mean">MEAN</button><button class="key">4</button><button class="key">5</button><button class="key">6</button><button class="key">−</button>
+        <button class="key light" data-shift-slot="tan">TAN</button><button class="key light" data-shift-slot="max">MAX</button><button class="key">1</button><button class="key">2</button><button class="key">3</button><button class="key">+</button>
+        <button class="key light" data-key="shift">⇧</button><button class="key light" data-shift-slot="min">MIN</button><button class="key">0</button><button class="key">.</button><button class="key">,</button><button class="key">:</button>
+      </div>
+      <div class="keys numpad-keys" hidden>
+        <button class="key">7</button><button class="key">8</button><button class="key">9</button><button class="key" data-key="backspace">⌫</button>
+        <button class="key">4</button><button class="key">5</button><button class="key">6</button><button class="key">/</button>
+        <button class="key">1</button><button class="key">2</button><button class="key">3</button><button class="key">−</button>
+        <button class="key">0</button><button class="key">.</button><button class="key" data-key="np-enter">↩︎</button><button class="key" data-key="full-keypad">⇲</button>
+      </div>
+    </section>
+
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker
+            .register('sw-test.js', { updateViaCache: 'none' })
+            .then((registration) => registration.update());
+        });
+      }
+    </script>
+    <script>
+      (() => {
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', (event) => {
+          const now = Date.now();
+          if (now - lastTouchEnd <= 300) {
+            event.preventDefault();
+          }
+          lastTouchEnd = now;
+        }, { passive: false });
+
+        document.addEventListener('gesturestart', (event) => {
+          event.preventDefault();
+        }, { passive: false });
+
+        const ROW_COUNT = 20;
+        const KEY_ORDER = ['A', 'B', 'C', 'D'];
+        const CONST_ORDER = ['V', 'W', 'X', 'Y', 'Z'];
+        const ALL_LETTERS = [...KEY_ORDER, ...CONST_ORDER];
+        const STORAGE_KEY = 'minisheet-v2';
+
+        const UNDO_KEY_LABEL = '⤺';
+        const MINIMIZE_KEY_LABEL = '⤓';
+        const MAXIMIZE_KEY_LABEL = '⤒';
+        const NUMPAD_SWITCH_LABEL = '⇱';
+        const FULL_KEYPAD_LABEL = '⇲';
+        const NUMPAD_ENTER_LABEL = '↩︎';
+
+        const keypad = document.querySelector('.keypad');
+        const constantsStrip = document.querySelector('.constants-strip');
+        const gridHeaderRow = document.querySelector('thead');
+        const fullKeysEl = keypad?.querySelector('.full-keys') || null;
+        const numpadKeysEl = keypad?.querySelector('.numpad-keys') || null;
+        const keys = [...document.querySelectorAll('.keypad .key')];
+        const minimizeKey = keypad?.querySelector('[data-key="minimize"]') || null;
+        const undoKey = keypad?.querySelector('[data-key="undo"]') || null;
+        const shiftKey = keypad?.querySelector('[data-key="shift"]') || null;
+        const leftKey = keys.find((key) => key.textContent.trim() === '<');
+        const rightKey = keys.find((key) => key.textContent.trim() === '>');
+        const resultKey = keys.find((key) => key.textContent.trim() === '=');
+        const sheetNavButtons = [...document.querySelectorAll('.nav .arrow')];
+        const sheetTitleEl = document.querySelector('.sheet-title');
+        const resultHeaderTrigger = document.querySelector('th.result-head');
+        const clearButton = document.querySelector('.key-active');
+        const toggleButton = document.querySelector('.toggle');
+        const titleLine = document.querySelector('.title-line') || sheetTitleEl;
+        const sheetIndexEl = document.querySelector('.sheet-index');
+        const sheetMenuEl = document.querySelector('.sheet-menu');
+        const sheetNameLine = document.querySelector('.sheet-name');
+        const settingsPanelEl = document.querySelector('.settings-panel');
+        const forceRefreshBtn = document.getElementById('force-refresh-btn');
+        const formulaInput = document.querySelector('.formula-input');
+        const constantInputs = [...document.querySelectorAll('.const-cell input')];
+        const constTopEls = [...document.querySelectorAll('.const-top')];
+        const dataRows = [...document.querySelectorAll('tbody tr')];
+        const statCells = [...document.querySelectorAll('tfoot .stat-cell')];
+        const headerPills = [...document.querySelectorAll('thead .head-pill')];
+        const getKeyLabel = (key) => key?.textContent.trim() || '';
+        const NUMBER_ENTRY_KEY_LABELS = new Set(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '−', '/', 'e', 'π', 'c', 'g', UNDO_KEY_LABEL, '⌫', '=', MINIMIZE_KEY_LABEL, MAXIMIZE_KEY_LABEL, NUMPAD_SWITCH_LABEL, FULL_KEYPAD_LABEL, NUMPAD_ENTER_LABEL]);
+        const FORMULA_ENTRY_KEY_LABELS = new Set(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '−', '+', '*', '/', '^', '!', '(', ')', ',', ':', '√', 'LOG', 'SUM', 'MEAN', 'MAX', 'MIN', 'COUNT', 'CNT', 'MDN', 'MODE', 'GMN', 'SIN', 'COS', 'TAN', 'ASIN', 'ACOS', 'ATAN', 'e', 'π', 'c', 'g', '⌫', UNDO_KEY_LABEL, MINIMIZE_KEY_LABEL, MAXIMIZE_KEY_LABEL]);
+        const TEMP_DISABLED_KEY_LABELS = new Set([]);
+
+        const asyncStorage = {
+          async get() {
+            await Promise.resolve();
+            const raw = localStorage.getItem(STORAGE_KEY);
+            return raw ? JSON.parse(raw) : null;
+          },
+          async set(value) {
+            await Promise.resolve();
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(value));
+          }
+        };
+
+        const sheetTemplate = (idx) => {
+          if (idx === 0) {
+            return {
+              title: '* for US-->metric, / for metric-->US',
+              formula: 'A*V',
+              names: { V: 'in/cm', W: 'ft/m', X: 'mi/km', Y: 'oz/g', Z: 'lb/kg' },
+              constants: { V: '2.54', W: '0.3048', X: '1.60934', Y: '28.3495', Z: '0.453592' }
+            };
+          }
+          if (idx === 1) return { title: 'Proportion: A/B = C/Result', formula: '(B*C)/A' };
+          return { title: 'New Sheet', formula: '' };
+        };
+
+        const baseNames = { A: 'value1', B: 'value2', C: 'value3', D: 'value4', V: 'const1', W: 'const2', X: 'const3', Y: 'const4', Z: 'const5' };
+        const makeBlankRows = () => Array.from({ length: ROW_COUNT }, () => ({ A: '', B: '', C: '', D: '', Result: '' }));
+        const makeSheet = (idx) => {
+          const t = sheetTemplate(idx);
+          return {
+            title: t.title,
+            formulaCanonical: t.formula,
+            names: { ...baseNames, ...(t.names || {}) },
+            constants: { V: '', W: '', X: '', Y: '', Z: '', ...(t.constants || {}) },
+            rows: makeBlankRows(),
+            stats: ['--', '--', '--', '--', '--']
+          };
+        };
+
+        const hydrateSheet = (rawSheet, idx) => {
+          const fallback = makeSheet(idx);
+          const sheetObj = (rawSheet && typeof rawSheet === 'object') ? rawSheet : {};
+          const { name: _legacyNameField, ...sheet } = sheetObj;
+          const legacyTitle = typeof sheet.title === 'string' ? sheet.title.trim() : '';
+          const legacyName = typeof _legacyNameField === 'string' ? _legacyNameField.trim() : '';
+          const titleFromLegacyComposite = legacyTitle.includes('|') ? legacyTitle.split('|')[0].trim() : legacyTitle;
+          return {
+            ...fallback,
+            ...sheet,
+            title: titleFromLegacyComposite || legacyName || fallback.title,
+            formulaCanonical: typeof sheet.formulaCanonical === 'string' ? sheet.formulaCanonical : fallback.formulaCanonical,
+            names: { ...fallback.names, ...(sheet.names || {}) },
+            constants: { ...fallback.constants, ...(sheet.constants || {}) },
+            rows: Array.isArray(sheet.rows) ? sheet.rows.map((row) => ({ A: '', B: '', C: '', D: '', Result: '', ...(row || {}) })) : fallback.rows,
+            stats: Array.isArray(sheet.stats) ? sheet.stats.slice(0, 5) : fallback.stats
+          };
+        };
+
+        const state = { sheets: [makeSheet(0), makeSheet(1), makeSheet(2)], currentSheetIndex: 0, formulaMode: 'name', clearStage: 0, acConfirmPresses: 0, settingsView: false, numpadActive: false };
+
+        let saveTimer = null;
+        const scheduleSave = () => {
+          if (saveTimer) clearTimeout(saveTimer);
+          saveTimer = setTimeout(() => asyncStorage.set({ sheets: state.sheets, currentSheetIndex: state.currentSheetIndex, formulaMode: state.formulaMode }), 250);
+        };
+
+        dataRows.forEach((row) => {
+          [...row.children].forEach((cell, index) => {
+            if (index === 0 || cell.classList.contains('result-cell')) return;
+            cell.classList.add('editable-cell');
+            cell.innerHTML = '<input class="cell-input" inputmode="none" value="" aria-label="Grid cell value" />';
+          });
+        });
+
+        const cellInputs = [...document.querySelectorAll('.cell-input')];
+        const rowBindings = dataRows.map((row) => ({ inputs: [...row.querySelectorAll('.cell-input')], resultCell: row.querySelector('.result-cell') }));
+        const resultCells = rowBindings.map(({ resultCell }) => resultCell).filter(Boolean);
+        const numberEntryTargets = new Set([...constantInputs, ...cellInputs]);
+        const isNumberEntryContext = () => !!activeTarget && numberEntryTargets.has(activeTarget);
+        const isFormulaEntryContext = () => activeTarget === formulaInput;
+        const getInputContext = () => isNumberEntryContext() ? 'number' : (isFormulaEntryContext() ? 'formula' : 'default');
+        const isKeyEnabled = (key) => {
+          if (key === undoKey) return currentUndoStack().length > 0;
+          if (key === shiftKey) return true;
+          const label = getKeyLabel(key);
+          if (TEMP_DISABLED_KEY_LABELS.has(label)) return false;
+          const context = getInputContext();
+          if (context === 'number') return NUMBER_ENTRY_KEY_LABELS.has(label);
+          if (context === 'formula') return FORMULA_ENTRY_KEY_LABELS.has(label);
+          return true;
+        };
+        const getMinimizeKeyLabel = () => {
+          const isMinimized = !!keypad?.classList.contains('minimized');
+          if (isFormulaEntryContext() || keypadShiftActive) {
+            return isMinimized ? MAXIMIZE_KEY_LABEL : MINIMIZE_KEY_LABEL;
+          }
+          return NUMPAD_SWITCH_LABEL;
+        };
+        const syncKeypadMode = () => {
+          const showNumpad = !isFormulaEntryContext() && state.numpadActive;
+          if (fullKeysEl) fullKeysEl.hidden = showNumpad;
+          if (numpadKeysEl) numpadKeysEl.hidden = !showNumpad;
+        };
+        const updateKeyAvailability = () => {
+          syncKeypadMode();
+          if (minimizeKey) minimizeKey.textContent = getMinimizeKeyLabel();
+          keys.forEach((key) => {
+            const enabled = isKeyEnabled(key);
+            key.disabled = !enabled;
+            key.classList.toggle('is-inactive', !enabled);
+            key.setAttribute('aria-disabled', enabled ? 'false' : 'true');
+          });
+          shiftKey?.classList.toggle('is-active', keypadShiftActive);
+          document.body.classList.toggle('formula-entry-active', isFormulaEntryContext());
+          const clearEnabled = true;
+          clearButton?.classList.toggle('is-inactive', !clearEnabled);
+          clearButton?.setAttribute('aria-disabled', clearEnabled ? 'false' : 'true');
+        };
+        const headerNameEls = headerPills.slice(0, 4).map((pill) => pill.querySelector('.name'));
+        const headerLetterEls = headerPills.slice(0, 4).map((pill) => pill.querySelector('.letter'));
+        const constNameEls = constTopEls.map((pill) => pill.querySelector('.name'));
+        const constLetterEls = constTopEls.map((pill) => pill.querySelector('.letter'));
+
+        [...headerNameEls, ...constNameEls].forEach((el) => {
+          if (!el) return;
+          el.setAttribute('contenteditable', 'true');
+          el.setAttribute('role', 'textbox');
+        });
+
+        let activeTarget = null;
+        let initialValueOnFocus = '';
+        let hasCapturedFocusUndo = false;
+        let formulaSelectionWasAllOnPointerDown = false;
+        const MAX_UNDO_HISTORY = 5;
+        const undoHistoryBySheet = state.sheets.map(() => []);
+
+        const CLEAR_STAGE_META = [
+          { label: 'C', ariaLabel: 'Clear selected item', danger: false },
+          { label: '#C', ariaLabel: 'Clear all grid values', danger: false },
+          { label: 'CC', ariaLabel: 'Clear constants', danger: false },
+          { label: 'AC', ariaLabel: 'Clear entire sheet', danger: false },
+          { label: 'Rst', ariaLabel: 'Reset all sheets to defaults', danger: true }
+        ];
+        const syncClearButtonUi = () => {
+          if (!clearButton) return;
+          const meta = CLEAR_STAGE_META[state.clearStage] || CLEAR_STAGE_META[0];
+          clearButton.textContent = meta.label;
+          clearButton.setAttribute('aria-label', meta.ariaLabel);
+          clearButton.classList.toggle('is-danger', !!meta.danger);
+        };
+        const setClearStage = (nextStage) => {
+          state.clearStage = Math.max(0, Math.min(CLEAR_STAGE_META.length - 1, nextStage));
+          if (state.clearStage < 3) state.acConfirmPresses = 0;
+          syncClearButtonUi();
+          updateKeyAvailability();
+        };
+        const resetClearStage = () => setClearStage(0);
+        const isInput = (el) => el instanceof HTMLInputElement;
+        const getText = (el) => (isInput(el) ? el.value : (el.textContent || ''));
+        const setText = (el, value) => { if (isInput(el)) el.value = value; else el.textContent = value; };
+        const cloneData = (value) => typeof structuredClone === 'function' ? structuredClone(value) : JSON.parse(JSON.stringify(value));
+        const ensureUndoHistoryAlignment = () => {
+          while (undoHistoryBySheet.length < state.sheets.length) undoHistoryBySheet.push([]);
+          if (undoHistoryBySheet.length > state.sheets.length) undoHistoryBySheet.length = state.sheets.length;
+        };
+        const currentUndoStack = () => {
+          ensureUndoHistoryAlignment();
+          return undoHistoryBySheet[state.currentSheetIndex] || (undoHistoryBySheet[state.currentSheetIndex] = []);
+        };
+        const clearAllUndoHistory = () => {
+          undoHistoryBySheet.length = 0;
+          state.sheets.forEach(() => undoHistoryBySheet.push([]));
+        };
+        const captureUndoSnapshot = () => {
+          persistFromDom();
+          const stack = currentUndoStack();
+          stack.push({
+            sheet: cloneData(state.sheets[state.currentSheetIndex]),
+            clearStage: state.clearStage,
+            acConfirmPresses: state.acConfirmPresses
+          });
+          if (stack.length > MAX_UNDO_HISTORY) stack.splice(0, stack.length - MAX_UNDO_HISTORY);
+        };
+        const captureUndoForFocusedTarget = () => {
+          if (!activeTarget || hasCapturedFocusUndo) return;
+          captureUndoSnapshot();
+          hasCapturedFocusUndo = true;
+        };
+        const restoreUndo = () => {
+          const stack = currentUndoStack();
+          if (!stack.length) return false;
+          const snap = stack.pop();
+          blurActiveTarget();
+          state.sheets[state.currentSheetIndex] = cloneData(snap.sheet);
+          state.clearStage = snap.clearStage;
+          state.acConfirmPresses = snap.acConfirmPresses;
+          renderSheet();
+          scheduleSave();
+          resetClearStage();
+          return true;
+        };
+
+        const OPERATOR_LIKE_CHARS_RE = /[+\-*/^(),:!√\[\]]/;
+        const NUMERIC_NAME_RE = /^[-+]?\d+(?:\.\d+)?$/;
+        const RESERVED_FORMULA_TERMS = new Set(['LOG', 'SUM', 'MEAN', 'MAX', 'MIN', 'COUNT', 'CNT', 'MDN', 'MEDIAN', 'MODE', 'GMN', 'SIN', 'COS', 'TAN', 'ASIN', 'ACOS', 'ATAN', 'PI', 'E', 'C', 'G']);
+        const buildNameMaps = (sheet) => {
+          const rawByLetter = {};
+          const effectiveByLetter = {};
+          ALL_LETTERS.forEach((letter) => {
+            const raw = String(sheet.names[letter] ?? '').trim();
+            rawByLetter[letter] = raw;
+            effectiveByLetter[letter] = !raw || raw.toUpperCase() === letter ? letter : raw;
+          });
+
+          const counts = {};
+          Object.values(effectiveByLetter).forEach((name) => {
+            const key = name.toUpperCase();
+            counts[key] = (counts[key] || 0) + 1;
+          });
+
+          const clean = {};
+          const map = {};
+          const ui = {};
+          ALL_LETTERS.forEach((letter) => {
+            const raw = rawByLetter[letter];
+            const base = effectiveByLetter[letter];
+            const duplicated = (counts[base.toUpperCase()] || 0) > 1;
+            const deduped = duplicated ? `${base}${letter}` : base;
+            const isLetterName = ALL_LETTERS.includes(deduped.toUpperCase());
+            const isNumericName = NUMERIC_NAME_RE.test(deduped);
+            const isReservedTerm = RESERVED_FORMULA_TERMS.has(deduped.toUpperCase());
+            const needsBracket = deduped !== letter && (OPERATOR_LIKE_CHARS_RE.test(deduped) || isLetterName || isNumericName || isReservedTerm);
+            const formulaName = needsBracket ? `[${deduped}]` : deduped;
+            clean[letter] = formulaName;
+            map[formulaName] = letter;
+            ui[letter] = raw || letter;
+          });
+          return { clean, map, ui };
+        };
+        const canonicalToDisplay = (canonical, sheet) => {
+          const expr = String(canonical || '');
+          if (state.formulaMode === 'letter') return expr;
+          return expr.replace(/\b[A-Z]\b/g, (m) => buildNameMaps(sheet).clean[m.toUpperCase()] || m);
+        };
+        const displayToCanonical = (display, sheet) => {
+          let expr = String(display || '');
+          Object.entries(buildNameMaps(sheet).map).sort((a, b) => b[0].length - a[0].length).forEach(([name, letter]) => { expr = expr.split(name).join(letter); });
+          return expr.replace(/\b[vwxyz]\b/g, (m) => m.toUpperCase());
+        };
+        const formulaTokenFor = (letter) => {
+          if (state.formulaMode === 'letter') return letter;
+          const clean = buildNameMaps(state.sheets[state.currentSheetIndex]).clean;
+          return clean[letter] || letter;
+        };
+
+        let keypadShiftActive = false;
+        const SHIFT_LABELS = {
+          e: { normal: 'e', shifted: 'g' },
+          pi: { normal: 'π', shifted: 'c' },
+          sin: { normal: 'SIN', shifted: 'ASIN' },
+          cos: { normal: 'COS', shifted: 'ACOS' },
+          tan: { normal: 'TAN', shifted: 'ATAN' },
+          sum: { normal: 'SUM', shifted: 'CNT' },
+          mean: { normal: 'MEAN', shifted: 'MDN' },
+          max: { normal: 'MAX', shifted: 'MODE' },
+          min: { normal: 'MIN', shifted: 'GMN' }
+        };
+        const updateShiftLabels = () => {
+          Object.entries(SHIFT_LABELS).forEach(([slot, labels]) => {
+            const btn = keypad?.querySelector(`[data-shift-slot="${slot}"]`);
+            if (!btn) return;
+            if (slot === 'e') {
+              btn.innerHTML = keypadShiftActive ? labels.shifted : '<em>e</em>';
+            } else {
+              btn.textContent = keypadShiftActive ? labels.shifted : labels.normal;
+            }
+          });
+          updateKeyAvailability();
+        };
+
+        const getSelection = (el) => {
+          if (isInput(el)) return { start: el.selectionStart ?? 0, end: el.selectionEnd ?? 0 };
+          const selection = window.getSelection();
+          if (!selection || selection.rangeCount === 0 || !el.contains(selection.anchorNode)) { const end = getText(el).length; return { start: end, end }; }
+          const range = selection.getRangeAt(0);
+          const pre = range.cloneRange(); pre.selectNodeContents(el); pre.setEnd(range.startContainer, range.startOffset);
+          const post = range.cloneRange(); post.selectNodeContents(el); post.setEnd(range.endContainer, range.endOffset);
+          return { start: pre.toString().length, end: post.toString().length };
+        };
+        const setSelection = (el, start, end = start) => {
+          if (isInput(el)) return el.setSelectionRange(start, end);
+          const textNode = el.firstChild || el.appendChild(document.createTextNode(getText(el)));
+          const range = document.createRange();
+          range.setStart(textNode, Math.max(0, Math.min(start, textNode.textContent.length)));
+          range.setEnd(textNode, Math.max(0, Math.min(end, textNode.textContent.length)));
+          const selection = window.getSelection(); selection.removeAllRanges(); selection.addRange(range);
+        };
+
+        const activateTarget = (target, options = {}) => {
+          if (!target) return;
+          const { selectAll = false } = options;
+          const isSameTarget = activeTarget === target;
+          if (!isSameTarget && activeTarget) activeTarget.classList.remove('is-active-target');
+          activeTarget = target;
+          target.classList.add('is-active-target');
+          if (isInput(target) && document.activeElement !== target) target.focus({ preventScroll: true });
+          if (!isSameTarget) {
+            initialValueOnFocus = getText(target);
+            hasCapturedFocusUndo = false;
+          }
+          if (selectAll) {
+            const textLength = getText(target).length;
+            setSelection(target, 0, textLength);
+          }
+          resetClearStage();
+          updateKeyAvailability();
+        };
+        const blurActiveTarget = () => {
+          if (!activeTarget) return;
+          activeTarget.classList.remove('is-active-target');
+          if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+          activeTarget = null;
+          hasCapturedFocusUndo = false;
+          updateKeyAvailability();
+        };
+        const insertIntoTarget = (text) => {
+          if (!activeTarget) return;
+          captureUndoForFocusedTarget();
+          const value = getText(activeTarget);
+          const { start, end } = getSelection(activeTarget);
+          setText(activeTarget, value.slice(0, start) + text + value.slice(end));
+          setSelection(activeTarget, start + text.length);
+          resetClearStage();
+        };
+        const insertRootCall = () => {
+          if (!activeTarget) return;
+          captureUndoForFocusedTarget();
+          const value = getText(activeTarget);
+          const { start, end } = getSelection(activeTarget);
+          if (start !== end) {
+            const selected = value.slice(start, end);
+            const inserted = `√(${selected})`;
+            setText(activeTarget, value.slice(0, start) + inserted + value.slice(end));
+            setSelection(activeTarget, start + inserted.length);
+          } else {
+            const inserted = '√()';
+            setText(activeTarget, value.slice(0, start) + inserted + value.slice(end));
+            setSelection(activeTarget, start + 2);
+          }
+          resetClearStage();
+        };
+        const insertFunctionCall = (functionName) => {
+          if (!activeTarget) return;
+          captureUndoForFocusedTarget();
+          const value = getText(activeTarget);
+          const { start, end } = getSelection(activeTarget);
+          if (start !== end) {
+            const selected = value.slice(start, end);
+            const inserted = `${functionName}(${selected})`;
+            setText(activeTarget, value.slice(0, start) + inserted + value.slice(end));
+            setSelection(activeTarget, start + inserted.length);
+          } else {
+            const inserted = `${functionName}()`;
+            setText(activeTarget, value.slice(0, start) + inserted + value.slice(end));
+            setSelection(activeTarget, start + inserted.length - 1);
+          }
+          resetClearStage();
+        };
+        const insertFormulaReferenceToken = (token) => {
+          if (activeTarget !== formulaInput) return;
+          captureUndoForFocusedTarget();
+          const value = getText(formulaInput);
+          const { start, end } = getSelection(formulaInput);
+          const selected = value.slice(start, end);
+          const needsCommaBefore = start > 0 && value[start - 1] !== '(' && value[start - 1] !== ',';
+          const needsCommaAfter = end < value.length && value[end] !== ')' && value[end] !== ',';
+          const betweenFunctionParens = value[start - 1] === '(' && value[end] === ')';
+          let inserted = token;
+          if (betweenFunctionParens && !selected) {
+            if (needsCommaBefore) inserted = `,${inserted}`;
+            if (needsCommaAfter) inserted = `${inserted},`;
+          }
+          setText(formulaInput, value.slice(0, start) + inserted + value.slice(end));
+          setSelection(formulaInput, start + inserted.length);
+          resetClearStage();
+        };
+        const deleteBackward = () => {
+          if (!activeTarget) return;
+          const value = getText(activeTarget);
+          const { start, end } = getSelection(activeTarget);
+          if (start !== end) {
+            captureUndoForFocusedTarget();
+            setText(activeTarget, value.slice(0, start) + value.slice(end));
+            setSelection(activeTarget, start);
+          } else if (start > 0) {
+            if (activeTarget === formulaInput && state.formulaMode === 'name') {
+              const displayTokens = Object.values(buildNameMaps(state.sheets[state.currentSheetIndex]).clean).sort((a, b) => b.length - a.length);
+              let matchedRange = null;
+              displayTokens.forEach((token) => {
+                let index = value.indexOf(token);
+                while (index !== -1) {
+                  const endIndex = index + token.length;
+                  if (index < start && start <= endIndex) {
+                    if (!matchedRange || token.length > matchedRange.length) matchedRange = { start: index, end: endIndex, length: token.length };
+                  }
+                  index = value.indexOf(token, index + 1);
+                }
+              });
+              if (matchedRange) {
+                captureUndoForFocusedTarget();
+                setText(activeTarget, value.slice(0, matchedRange.start) + value.slice(matchedRange.end));
+                setSelection(activeTarget, matchedRange.start);
+                resetClearStage();
+                return;
+              }
+            }
+            captureUndoForFocusedTarget();
+            setText(activeTarget, value.slice(0, start - 1) + value.slice(start));
+            setSelection(activeTarget, start - 1);
+          }
+          resetClearStage();
+        };
+        const moveCursor = (delta) => { if (!activeTarget) return; const { start, end } = getSelection(activeTarget); const base = delta < 0 ? start : end; setSelection(activeTarget, Math.max(0, Math.min(base + delta, getText(activeTarget).length))); };
+        const NAMED_NUMERIC_CONSTANTS = { PI: Math.PI, E: Math.E, C: 299792458, G: 9.80665 };
+        const DEG_TO_RAD = Math.PI / 180;
+        const RAD_TO_DEG = 180 / Math.PI;
+        const toNumericOrZero = (rawValue) => {
+          const value = String(rawValue ?? '').trim();
+          if (!value) return 0;
+          const fractionMatch = value.match(/^(-?\d+(?:\.\d+)?)\s*\/\s*(-?\d+(?:\.\d+)?)$/);
+          if (fractionMatch) {
+            const numerator = Number(fractionMatch[1]);
+            const denominator = Number(fractionMatch[2]);
+            if (!Number.isFinite(numerator) || !Number.isFinite(denominator) || denominator === 0) throw new Error('NON_NUMERIC');
+            return numerator / denominator;
+          }
+          const normalized = value === 'π' ? 'PI' : value.toUpperCase();
+          if (Object.prototype.hasOwnProperty.call(NAMED_NUMERIC_CONSTANTS, normalized)) return NAMED_NUMERIC_CONSTANTS[normalized];
+          const numeric = Number(value);
+          if (!Number.isFinite(numeric)) throw new Error('NON_NUMERIC');
+          return numeric;
+        };
+
+        const FORMULA_IDENTIFIER_NAMES = ['MEDIAN', 'COUNT', 'MEAN', 'MODE', 'ASIN', 'ACOS', 'ATAN', 'LOG', 'SUM', 'MAX', 'MIN', 'CNT', 'MDN', 'GMN', 'SIN', 'COS', 'TAN'];
+        const tokenizeAlphaRun = (raw) => {
+          const tokens = [];
+          const upper = raw.toUpperCase();
+          let idx = 0;
+          while (idx < raw.length) {
+            const tailUpper = upper.slice(idx);
+            const tailRaw = raw.slice(idx);
+            const fnName = FORMULA_IDENTIFIER_NAMES.find((name) => tailUpper.startsWith(name));
+            if (fnName) {
+              tokens.push({ type: 'identifier', value: fnName });
+              idx += fnName.length;
+              continue;
+            }
+            if (tailUpper.startsWith('PI')) {
+              tokens.push({ type: 'constant', name: 'PI' });
+              idx += 2;
+              continue;
+            }
+            const charRaw = tailRaw[0];
+            const charUpper = tailUpper[0];
+            if (charRaw === 'e' || charRaw === 'c' || charRaw === 'g') {
+              tokens.push({ type: 'constant', name: charUpper });
+              idx += 1;
+              continue;
+            }
+            if (ALL_LETTERS.includes(charUpper)) {
+              tokens.push({ type: 'variable', value: charUpper });
+              idx += 1;
+              continue;
+            }
+            throw new SyntaxError('Unknown function');
+          }
+          return tokens;
+        };
+
+        const shouldInsertImplicitMultiply = (prev, next) => {
+          if (!prev || !next) return false;
+          const prevCanEndFactor = prev.type === 'number'
+            || prev.type === 'variable'
+            || prev.type === 'constant'
+            || prev.type === 'factorial'
+            || (prev.type === 'paren' && prev.value === ')');
+          if (!prevCanEndFactor) return false;
+          const nextCanStartFactor = next.type === 'number'
+            || next.type === 'variable'
+            || next.type === 'constant'
+            || next.type === 'identifier'
+            || next.type === 'root'
+            || (next.type === 'paren' && next.value === '(');
+          return nextCanStartFactor;
+        };
+
+        const withImplicitMultiplication = (tokens) => tokens.reduce((acc, token) => {
+          const prev = acc[acc.length - 1];
+          if (shouldInsertImplicitMultiply(prev, token)) acc.push({ type: 'operator', value: '*' });
+          acc.push(token);
+          return acc;
+        }, []);
+
+        const tokenize = (source) => {
+          const tokens = [];
+          const text = String(source ?? '');
+          let index = 0;
+          while (index < text.length) {
+            const char = text[index];
+            if (/\s/.test(char)) { index += 1; continue; }
+            if ((char >= '0' && char <= '9') || char === '.') {
+              let end = index;
+              while (end < text.length && /[0-9.]/.test(text[end])) end += 1;
+              const literal = text.slice(index, end);
+              if ((literal.match(/\./g) || []).length > 1 || literal === '.') throw new SyntaxError('Invalid number');
+              tokens.push({ type: 'number', value: Number(literal) });
+              index = end;
+              continue;
+            }
+            const normalized = char === '−' ? '-' : char;
+            if ('+-*/^'.includes(normalized)) { tokens.push({ type: 'operator', value: normalized }); index += 1; continue; }
+            if (normalized === '(' || normalized === ')') { tokens.push({ type: 'paren', value: normalized }); index += 1; continue; }
+            if (normalized === ',') { tokens.push({ type: 'comma', value: ',' }); index += 1; continue; }
+            if (normalized === ':') { tokens.push({ type: 'colon', value: ':' }); index += 1; continue; }
+            if (normalized === '√') { tokens.push({ type: 'root', value: '√' }); index += 1; continue; }
+            if (normalized === '!') { tokens.push({ type: 'factorial' }); index += 1; continue; }
+            if (normalized === 'π') { tokens.push({ type: 'constant', name: 'PI' }); index += 1; continue; }
+            if (/[A-Za-z]/.test(normalized)) {
+              let end = index;
+              while (end < text.length && /[A-Za-z]/.test(text[end])) end += 1;
+              tokens.push(...tokenizeAlphaRun(text.slice(index, end)));
+              index = end;
+              continue;
+            }
+            throw new SyntaxError('Unexpected token');
+          }
+          return withImplicitMultiplication(tokens);
+        };
+        const parse = (tokens) => { let cursor = 0; const peek = () => tokens[cursor]; const consume = () => tokens[cursor++]; const consumeType = (type, value = null) => { const token = consume(); if (!token || token.type !== type || (value !== null && token.value !== value)) throw new SyntaxError('Unexpected token'); return token; }; const functionArgument = () => { const start = expression(); if (peek()?.type === 'colon') { consume(); const end = expression(); return { type: 'range', start, end }; } return start; }; const functionCall = (name) => { consumeType('paren', '('); const args = []; if (!(peek()?.type === 'paren' && peek().value === ')')) { args.push(functionArgument()); while (peek()?.type === 'comma') { consume(); args.push(functionArgument()); } } consumeType('paren', ')'); return { type: 'function', name, args }; }; const primary = () => { const token = peek(); if (!token) throw new SyntaxError('Unexpected end'); if (token.type === 'number') return consume(), { type: 'number', value: token.value }; if (token.type === 'variable') return consume(), { type: 'variable', name: token.value }; if (token.type === 'constant') return consume(), { type: 'constant', name: token.name }; if (token.type === 'identifier') { const name = consume().value; if (peek()?.type === 'paren' && peek().value === '(') return functionCall(name); throw new SyntaxError('Unknown function'); } if (token.type === 'paren' && token.value === '(') { consume(); const expr = expression(); const close = consume(); if (!close || close.type !== 'paren' || close.value !== ')') throw new SyntaxError('Missing close paren'); return expr; } if (token.type === 'root') { consume(); const open = consume(); if (!open || open.type !== 'paren' || open.value !== '(') throw new SyntaxError('Root call requires parenthesis'); const first = expression(); if (peek()?.type === 'comma') { consume(); const second = expression(); const close = consume(); if (!close || close.type !== 'paren' || close.value !== ')') throw new SyntaxError('Missing close paren'); return { type: 'root', degree: first, radicand: second }; } const close = consume(); if (!close || close.type !== 'paren' || close.value !== ')') throw new SyntaxError('Missing close paren'); return { type: 'root', degree: null, radicand: first }; } throw new SyntaxError('Unexpected token'); }; const postfix = () => { let node = primary(); while (peek()?.type === 'factorial') { consume(); node = { type: 'factorial', argument: node }; } return node; }; const unary = () => peek()?.type === 'operator' && '+-'.includes(peek().value) ? { type: 'unary', operator: consume().value, argument: unary() } : postfix(); const power = () => { let left = unary(); while (peek()?.type === 'operator' && peek().value === '^') left = { type: 'binary', operator: consume().value, left, right: unary() }; return left; }; const term = () => { let left = power(); while (peek()?.type === 'operator' && '*/'.includes(peek().value)) left = { type: 'binary', operator: consume().value, left, right: power() }; return left; }; const expression = () => { let left = term(); while (peek()?.type === 'operator' && '+-'.includes(peek().value)) left = { type: 'binary', operator: consume().value, left, right: term() }; return left; }; const ast = expression(); if (cursor < tokens.length) throw new SyntaxError('Trailing tokens'); return ast; };
+        const evaluateAst = (node, scope) => { const variableRangeLetters = (start, end) => { if (start?.type !== 'variable' || end?.type !== 'variable') throw new SyntaxError('Invalid range'); const startIndex = ALL_LETTERS.indexOf(start.name); const endIndex = ALL_LETTERS.indexOf(end.name); if (startIndex === -1 || endIndex === -1) throw new SyntaxError('Invalid range'); const [from, to] = startIndex <= endIndex ? [startIndex, endIndex] : [endIndex, startIndex]; return ALL_LETTERS.slice(from, to + 1); }; const evaluateFunctionValues = (args) => args.flatMap((arg) => { if (arg.type === 'range') return variableRangeLetters(arg.start, arg.end).flatMap((letter) => scope.__blankByLetter?.[letter] ? [] : [scope[letter] ?? 0]); if (arg.type === 'variable' && scope.__blankByLetter?.[arg.name]) return []; return [evaluateAst(arg, scope)]; }); const referencesBlankCell = (astNode) => { if (!astNode || typeof astNode !== 'object') return false; if (astNode.type === 'variable') return !!scope.__blankByLetter?.[astNode.name]; return Object.values(astNode).some((value) => Array.isArray(value) ? value.some((item) => referencesBlankCell(item)) : referencesBlankCell(value)); }; if (node.type === 'number') return node.value; if (node.type === 'constant') { if (node.name === 'PI') return Math.PI; if (node.name === 'E') return Math.E; if (node.name === 'C') return 299792458; if (node.name === 'G') return 9.80665; throw new SyntaxError('Unknown constant'); } if (node.type === 'variable') return scope[node.name] ?? 0; if (node.type === 'factorial') { if (referencesBlankCell(node.argument)) return 0; const value = evaluateAst(node.argument, scope); if (!Number.isFinite(value) || value < 0 || Math.floor(value) !== value) throw new SyntaxError('Invalid factorial argument'); let result = 1; for (let i = 2; i <= value; i += 1) result *= i; return result; } if (node.type === 'unary') return node.operator === '-' ? -evaluateAst(node.argument, scope) : evaluateAst(node.argument, scope); if (node.type === 'binary') { const left = evaluateAst(node.left, scope); const right = evaluateAst(node.right, scope); if (node.operator === '+') return left + right; if (node.operator === '-') return left - right; if (node.operator === '*') return left * right; if (node.operator === '/') { if (right === 0) throw new Error('DIV_0'); return left / right; } return left ** right; } if (node.type === 'function') { const values = evaluateFunctionValues(node.args || []); if (!values.length) throw new SyntaxError('Missing function arguments'); if (node.name === 'SUM') return values.reduce((total, value) => total + value, 0); if (node.name === 'MEAN') return values.reduce((total, value) => total + value, 0) / values.length; if (node.name === 'MAX') return Math.max(...values); if (node.name === 'MIN') return Math.min(...values); if (node.name === 'COUNT' || node.name === 'CNT') return values.length; if (node.name === 'MEDIAN' || node.name === 'MDN') { const sorted = [...values].sort((a, b) => a - b); const mid = Math.floor(sorted.length / 2); return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2; } if (node.name === 'MODE') { const counts = new Map(); values.forEach((value) => counts.set(value, (counts.get(value) || 0) + 1)); let bestValue = values[0]; let bestCount = 0; counts.forEach((count, value) => { if (count > bestCount || (count === bestCount && value < bestValue)) { bestCount = count; bestValue = value; } }); return bestValue; } if (node.name === 'GMN') { if (values.some((value) => value < 0)) throw new SyntaxError('Invalid GMN arguments'); if (values.some((value) => value === 0)) return 0; return Math.exp(values.reduce((sum, value) => sum + Math.log(value), 0) / values.length); } if (node.name === 'LOG') { if (values.length > 2) throw new SyntaxError('Invalid LOG arguments'); const [base, input] = values.length === 1 ? [10, values[0]] : values; if (!(base > 0) || base === 1 || !(input > 0)) throw new SyntaxError('Invalid LOG arguments'); return Math.log(input) / Math.log(base); } if (node.name === 'SIN' || node.name === 'COS' || node.name === 'TAN' || node.name === 'ASIN' || node.name === 'ACOS' || node.name === 'ATAN') { if (values.length !== 1) throw new SyntaxError('Invalid trigonometric arguments'); const [value] = values; if (node.name === 'SIN') return Math.sin(value * DEG_TO_RAD); if (node.name === 'COS') return Math.cos(value * DEG_TO_RAD); if (node.name === 'TAN') return Math.tan(value * DEG_TO_RAD); if (node.name === 'ASIN') { if (value < -1 || value > 1) throw new SyntaxError('Invalid trigonometric arguments'); return Math.asin(value) * RAD_TO_DEG; } if (node.name === 'ACOS') { if (value < -1 || value > 1) throw new SyntaxError('Invalid trigonometric arguments'); return Math.acos(value) * RAD_TO_DEG; } return Math.atan(value) * RAD_TO_DEG; } throw new SyntaxError('Unknown function'); } const radicand = evaluateAst(node.radicand, scope); if (!node.degree) return Math.sqrt(radicand); const degree = evaluateAst(node.degree, scope); if (degree === 0) throw new Error('DIV_0'); return radicand ** (1 / degree); };
+        const mapErrorToCellText = (error) => error instanceof SyntaxError ? 'Syntax Err' : (error?.message === 'DIV_0' ? 'DIV/0' : 'Error');
+        const formatNumber = (value) => Number.isFinite(value) ? (Number.isInteger(value) ? String(value) : value.toFixed(8).replace(/\.?0+$/, '')) : 'Error';
+        const sheetIsBlank = (sheet) => !sheet.formulaCanonical.trim() && Object.values(sheet.constants).every((v) => !String(v).trim()) && sheet.rows.every((row) => KEY_ORDER.every((k) => !String(row[k] || '').trim()) && !String(row.Result || '').trim());
+        const applyStat = (values, statName) => !values.length ? '—' : (statName === 'Sum' ? formatNumber(values.reduce((a, b) => a + b, 0)) : (statName === 'Mean' || statName === 'Avg') ? formatNumber(values.reduce((a, b) => a + b, 0) / values.length) : statName === 'Min' ? formatNumber(Math.min(...values)) : statName === 'Max' ? formatNumber(Math.max(...values)) : statName === 'Count' ? String(values.length) : '—');
+
+        const recomputeStatsFromSheet = (sheet) => { statCells.forEach((cell, index) => { const output = cell.querySelector('output'); const statName = sheet.stats[index] || '--'; if (statName === '--') { output.textContent = '—'; return; } const values = sheet.rows.map((row) => index < 4 ? String(row[KEY_ORDER[index]] || '').trim() : String(row.Result || '').trim()).filter((v) => v !== '').map(Number).filter((n) => Number.isFinite(n)); output.textContent = applyStat(values, statName); }); };
+        const persistFromDom = () => {
+          if (state.settingsView) { scheduleSave(); return; }
+          const sheet = state.sheets[state.currentSheetIndex];
+          const rawTitle = (titleLine?.textContent || '').trim();
+          const isEditingLabel = !!activeTarget && labelEditableFields.has(activeTarget);
+          sheet.title = rawTitle || 'Untitled';
+          delete sheet.name;
+          if (!isEditingLabel) sheet.formulaCanonical = displayToCanonical(formulaInput.value, sheet);
+          [...headerNameEls, ...constNameEls].forEach((el, idx) => { const key = idx < 4 ? KEY_ORDER[idx] : CONST_ORDER[idx - 4]; sheet.names[key] = (el.textContent || '').trim(); });
+          if (isEditingLabel && state.formulaMode === 'name') formulaInput.value = canonicalToDisplay(sheet.formulaCanonical, sheet);
+          constantInputs.forEach((input, idx) => { sheet.constants[CONST_ORDER[idx]] = input.value; });
+          rowBindings.forEach((row, ri) => { KEY_ORDER.forEach((key, ci) => { sheet.rows[ri][key] = row.inputs[ci].value; }); sheet.rows[ri].Result = row.resultCell.textContent || ''; });
+          statCells.forEach((cell, idx) => { const select = cell.querySelector('select'); sheet.stats[idx] = select?.value || '--'; });
+          scheduleSave();
+        };
+        const closeSheetMenu = () => {
+          if (!sheetMenuEl || !sheetIndexEl) return;
+          sheetMenuEl.hidden = true;
+          sheetIndexEl.setAttribute('aria-expanded', 'false');
+        };
+        const buildSheetMenu = () => {
+          if (!sheetMenuEl || !sheetIndexEl) return;
+          sheetMenuEl.innerHTML = '';
+          const settingsOption = document.createElement('button');
+          settingsOption.type = 'button';
+          settingsOption.className = 'sheet-option';
+          if (state.settingsView) settingsOption.classList.add('is-current');
+          settingsOption.textContent = '0. Settings & Info';
+          settingsOption.setAttribute('role', 'menuitem');
+          settingsOption.setAttribute('aria-label', 'Go to settings and info');
+          settingsOption.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            if (!state.settingsView) {
+              blurActiveTarget();
+              persistFromDom();
+              state.settingsView = true;
+              renderSheet();
+            }
+            closeSheetMenu();
+          });
+          sheetMenuEl.appendChild(settingsOption);
+          state.sheets.forEach((sheet, idx) => {
+            const row = document.createElement('div');
+            row.className = 'sheet-option-row';
+            const option = document.createElement('button');
+            option.type = 'button';
+            option.className = 'sheet-option';
+            if (idx === state.currentSheetIndex) option.classList.add('is-current');
+            const title = String(sheet?.title || `Sheet ${idx + 1}`).trim() || `Sheet ${idx + 1}`;
+            option.textContent = `${idx + 1}. ${title}`;
+            option.setAttribute('role', 'menuitem');
+            option.setAttribute('aria-label', `Go to sheet ${idx + 1}`);
+            option.addEventListener('click', (event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              if (idx !== state.currentSheetIndex || state.settingsView) {
+                blurActiveTarget();
+                persistFromDom();
+                state.settingsView = false;
+                state.currentSheetIndex = idx;
+                ensureUndoHistoryAlignment();
+                renderSheet();
+                resetClearStage();
+                scheduleSave();
+              }
+              closeSheetMenu();
+            });
+            const duplicateBtn = document.createElement('button');
+            duplicateBtn.type = 'button';
+            duplicateBtn.className = 'sheet-duplicate-btn';
+            duplicateBtn.textContent = '⧉';
+            duplicateBtn.setAttribute('role', 'menuitem');
+            duplicateBtn.setAttribute('aria-label', `Duplicate sheet ${idx + 1}`);
+            duplicateBtn.addEventListener('click', (event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              blurActiveTarget();
+              duplicateSheetAt(idx);
+              closeSheetMenu();
+            });
+            row.appendChild(option);
+            row.appendChild(duplicateBtn);
+            sheetMenuEl.appendChild(row);
+          });
+        };
+        const toggleSheetMenu = () => {
+          if (!sheetMenuEl || !sheetIndexEl) return;
+          const opening = sheetMenuEl.hidden;
+          if (!opening) {
+            closeSheetMenu();
+            return;
+          }
+          buildSheetMenu();
+          sheetMenuEl.hidden = false;
+          sheetIndexEl.setAttribute('aria-expanded', 'true');
+        };
+
+        const renderSheet = () => {
+          document.body.classList.toggle('settings-view', state.settingsView);
+          if (settingsPanelEl) settingsPanelEl.hidden = !state.settingsView;
+          if (sheetTitleEl) sheetTitleEl.setAttribute('contenteditable', state.settingsView ? 'false' : 'true');
+          if (state.settingsView) {
+            if (titleLine) titleLine.textContent = 'Settings & Info';
+            if (sheetNameLine) sheetNameLine.textContent = '';
+            sheetIndexEl.textContent = `0/${state.sheets.length}`;
+            closeSheetMenu();
+            return;
+          }
+          const sheet = state.sheets[state.currentSheetIndex];
+          syncDomRowCount(sheet.rows.length);
+          const { ui } = buildNameMaps(sheet);
+          if (titleLine) titleLine.textContent = String(sheet.title ?? '');
+          if (sheetNameLine) sheetNameLine.textContent = '';
+          sheetIndexEl.textContent = `${state.currentSheetIndex + 1}/${state.sheets.length}`;
+          closeSheetMenu();
+          formulaInput.value = canonicalToDisplay(sheet.formulaCanonical, sheet);
+          toggleButton.innerHTML = state.formulaMode === 'letter' ? '<strong>A</strong> / Name' : 'A / <strong>Name</strong>';
+          document.body.classList.toggle('formula-mode-name', state.formulaMode === 'name');
+          KEY_ORDER.forEach((key, idx) => { headerLetterEls[idx].textContent = key; headerNameEls[idx].textContent = ui[key]; headerNameEls[idx].style.display = ''; });
+          CONST_ORDER.forEach((key, idx) => { constLetterEls[idx].textContent = key; constNameEls[idx].textContent = ui[key]; constNameEls[idx].style.display = ''; constantInputs[idx].value = sheet.constants[key] || ''; });
+          rowBindings.forEach((row, ri) => { KEY_ORDER.forEach((key, ci) => { row.inputs[ci].value = sheet.rows[ri][key] || ''; }); row.resultCell.textContent = sheet.rows[ri].Result || ''; });
+          statCells.forEach((cell, idx) => { const select = cell.querySelector('select'); if (select) select.value = sheet.stats[idx] || '--'; });
+          recomputeStatsFromSheet(sheet);
+          updateKeyAvailability();
+        };
+
+        const astHasVariableReference = (node) => { if (!node || typeof node !== 'object') return false; if (node.type === 'variable') return true; if (node.type === 'range') return astHasVariableReference(node.start) || astHasVariableReference(node.end); return Object.values(node).some((value) => Array.isArray(value) ? value.some((item) => astHasVariableReference(item)) : astHasVariableReference(value)); };
+        const computeAllRows = () => {
+          persistFromDom();
+          const sheet = state.sheets[state.currentSheetIndex];
+          if (!state.settingsView) applyRowAutoSize(sheet);
+          const rowIsEmpty = (row) => KEY_ORDER.every((k) => !String(row[k] || '').trim());
+          if (!String(sheet.formulaCanonical || '').trim()) {
+            sheet.rows.forEach((row) => { row.Result = ''; });
+            renderSheet();
+            scheduleSave();
+            return;
+          }
+          let ast;
+          try { ast = parse(tokenize(sheet.formulaCanonical)); } catch (error) { sheet.rows.forEach((row, ri) => { row.Result = !ri || !rowIsEmpty(row) ? mapErrorToCellText(error) : ''; }); renderSheet(); return; }
+          const formulaUsesVariables = astHasVariableReference(ast);
+          let constants;
+          try { constants = Object.fromEntries(CONST_ORDER.map((k) => [k, toNumericOrZero(sheet.constants[k])])); } catch (error) { sheet.rows.forEach((row, ri) => { row.Result = (!formulaUsesVariables && ri === 0) || !rowIsEmpty(row) ? mapErrorToCellText(error) : ''; }); renderSheet(); return; }
+          sheet.rows.forEach((row, ri) => {
+            if (rowIsEmpty(row) && (formulaUsesVariables || ri > 0)) { row.Result = ''; return; }
+            try { const scope = { ...constants, ...Object.fromEntries(KEY_ORDER.map((k) => [k, toNumericOrZero(row[k])])), __blankByLetter: Object.fromEntries(KEY_ORDER.map((k) => [k, !String(row[k] ?? '').trim()])) }; row.Result = formatNumber(evaluateAst(ast, scope)); }
+            catch (error) { row.Result = mapErrorToCellText(error); }
+          });
+          renderSheet();
+          scheduleSave();
+        };
+
+        const duplicateSheetAt = (idx) => {
+          if (idx === state.currentSheetIndex) persistFromDom();
+          const source = state.sheets[idx];
+          const copy = {
+            ...source,
+            title: `${source.title} (copy)`,
+            names: { ...source.names },
+            constants: { ...source.constants },
+            rows: source.rows.map((row) => ({ ...row })),
+            stats: [...source.stats]
+          };
+          const insertAt = idx + 1;
+          state.sheets.splice(insertAt, 0, copy);
+          undoHistoryBySheet.splice(insertAt, 0, []);
+          state.settingsView = false;
+          state.currentSheetIndex = insertAt;
+          ensureUndoHistoryAlignment();
+          renderSheet();
+          resetClearStage();
+          scheduleSave();
+        };
+        const deleteBlankDynamicSheetAt = (idx) => {
+          if (idx < 3 || state.sheets.length <= 3) return false;
+          if (!sheetIsBlank(state.sheets[idx])) return false;
+          state.sheets.splice(idx, 1);
+          undoHistoryBySheet.splice(idx, 1);
+          return true;
+        };
+        const nav = (dir) => {
+          persistFromDom();
+          const oldIndex = state.currentSheetIndex;
+          const oldLength = state.sheets.length;
+          const wasLast = oldIndex === oldLength - 1;
+          let nextIndex = (oldIndex + dir + oldLength) % oldLength;
+          const deletedCurrent = deleteBlankDynamicSheetAt(oldIndex);
+          if (deletedCurrent && oldIndex < nextIndex) nextIndex -= 1;
+          if (dir > 0 && wasLast) {
+            state.sheets.push(makeSheet(state.sheets.length));
+            undoHistoryBySheet.push([]);
+            state.currentSheetIndex = state.sheets.length - 1;
+          } else {
+            state.currentSheetIndex = ((nextIndex % state.sheets.length) + state.sheets.length) % state.sheets.length;
+          }
+          ensureUndoHistoryAlignment();
+          renderSheet();
+          resetClearStage();
+          scheduleSave();
+        };
+
+        const clearAction = () => {
+          persistFromDom();
+          const sheet = state.sheets[state.currentSheetIndex];
+          if (state.clearStage === 0) {
+            if (activeTarget && (numberEntryTargets.has(activeTarget) || labelEditableFields.has(activeTarget) || activeTarget === formulaInput) && getText(activeTarget)) {
+              captureUndoSnapshot();
+              hasCapturedFocusUndo = true;
+              setText(activeTarget, '');
+            }
+            setClearStage(1);
+            persistFromDom();
+            return;
+          }
+          if (state.clearStage === 1) {
+            captureUndoSnapshot();
+            sheet.rows = makeBlankRows();
+            renderSheet();
+            setClearStage(2);
+            scheduleSave();
+            return;
+          }
+          if (state.clearStage === 2) {
+            captureUndoSnapshot();
+            sheet.constants = { V: '', W: '', X: '', Y: '', Z: '' };
+            renderSheet();
+            setClearStage(3);
+            scheduleSave();
+            return;
+          }
+          if (state.clearStage === 3) {
+            if (state.acConfirmPresses === 0) {
+              captureUndoSnapshot();
+              blurActiveTarget();
+              state.sheets[state.currentSheetIndex] = makeSheet(state.currentSheetIndex);
+              renderSheet();
+              scheduleSave();
+            }
+            state.acConfirmPresses += 1;
+            if (state.acConfirmPresses >= 4) setClearStage(4);
+            return;
+          }
+          undoSnapshot = null;
+          blurActiveTarget();
+          state.sheets = [makeSheet(0), makeSheet(1), makeSheet(2)];
+          state.currentSheetIndex = 2;
+          clearAllUndoHistory();
+          renderSheet();
+          activateTarget(formulaInput);
+          resetClearStage();
+          scheduleSave();
+        };
+
+        const numericTargets = [...constantInputs, formulaInput, ...cellInputs];
+        const titleFields = [titleLine, sheetNameLine, ...headerNameEls, ...constNameEls].filter(Boolean);
+        const labelEditableFields = new Set([...headerNameEls, ...constNameEls].filter(Boolean));
+        const recalcOnBlurTargets = new Set([...constantInputs, formulaInput, ...cellInputs]);
+        const editableTargets = [...numericTargets, ...titleFields];
+        formulaInput?.addEventListener('pointerdown', () => {
+          if (activeTarget !== formulaInput) {
+            formulaSelectionWasAllOnPointerDown = false;
+            return;
+          }
+          const { start, end } = getSelection(formulaInput);
+          const textLength = getText(formulaInput).length;
+          formulaSelectionWasAllOnPointerDown = textLength > 0 && start === 0 && end === textLength;
+        });
+
+        const bindNumericTarget = (target) => {
+          target.setAttribute('inputmode', 'none');
+          target.addEventListener('focus', () => {
+            const shouldSelectAll = target === formulaInput ? activeTarget !== target : false;
+            activateTarget(target, { selectAll: shouldSelectAll });
+          });
+          ['pointerup', 'click'].forEach((eventName) => target.addEventListener(eventName, () => {
+            const shouldSelectAll = target === formulaInput ? activeTarget !== target : true;
+            activateTarget(target, { selectAll: shouldSelectAll });
+          }));
+          target.addEventListener('beforeinput', () => { if (activeTarget === target) captureUndoForFocusedTarget(); });
+          target.addEventListener('input', () => { if (target === formulaInput && state.formulaMode === 'letter') { const selectionStart = formulaInput.selectionStart; const selectionEnd = formulaInput.selectionEnd; const normalized = formulaInput.value.replace(/\b[vwxyz]\b/g, (m) => m.toUpperCase()); if (normalized !== formulaInput.value) { formulaInput.value = normalized; if (selectionStart !== null && selectionEnd !== null) formulaInput.setSelectionRange(selectionStart, selectionEnd); } } resetClearStage(); persistFromDom(); });
+        };
+        numericTargets.forEach(bindNumericTarget);
+        titleFields.forEach((target) => {
+          ['focus', 'pointerup', 'click'].forEach((eventName) => target.addEventListener(eventName, (event) => {
+            if (activeTarget === formulaInput && labelEditableFields.has(target)) {
+              if (event.cancelable) event.preventDefault();
+              event.stopPropagation();
+              const { start, end } = getSelection(formulaInput);
+              if (document.activeElement === target && target instanceof HTMLElement) target.blur();
+              formulaInput.focus({ preventScroll: true });
+              setSelection(formulaInput, start, end);
+              return;
+            }
+            const shouldSelectAll = eventName !== 'focus';
+            activateTarget(target, { selectAll: shouldSelectAll });
+          }));
+          target.addEventListener('beforeinput', () => { if (activeTarget === target) captureUndoForFocusedTarget(); });
+          target.addEventListener('input', () => { resetClearStage(); persistFromDom(); });
+        });
+
+        const gridWrapEl = document.querySelector('.grid-wrap');
+        const tfootEl = document.querySelector('tfoot');
+        const scrollRowIntoView = (row) => {
+          if (!row || !gridWrapEl) return;
+          const apply = () => {
+            const wrapRect = gridWrapEl.getBoundingClientRect();
+            const rowRect = row.getBoundingClientRect();
+            const obscuredBottom = tfootEl ? tfootEl.getBoundingClientRect().height : 0;
+            const visibleBottom = wrapRect.bottom - obscuredBottom;
+            if (rowRect.bottom > visibleBottom) {
+              gridWrapEl.scrollTop += rowRect.bottom - visibleBottom;
+            } else if (rowRect.top < wrapRect.top) {
+              gridWrapEl.scrollTop -= wrapRect.top - rowRect.top;
+            }
+          };
+          apply();
+          requestAnimationFrame(apply);
+        };
+        const moveVariableSelectionDown = () => {
+          if (!activeTarget || !cellInputs.includes(activeTarget)) return;
+          const currentIndex = cellInputs.indexOf(activeTarget);
+          const nextIndex = currentIndex + KEY_ORDER.length;
+          if (nextIndex >= cellInputs.length) return;
+          const nextTarget = cellInputs[nextIndex];
+          activateTarget(nextTarget, { selectAll: true });
+          scrollRowIntoView(nextTarget.closest('tr'));
+        };
+        const runResultAction = () => {
+          computeAllRows();
+          moveVariableSelectionDown();
+          resetClearStage();
+        };
+
+        const handleKeyPress = (key) => {
+          const label = getKeyLabel(key);
+          if (key?.disabled) return;
+          if (!isKeyEnabled(key)) return;
+          if (key === minimizeKey) {
+            if (!isFormulaEntryContext() && !keypadShiftActive) {
+              state.numpadActive = !state.numpadActive;
+              updateKeyAvailability();
+              return;
+            }
+            const isMinimized = keypad.classList.toggle('minimized');
+            document.body.classList.toggle('keypad-is-minimized', isMinimized);
+            updateKeyAvailability();
+            return;
+          }
+          if (key?.dataset.key === 'full-keypad') {
+            state.numpadActive = false;
+            updateKeyAvailability();
+            return;
+          }
+          if (key?.dataset.key === 'np-enter') {
+            computeAllRows();
+            moveVariableSelectionDown();
+            resetClearStage();
+            return;
+          }
+          if (key === shiftKey) {
+            keypadShiftActive = !keypadShiftActive;
+            updateShiftLabels();
+            return;
+          }
+          if (key === undoKey) {
+            if (restoreUndo()) {
+              resetClearStage();
+              return;
+            }
+            if (activeTarget && getText(activeTarget) !== initialValueOnFocus) {
+              setText(activeTarget, initialValueOnFocus);
+              setSelection(activeTarget, getText(activeTarget).length);
+              hasCapturedFocusUndo = false;
+              persistFromDom();
+            }
+            resetClearStage();
+            return;
+          }
+          if (key?.dataset.key === 'backspace') return deleteBackward();
+          if (key === leftKey) return moveCursor(-1);
+          if (key === rightKey) return moveCursor(1);
+          if (key === resultKey) { runResultAction(); return; }
+          if (label === '√') {
+            insertRootCall();
+          } else if (activeTarget === formulaInput && ['LOG', 'SUM', 'MEAN', 'MAX', 'MIN', 'COUNT', 'CNT', 'MDN', 'MODE', 'GMN', 'SIN', 'COS', 'TAN', 'ASIN', 'ACOS', 'ATAN'].includes(label)) {
+            insertFunctionCall(label);
+          } else {
+            insertIntoTarget(label === '−' ? '-' : label);
+          }
+          persistFromDom();
+        };
+
+        keys.forEach((key) => { let pointerTriggered = false; key.addEventListener('pointerdown', (event) => { event.preventDefault(); pointerTriggered = true; handleKeyPress(key); }); key.addEventListener('click', (event) => { event.preventDefault(); if (pointerTriggered) { pointerTriggered = false; return; } handleKeyPress(key); }); });
+        const bindSheetArrow = (button, direction) => {
+          if (!button) return;
+          let pointerTriggered = false;
+          const navigate = () => {
+            blurActiveTarget();
+            if (state.settingsView) {
+              state.settingsView = false;
+              renderSheet();
+              return;
+            }
+            nav(direction);
+          };
+          button.addEventListener('pointerdown', (event) => {
+            event.preventDefault();
+            pointerTriggered = true;
+            navigate();
+          });
+          button.addEventListener('click', (event) => {
+            event.preventDefault();
+            if (pointerTriggered) {
+              pointerTriggered = false;
+              return;
+            }
+            navigate();
+          });
+        };
+        bindSheetArrow(sheetNavButtons[0], -1);
+        bindSheetArrow(sheetNavButtons[1], 1);
+
+        if (sheetIndexEl) {
+          let sheetIndexPointerTriggered = false;
+          sheetIndexEl.addEventListener('pointerdown', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            sheetIndexPointerTriggered = true;
+            blurActiveTarget();
+            toggleSheetMenu();
+          });
+          sheetIndexEl.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            if (sheetIndexPointerTriggered) {
+              sheetIndexPointerTriggered = false;
+              return;
+            }
+            toggleSheetMenu();
+          });
+          sheetIndexEl.addEventListener('keydown', (event) => {
+            if (!['Enter', ' ', 'ArrowDown'].includes(event.key)) return;
+            event.preventDefault();
+            event.stopPropagation();
+            blurActiveTarget();
+            toggleSheetMenu();
+          });
+        }
+        document.addEventListener('pointerdown', (event) => {
+          if (!sheetMenuEl || sheetMenuEl.hidden) return;
+          if (sheetMenuEl.contains(event.target) || sheetIndexEl?.contains(event.target)) return;
+          closeSheetMenu();
+        });
+        document.addEventListener('keydown', (event) => {
+          if (event.key !== 'Escape' || !sheetMenuEl || sheetMenuEl.hidden) return;
+          closeSheetMenu();
+        });
+
+        const bindFormulaInsertButton = (button, letter) => {
+          if (!button) return;
+          let pointerTriggered = false;
+          const insertToken = (event) => {
+            if (activeTarget !== formulaInput) return;
+            event.preventDefault();
+            event.stopPropagation();
+            pointerTriggered = true;
+            insertFormulaReferenceToken(formulaTokenFor(letter));
+            persistFromDom();
+          };
+          button.addEventListener('pointerdown', insertToken, true);
+          button.addEventListener('click', (event) => {
+            if (activeTarget !== formulaInput) return;
+            event.preventDefault();
+            event.stopPropagation();
+            if (pointerTriggered) {
+              pointerTriggered = false;
+              return;
+            }
+            insertFormulaReferenceToken(formulaTokenFor(letter));
+            persistFromDom();
+          }, true);
+        };
+        headerPills.slice(0, 4).forEach((pill, idx) => bindFormulaInsertButton(pill, KEY_ORDER[idx]));
+        constTopEls.forEach((pill, idx) => bindFormulaInsertButton(pill, CONST_ORDER[idx]));
+
+        toggleButton?.addEventListener('click', () => { persistFromDom(); state.formulaMode = state.formulaMode === 'letter' ? 'name' : 'letter'; renderSheet(); scheduleSave(); resetClearStage(); });
+        if (clearButton) {
+          let clearPointerTriggered = false;
+          clearButton.addEventListener('pointerdown', (event) => {
+            event.preventDefault();
+            clearPointerTriggered = true;
+            if (clearButton.getAttribute('aria-disabled') === 'true') return;
+            clearAction();
+          });
+          clearButton.addEventListener('click', (event) => {
+            event.preventDefault();
+            if (clearPointerTriggered) {
+              clearPointerTriggered = false;
+              return;
+            }
+            if (clearButton.getAttribute('aria-disabled') === 'true') return;
+            clearAction();
+          });
+        }
+        const focusSafeContainers = [keypad, constantsStrip, gridHeaderRow].filter(Boolean);
+        document.addEventListener('pointerdown', (event) => {
+          if (!activeTarget) return;
+          if (editableTargets.includes(event.target)) return;
+          if (event.target.closest('.key, .key-active, .const-top, .head-pill')) return;
+          if (!focusSafeContainers.some((container) => container.contains(event.target))) return;
+          if (event.cancelable) event.preventDefault();
+        }, true);
+
+        document.addEventListener('pointerdown', (event) => {
+          if (state.clearStage < 3) return;
+          if (clearButton?.contains(event.target)) return;
+          resetClearStage();
+        }, true);
+        if (resultHeaderTrigger) {
+          let pointer = false;
+          resultHeaderTrigger.addEventListener('pointerdown', (event) => { event.preventDefault(); pointer = true; runResultAction(); });
+          resultHeaderTrigger.addEventListener('click', (event) => { event.preventDefault(); if (pointer) { pointer = false; return; } runResultAction(); });
+          resultHeaderTrigger.addEventListener('keydown', (event) => { if (!['Enter', ' '].includes(event.key)) return; event.preventDefault(); runResultAction(); });
+        }
+
+        const rangeIntersectsNode = (range, node) => {
+          if (!range || !node) return false;
+          const nodeRange = document.createRange();
+          nodeRange.selectNodeContents(node);
+          return range.compareBoundaryPoints(Range.END_TO_START, nodeRange) < 0 && range.compareBoundaryPoints(Range.START_TO_END, nodeRange) > 0;
+        };
+
+        const selectNodeContents = (node) => {
+          if (!node) return;
+          const selection = window.getSelection();
+          if (!selection) return;
+          const range = document.createRange();
+          range.selectNodeContents(node);
+          selection.removeAllRanges();
+          selection.addRange(range);
+        };
+
+        const getSelectedResultCells = () => {
+          const selection = window.getSelection();
+          if (!selection || selection.rangeCount === 0) return [];
+          const range = selection.getRangeAt(0);
+          return resultCells.filter((cell) => rangeIntersectsNode(range, cell));
+        };
+
+        const syncResultSelectionVisualState = () => {
+          const selectedSet = new Set(getSelectedResultCells());
+          resultCells.forEach((cell) => cell.classList.toggle('is-selected', selectedSet.has(cell)));
+        };
+
+        document.addEventListener('selectionchange', syncResultSelectionVisualState);
+
+        resultCells.forEach((cell) => {
+          let tapStartX = 0;
+          let tapStartY = 0;
+          let tapStartAt = 0;
+          let tapCandidate = false;
+
+          const commitSingleCellSelection = () => {
+            const selectedResultCells = getSelectedResultCells();
+            if (selectedResultCells.length > 1) return;
+            selectNodeContents(cell);
+            syncResultSelectionVisualState();
+          };
+
+          cell.addEventListener('pointerdown', (event) => {
+            if (activeTarget) blurActiveTarget();
+            tapStartX = event.clientX;
+            tapStartY = event.clientY;
+            tapStartAt = Date.now();
+            tapCandidate = true;
+            if (event.pointerType !== 'mouse' && event.cancelable) event.preventDefault();
+          });
+
+          cell.addEventListener('pointermove', (event) => {
+            if (!tapCandidate) return;
+            const moved = Math.hypot(event.clientX - tapStartX, event.clientY - tapStartY);
+            if (moved > 8) tapCandidate = false;
+          });
+
+          cell.addEventListener('pointerup', (event) => {
+            const wasTap = tapCandidate && (Date.now() - tapStartAt) < 350;
+            tapCandidate = false;
+            if (!wasTap) return;
+            if (event.cancelable) event.preventDefault();
+            requestAnimationFrame(() => {
+              commitSingleCellSelection();
+              requestAnimationFrame(() => { commitSingleCellSelection(); syncResultSelectionVisualState(); });
+            });
+          });
+
+          cell.addEventListener('click', (event) => {
+            if (event.cancelable) event.preventDefault();
+            commitSingleCellSelection();
+          });
+
+          cell.addEventListener('dblclick', (event) => {
+            if (event.cancelable) event.preventDefault();
+          });
+        });
+
+        document.addEventListener('copy', (event) => {
+          const selection = window.getSelection();
+          if (!selection || selection.rangeCount === 0 || selection.isCollapsed) return;
+          const range = selection.getRangeAt(0);
+          const selectedResultCells = resultCells.filter((cell) => rangeIntersectsNode(range, cell));
+          if (!selectedResultCells.length) return;
+          event.preventDefault();
+          event.clipboardData?.setData('text/plain', selectedResultCells.map((cell) => cell.textContent?.trim() || '').join('\n'));
+        });
+
+        const bindEditableBlur = (target) => target.addEventListener('blur', () => {
+          const shouldRecompute = recalcOnBlurTargets.has(target);
+          if (activeTarget === target) {
+            target.classList.remove('is-active-target');
+            activeTarget = null;
+            hasCapturedFocusUndo = false;
+            updateKeyAvailability();
+          }
+          if (shouldRecompute) computeAllRows();
+          else persistFromDom();
+        });
+        editableTargets.forEach(bindEditableBlur);
+
+        const MIN_ROWS = ROW_COUNT;
+        const tbodyEl = document.querySelector('tbody');
+        const buildRowDom = (rowNumber) => {
+          const tr = document.createElement('tr');
+          const numTd = document.createElement('td');
+          numTd.className = 'num';
+          numTd.textContent = String(rowNumber);
+          tr.appendChild(numTd);
+          KEY_ORDER.forEach(() => {
+            const td = document.createElement('td');
+            td.className = 'editable-cell';
+            td.innerHTML = '<input class="cell-input" inputmode="none" value="" aria-label="Grid cell value" />';
+            tr.appendChild(td);
+          });
+          const resultTd = document.createElement('td');
+          resultTd.className = 'result-cell';
+          tr.appendChild(resultTd);
+          return tr;
+        };
+        const appendRowToDom = () => {
+          if (!tbodyEl) return;
+          const tr = buildRowDom(dataRows.length + 1);
+          tbodyEl.appendChild(tr);
+          dataRows.push(tr);
+          const inputs = [...tr.querySelectorAll('.cell-input')];
+          inputs.forEach((input) => {
+            cellInputs.push(input);
+            numberEntryTargets.add(input);
+            recalcOnBlurTargets.add(input);
+            editableTargets.push(input);
+            bindNumericTarget(input);
+            bindEditableBlur(input);
+          });
+          const resultCell = tr.querySelector('.result-cell');
+          rowBindings.push({ inputs, resultCell });
+          if (resultCell) resultCells.push(resultCell);
+        };
+        const removeLastRowFromDom = () => {
+          const tr = dataRows.pop();
+          if (!tr) return;
+          const inputs = [...tr.querySelectorAll('.cell-input')];
+          inputs.forEach((input) => {
+            const ci = cellInputs.indexOf(input);
+            if (ci !== -1) cellInputs.splice(ci, 1);
+            numberEntryTargets.delete(input);
+            recalcOnBlurTargets.delete(input);
+            const ei = editableTargets.indexOf(input);
+            if (ei !== -1) editableTargets.splice(ei, 1);
+            if (activeTarget === input) activeTarget = null;
+          });
+          rowBindings.pop();
+          const resultCell = tr.querySelector('.result-cell');
+          if (resultCell) {
+            const ri = resultCells.indexOf(resultCell);
+            if (ri !== -1) resultCells.splice(ri, 1);
+          }
+          tr.remove();
+        };
+        const syncDomRowCount = (targetLength) => {
+          while (dataRows.length < targetLength) appendRowToDom();
+          while (dataRows.length > targetLength) removeLastRowFromDom();
+        };
+        const rowIsBlankForSizing = (row) => KEY_ORDER.every((k) => !String(row[k] || '').trim());
+        const applyRowAutoSize = (sheet) => {
+          let lastFilled = -1;
+          for (let i = sheet.rows.length - 1; i >= 0; i--) {
+            if (!rowIsBlankForSizing(sheet.rows[i])) { lastFilled = i; break; }
+          }
+          const targetLength = Math.max(MIN_ROWS, lastFilled + 2);
+          while (sheet.rows.length < targetLength) sheet.rows.push({ A: '', B: '', C: '', D: '', Result: '' });
+          while (sheet.rows.length > targetLength) sheet.rows.pop();
+        };
+        statCells.forEach((cell, idx) => { const select = cell.querySelector('select'); select?.addEventListener('change', () => { state.sheets[state.currentSheetIndex].stats[idx] = select.value; recomputeStatsFromSheet(state.sheets[state.currentSheetIndex]); scheduleSave(); resetClearStage(); }); });
+        document.addEventListener('keydown', (event) => {
+          if (event.key !== 'Enter') return;
+          if (!activeTarget || !editableTargets.includes(activeTarget)) return;
+          event.preventDefault();
+          if (cellInputs.includes(activeTarget)) {
+            computeAllRows();
+            moveVariableSelectionDown();
+            resetClearStage();
+            return;
+          }
+          blurActiveTarget();
+          computeAllRows();
+          resetClearStage();
+        });
+
+        (async () => {
+          const saved = await asyncStorage.get();
+          if (saved?.sheets?.length) {
+            state.sheets = saved.sheets.map((sheet, idx) => hydrateSheet(sheet, idx));
+            state.currentSheetIndex = Math.max(0, Math.min(saved.currentSheetIndex ?? 0, state.sheets.length - 1));
+            state.formulaMode = saved.formulaMode === 'letter' ? 'letter' : 'name';
+          } else {
+            state.currentSheetIndex = 2;
+          }
+          while (state.sheets.length < 3) state.sheets.push(makeSheet(state.sheets.length));
+          clearAllUndoHistory();
+          ensureUndoHistoryAlignment();
+          renderSheet();
+          if (state.currentSheetIndex === 2 && !String(state.sheets[2]?.formulaCanonical || '').trim()) activateTarget(formulaInput);
+          resetClearStage();
+          updateKeyAvailability();
+        })();
+
+        forceRefreshBtn?.addEventListener('click', async () => {
+          forceRefreshBtn.disabled = true;
+          forceRefreshBtn.textContent = 'Refreshing…';
+          try {
+            if ('serviceWorker' in navigator) {
+              const registrations = await navigator.serviceWorker.getRegistrations();
+              await Promise.all(registrations.map((registration) => registration.unregister()));
+            }
+            if ('caches' in window) {
+              const keys = await caches.keys();
+              await Promise.all(keys.map((key) => caches.delete(key)));
+            }
+          } finally {
+            window.location.reload();
+          }
+        });
+      })();
+    </script>
+  </body>
+</html>
