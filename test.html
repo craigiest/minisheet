@@ -332,6 +332,86 @@
         z-index: 20;
       }
 
+      .settings-panel {
+        position: fixed;
+        top: calc(env(safe-area-inset-top) + var(--nav-h));
+        left: 0;
+        right: 0;
+        bottom: 0;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        background: #fff;
+        z-index: 25;
+        padding: 20px;
+        padding-bottom: calc(20px + env(safe-area-inset-bottom));
+      }
+
+      .settings-panel h2 {
+        margin: 0 0 4px;
+        font-size: 20px;
+        color: var(--text);
+      }
+
+      .settings-panel h3 {
+        margin: 0 0 8px;
+        font-size: 15px;
+        color: var(--text);
+      }
+
+      .settings-version {
+        color: #8a94a8;
+        font-size: 13px;
+        margin: 0 0 16px;
+      }
+
+      .settings-panel p {
+        font-size: 14px;
+        line-height: 1.4;
+        color: var(--text);
+      }
+
+      .settings-group {
+        margin-top: 24px;
+        padding-top: 16px;
+        border-top: 1px solid var(--line);
+      }
+
+      .settings-btn {
+        appearance: none;
+        -webkit-appearance: none;
+        border: 0;
+        border-radius: 8px;
+        background: #305596;
+        color: #fff;
+        font-size: 15px;
+        padding: 10px 16px;
+      }
+
+      .settings-btn:active {
+        background: #24407a;
+      }
+
+      .settings-hint {
+        margin-top: 8px;
+        font-size: 12px;
+        color: #8a94a8;
+      }
+
+      body.settings-view .constants-strip,
+      body.settings-view .formula-strip,
+      body.settings-view .grid-wrap,
+      body.settings-view .keypad {
+        display: none;
+      }
+
+      body.settings-view .settings-panel {
+        display: block;
+      }
+
+      .settings-panel[hidden] {
+        display: none;
+      }
+
       table {
         border-collapse: separate;
         border-spacing: 0;
@@ -656,7 +736,7 @@
     <header class="nav">
       <button class="arrow" aria-label="Previous sheet">◀</button>
       <div class="title-block">
-        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">Proportion: A/B = C/Result</span><span class="version-tag">v0.0.8</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/2</button></div>
+        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">Proportion: A/B = C/Result</span><span class="version-tag">v0.0.9</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/2</button></div>
         <div class="sheet-menu" hidden role="menu" aria-label="Sheet selector"></div>
       </div>
       <button class="arrow" aria-label="Next sheet">▶</button>
@@ -675,6 +755,17 @@
       <div class="fx-eq">=</div>
       <input class="formula-input" value="(B*C)/A" placeholder="Enter formula here" aria-label="Formula editor" />
       <button class="toggle" type="button" aria-label="Toggle formula labels">A / <strong>Name</strong></button>
+    </section>
+
+    <section class="settings-panel" aria-label="App info and settings" hidden>
+      <h2>MiniSheet</h2>
+      <p class="settings-version">Version <span class="version-tag-settings">v0.0.9</span></p>
+      <p>MiniSheet is a formula-driven mini spreadsheet for quick calculations. This page (Sheet 0) is reserved for app info, settings, and developer controls.</p>
+      <div class="settings-group">
+        <h3>Developer</h3>
+        <button type="button" class="settings-btn" id="force-refresh-btn">Force Code Refresh</button>
+        <p class="settings-hint">Clears the cached app files and service worker, then reloads from the network. Use this if the app seems stuck on an old version.</p>
+      </div>
     </section>
 
     <main class="grid-wrap" aria-label="Grid area">
@@ -797,6 +888,8 @@
         const sheetIndexEl = document.querySelector('.sheet-index');
         const sheetMenuEl = document.querySelector('.sheet-menu');
         const sheetNameLine = document.querySelector('.sheet-name');
+        const settingsPanelEl = document.querySelector('.settings-panel');
+        const forceRefreshBtn = document.getElementById('force-refresh-btn');
         const formulaInput = document.querySelector('.formula-input');
         const constantInputs = [...document.querySelectorAll('.const-cell input')];
         const constTopEls = [...document.querySelectorAll('.const-top')];
@@ -866,7 +959,7 @@
           };
         };
 
-        const state = { sheets: [makeSheet(0), makeSheet(1), makeSheet(2)], currentSheetIndex: 0, formulaMode: 'name', clearStage: 0, acConfirmPresses: 0 };
+        const state = { sheets: [makeSheet(0), makeSheet(1), makeSheet(2)], currentSheetIndex: 0, formulaMode: 'name', clearStage: 0, acConfirmPresses: 0, settingsView: false };
 
         let saveTimer = null;
         const scheduleSave = () => {
@@ -1347,6 +1440,25 @@
         const buildSheetMenu = () => {
           if (!sheetMenuEl || !sheetIndexEl) return;
           sheetMenuEl.innerHTML = '';
+          const settingsOption = document.createElement('button');
+          settingsOption.type = 'button';
+          settingsOption.className = 'sheet-option';
+          if (state.settingsView) settingsOption.classList.add('is-current');
+          settingsOption.textContent = '0. Settings & Info';
+          settingsOption.setAttribute('role', 'menuitem');
+          settingsOption.setAttribute('aria-label', 'Go to settings and info');
+          settingsOption.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            if (!state.settingsView) {
+              blurActiveTarget();
+              persistFromDom();
+              state.settingsView = true;
+              renderSheet();
+            }
+            closeSheetMenu();
+          });
+          sheetMenuEl.appendChild(settingsOption);
           state.sheets.forEach((sheet, idx) => {
             const option = document.createElement('button');
             option.type = 'button';
@@ -1359,9 +1471,10 @@
             option.addEventListener('click', (event) => {
               event.preventDefault();
               event.stopPropagation();
-              if (idx !== state.currentSheetIndex) {
+              if (idx !== state.currentSheetIndex || state.settingsView) {
                 blurActiveTarget();
                 persistFromDom();
+                state.settingsView = false;
                 state.currentSheetIndex = idx;
                 ensureUndoHistoryAlignment();
                 renderSheet();
@@ -1386,6 +1499,16 @@
         };
 
         const renderSheet = () => {
+          document.body.classList.toggle('settings-view', state.settingsView);
+          if (settingsPanelEl) settingsPanelEl.hidden = !state.settingsView;
+          if (sheetTitleEl) sheetTitleEl.setAttribute('contenteditable', state.settingsView ? 'false' : 'true');
+          if (state.settingsView) {
+            if (titleLine) titleLine.textContent = 'Settings & Info';
+            if (sheetNameLine) sheetNameLine.textContent = '';
+            sheetIndexEl.textContent = `0/${state.sheets.length}`;
+            closeSheetMenu();
+            return;
+          }
           const sheet = state.sheets[state.currentSheetIndex];
           const { ui } = buildNameMaps(sheet);
           if (titleLine) titleLine.textContent = String(sheet.title ?? '');
@@ -1614,7 +1737,15 @@
         const bindSheetArrow = (button, direction) => {
           if (!button) return;
           let pointerTriggered = false;
-          const navigate = () => { blurActiveTarget(); nav(direction); };
+          const navigate = () => {
+            blurActiveTarget();
+            if (state.settingsView) {
+              state.settingsView = false;
+              renderSheet();
+              return;
+            }
+            nav(direction);
+          };
           button.addEventListener('pointerdown', (event) => {
             event.preventDefault();
             pointerTriggered = true;
@@ -1854,6 +1985,23 @@
           resetClearStage();
           updateKeyAvailability();
         })();
+
+        forceRefreshBtn?.addEventListener('click', async () => {
+          forceRefreshBtn.disabled = true;
+          forceRefreshBtn.textContent = 'Refreshing…';
+          try {
+            if ('serviceWorker' in navigator) {
+              const registrations = await navigator.serviceWorker.getRegistrations();
+              await Promise.all(registrations.map((registration) => registration.unregister()));
+            }
+            if ('caches' in window) {
+              const keys = await caches.keys();
+              await Promise.all(keys.map((key) => caches.delete(key)));
+            }
+          } finally {
+            window.location.reload();
+          }
+        });
       })();
     </script>
   </body>
