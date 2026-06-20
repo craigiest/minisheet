@@ -21,7 +21,7 @@
         --nav-h: 34px;
         --const-h: 74px;
         --formula-h: 56px;
-        --keypad-h: 298px;
+        --keypad-h: 266px;
         --keypad-min-h: 50px;
         --keypad-pad: 6px;
         --key-gap: 6px;
@@ -656,7 +656,7 @@
     <header class="nav">
       <button class="arrow" aria-label="Previous sheet">◀</button>
       <div class="title-block">
-        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">Proportion: A/B = C/Result</span><span class="version-tag">v0.0.7</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/2</button></div>
+        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">Proportion: A/B = C/Result</span><span class="version-tag">v0.0.8</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/2</button></div>
         <div class="sheet-menu" hidden role="menu" aria-label="Sheet selector"></div>
       </div>
       <button class="arrow" aria-label="Next sheet">▶</button>
@@ -746,7 +746,9 @@
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('sw-test.js');
+          navigator.serviceWorker
+            .register('sw-test.js', { updateViaCache: 'none' })
+            .then((registration) => registration.update());
         });
       }
     </script>
