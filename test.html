@@ -190,6 +190,14 @@
         min-width: 0;
       }
 
+      .version-tag {
+        font-size: 11px;
+        color: var(--text-muted, #8a94a8);
+        flex: 0 0 auto;
+        padding: 0 6px;
+        white-space: nowrap;
+      }
+
       .constants-strip {
         position: fixed;
         top: calc(env(safe-area-inset-top) + var(--nav-h));
@@ -647,7 +655,7 @@
     <header class="nav">
       <button class="arrow" aria-label="Previous sheet">◀</button>
       <div class="title-block">
-        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">Proportion: A/B = C/Result</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/2</button></div>
+        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">Proportion: A/B = C/Result</span><span class="version-tag">v0.0.2</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/2</button></div>
         <div class="sheet-menu" hidden role="menu" aria-label="Sheet selector"></div>
       </div>
       <button class="arrow" aria-label="Next sheet">▶</button>
