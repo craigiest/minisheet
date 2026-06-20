@@ -1,4 +1,4 @@
-const CACHE_NAME = 'minisheet-test-v6';
+const CACHE_NAME = 'minisheet-test-v7';
 const ASSETS = [
   'test.html',
   'manifest-test.webmanifest',
