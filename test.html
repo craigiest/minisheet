@@ -736,7 +736,7 @@
     <header class="nav">
       <button class="arrow" aria-label="Previous sheet">◀</button>
       <div class="title-block">
-        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">Proportion: A/B = C/Result</span><span class="version-tag">v0.0.9</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/2</button></div>
+        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">Proportion: A/B = C/Result</span><span class="version-tag">v0.0.10</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/2</button></div>
         <div class="sheet-menu" hidden role="menu" aria-label="Sheet selector"></div>
       </div>
       <button class="arrow" aria-label="Next sheet">▶</button>
@@ -759,7 +759,7 @@
 
     <section class="settings-panel" aria-label="App info and settings" hidden>
       <h2>MiniSheet</h2>
-      <p class="settings-version">Version <span class="version-tag-settings">v0.0.9</span></p>
+      <p class="settings-version">Version <span class="version-tag-settings">v0.0.10</span></p>
       <p>MiniSheet is a formula-driven mini spreadsheet for quick calculations. This page (Sheet 0) is reserved for app info, settings, and developer controls.</p>
       <div class="settings-group">
         <h3>Developer</h3>
@@ -897,7 +897,7 @@
         const statCells = [...document.querySelectorAll('tfoot .stat-cell')];
         const headerPills = [...document.querySelectorAll('thead .head-pill')];
         const getKeyLabel = (key) => key?.textContent.trim() || '';
-        const NUMBER_ENTRY_KEY_LABELS = new Set(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '−', 'e', 'π', 'c', 'g', UNDO_KEY_LABEL, '⌫', '=', MINIMIZE_KEY_LABEL, MAXIMIZE_KEY_LABEL]);
+        const NUMBER_ENTRY_KEY_LABELS = new Set(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '−', '/', 'e', 'π', 'c', 'g', UNDO_KEY_LABEL, '⌫', '=', MINIMIZE_KEY_LABEL, MAXIMIZE_KEY_LABEL]);
         const FORMULA_ENTRY_KEY_LABELS = new Set(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '−', '+', '*', '/', '^', '!', '(', ')', ',', ':', '√', 'LOG', 'SUM', 'MEAN', 'MAX', 'MIN', 'COUNT', 'CNT', 'MDN', 'MODE', 'GMN', 'SIN', 'COS', 'TAN', 'ASIN', 'ACOS', 'ATAN', 'e', 'π', 'c', 'g', '⌫', UNDO_KEY_LABEL, MINIMIZE_KEY_LABEL, MAXIMIZE_KEY_LABEL]);
         const TEMP_DISABLED_KEY_LABELS = new Set([]);
 
@@ -1313,7 +1313,22 @@
         const NAMED_NUMERIC_CONSTANTS = { PI: Math.PI, E: Math.E, C: 299792458, G: 9.80665 };
         const DEG_TO_RAD = Math.PI / 180;
         const RAD_TO_DEG = 180 / Math.PI;
-        const toNumericOrZero = (rawValue) => { const value = String(rawValue ?? '').trim(); if (!value) return 0; const normalized = value === 'π' ? 'PI' : value.toUpperCase(); if (Object.prototype.hasOwnProperty.call(NAMED_NUMERIC_CONSTANTS, normalized)) return NAMED_NUMERIC_CONSTANTS[normalized]; const numeric = Number(value); if (!Number.isFinite(numeric)) throw new Error('NON_NUMERIC'); return numeric; };
+        const toNumericOrZero = (rawValue) => {
+          const value = String(rawValue ?? '').trim();
+          if (!value) return 0;
+          const fractionMatch = value.match(/^(-?\d+(?:\.\d+)?)\s*\/\s*(-?\d+(?:\.\d+)?)$/);
+          if (fractionMatch) {
+            const numerator = Number(fractionMatch[1]);
+            const denominator = Number(fractionMatch[2]);
+            if (!Number.isFinite(numerator) || !Number.isFinite(denominator) || denominator === 0) throw new Error('NON_NUMERIC');
+            return numerator / denominator;
+          }
+          const normalized = value === 'π' ? 'PI' : value.toUpperCase();
+          if (Object.prototype.hasOwnProperty.call(NAMED_NUMERIC_CONSTANTS, normalized)) return NAMED_NUMERIC_CONSTANTS[normalized];
+          const numeric = Number(value);
+          if (!Number.isFinite(numeric)) throw new Error('NON_NUMERIC');
+          return numeric;
+        };
 
         const FORMULA_IDENTIFIER_NAMES = ['MEDIAN', 'COUNT', 'MEAN', 'MODE', 'ASIN', 'ACOS', 'ATAN', 'LOG', 'SUM', 'MAX', 'MIN', 'CNT', 'MDN', 'GMN', 'SIN', 'COS', 'TAN'];
         const tokenizeAlphaRun = (raw) => {
