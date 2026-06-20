@@ -776,7 +776,7 @@
     <header class="nav">
       <button class="arrow" aria-label="Previous sheet">◀</button>
       <div class="title-block">
-        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">Proportion: A/B = C/Result</span><span class="version-tag">v0.0.17</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/2</button></div>
+        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">Proportion: A/B = C/Result</span><span class="version-tag">v0.0.18</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/2</button></div>
         <div class="sheet-menu" hidden role="menu" aria-label="Sheet selector"></div>
       </div>
       <button class="arrow" aria-label="Next sheet">▶</button>
@@ -799,7 +799,7 @@
 
     <section class="settings-panel" aria-label="App info and settings" hidden>
       <h2>MiniSheet</h2>
-      <p class="settings-version">Version <span class="version-tag-settings">v0.0.17</span></p>
+      <p class="settings-version">Version <span class="version-tag-settings">v0.0.18</span></p>
       <p>MiniSheet is a formula-driven mini spreadsheet for quick calculations. This page (Sheet 0) is reserved for app info, settings, and developer controls.</p>
       <div class="settings-group">
         <h3>Developer</h3>
@@ -1799,15 +1799,23 @@
         });
 
         const gridWrapEl = document.querySelector('.grid-wrap');
-        const scrollRowIntoView = (row) => {
+        const scrollRowIntoView = (row, isLastRow) => {
           if (!row || !gridWrapEl) return;
-          const wrapRect = gridWrapEl.getBoundingClientRect();
-          const rowRect = row.getBoundingClientRect();
-          if (rowRect.bottom > wrapRect.bottom) {
-            gridWrapEl.scrollTop += rowRect.bottom - wrapRect.bottom;
-          } else if (rowRect.top < wrapRect.top) {
-            gridWrapEl.scrollTop -= wrapRect.top - rowRect.top;
-          }
+          const apply = () => {
+            if (isLastRow) {
+              gridWrapEl.scrollTop = gridWrapEl.scrollHeight;
+              return;
+            }
+            const wrapRect = gridWrapEl.getBoundingClientRect();
+            const rowRect = row.getBoundingClientRect();
+            if (rowRect.bottom > wrapRect.bottom) {
+              gridWrapEl.scrollTop += rowRect.bottom - wrapRect.bottom;
+            } else if (rowRect.top < wrapRect.top) {
+              gridWrapEl.scrollTop -= wrapRect.top - rowRect.top;
+            }
+          };
+          apply();
+          requestAnimationFrame(apply);
         };
         const moveVariableSelectionDown = () => {
           if (!activeTarget || !cellInputs.includes(activeTarget)) return;
@@ -1815,8 +1823,9 @@
           const nextIndex = currentIndex + KEY_ORDER.length;
           if (nextIndex >= cellInputs.length) return;
           const nextTarget = cellInputs[nextIndex];
+          const isLastRow = nextIndex + KEY_ORDER.length >= cellInputs.length;
           activateTarget(nextTarget, { selectAll: true });
-          scrollRowIntoView(nextTarget.closest('tr'));
+          scrollRowIntoView(nextTarget.closest('tr'), isLastRow);
         };
         const runResultAction = () => {
           computeAllRows();
@@ -1919,6 +1928,7 @@
             event.preventDefault();
             event.stopPropagation();
             sheetIndexPointerTriggered = true;
+            blurActiveTarget();
             toggleSheetMenu();
           });
           sheetIndexEl.addEventListener('click', (event) => {
@@ -1934,6 +1944,7 @@
             if (!['Enter', ' ', 'ArrowDown'].includes(event.key)) return;
             event.preventDefault();
             event.stopPropagation();
+            blurActiveTarget();
             toggleSheetMenu();
           });
         }
