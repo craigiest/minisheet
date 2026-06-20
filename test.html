@@ -21,16 +21,11 @@
         --nav-h: 34px;
         --const-h: 74px;
         --formula-h: 56px;
-        --header-row-h: 48px;
-        --data-row-h: 24px;
-        --visible-rows: 10;
-        --chrome-h: calc(env(safe-area-inset-top) + var(--nav-h) + var(--const-h) + var(--formula-h));
-        --grid-visible-h: calc(var(--header-row-h) + (var(--visible-rows) * var(--data-row-h)));
+        --keypad-h: 298px;
         --keypad-min-h: 50px;
         --keypad-pad: 6px;
         --key-gap: 6px;
         --keypad-safe-bottom: calc(env(safe-area-inset-bottom) / 2);
-        --keypad-h: calc(100dvh - var(--chrome-h) - var(--grid-visible-h) - var(--keypad-safe-bottom));
         --key-row-h: calc((var(--keypad-h) - (var(--keypad-pad) * 2) - (var(--key-gap) * 5)) / 6);
         --keypad-active-h: calc(var(--keypad-h) + var(--keypad-safe-bottom));
         --keypad-bg: #7082a7;
@@ -661,7 +656,7 @@
     <header class="nav">
       <button class="arrow" aria-label="Previous sheet">◀</button>
       <div class="title-block">
-        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">Proportion: A/B = C/Result</span><span class="version-tag">v0.0.6</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/2</button></div>
+        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">Proportion: A/B = C/Result</span><span class="version-tag">v0.0.7</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/2</button></div>
         <div class="sheet-menu" hidden role="menu" aria-label="Sheet selector"></div>
       </div>
       <button class="arrow" aria-label="Next sheet">▶</button>
