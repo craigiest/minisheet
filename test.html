@@ -170,6 +170,32 @@
         padding: 6px 8px;
       }
 
+      .sheet-option-row {
+        display: flex;
+        align-items: stretch;
+        gap: 2px;
+      }
+
+      .sheet-option-row .sheet-option {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .sheet-duplicate-btn {
+        border: 0;
+        border-radius: 8px;
+        background: transparent;
+        color: var(--text-muted, #8a94a8);
+        font-size: 14px;
+        line-height: 1;
+        padding: 6px 8px;
+        flex-shrink: 0;
+      }
+
+      .sheet-duplicate-btn:active {
+        background: rgba(48, 85, 150, 0.2);
+      }
+
       .sheet-option.is-current {
         background: rgba(48, 85, 150, 0.14);
         font-weight: 700;
@@ -749,7 +775,7 @@
     <header class="nav">
       <button class="arrow" aria-label="Previous sheet">◀</button>
       <div class="title-block">
-        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">Proportion: A/B = C/Result</span><span class="version-tag">v0.0.12</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/2</button></div>
+        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">Proportion: A/B = C/Result</span><span class="version-tag">v0.0.13</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/2</button></div>
         <div class="sheet-menu" hidden role="menu" aria-label="Sheet selector"></div>
       </div>
       <button class="arrow" aria-label="Next sheet">▶</button>
@@ -772,7 +798,7 @@
 
     <section class="settings-panel" aria-label="App info and settings" hidden>
       <h2>MiniSheet</h2>
-      <p class="settings-version">Version <span class="version-tag-settings">v0.0.12</span></p>
+      <p class="settings-version">Version <span class="version-tag-settings">v0.0.13</span></p>
       <p>MiniSheet is a formula-driven mini spreadsheet for quick calculations. This page (Sheet 0) is reserved for app info, settings, and developer controls.</p>
       <div class="settings-group">
         <h3>Developer</h3>
@@ -1512,6 +1538,8 @@
           });
           sheetMenuEl.appendChild(settingsOption);
           state.sheets.forEach((sheet, idx) => {
+            const row = document.createElement('div');
+            row.className = 'sheet-option-row';
             const option = document.createElement('button');
             option.type = 'button';
             option.className = 'sheet-option';
@@ -1535,7 +1563,22 @@
               }
               closeSheetMenu();
             });
-            sheetMenuEl.appendChild(option);
+            const duplicateBtn = document.createElement('button');
+            duplicateBtn.type = 'button';
+            duplicateBtn.className = 'sheet-duplicate-btn';
+            duplicateBtn.textContent = '⧉';
+            duplicateBtn.setAttribute('role', 'menuitem');
+            duplicateBtn.setAttribute('aria-label', `Duplicate sheet ${idx + 1}`);
+            duplicateBtn.addEventListener('click', (event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              blurActiveTarget();
+              duplicateSheetAt(idx);
+              closeSheetMenu();
+            });
+            row.appendChild(option);
+            row.appendChild(duplicateBtn);
+            sheetMenuEl.appendChild(row);
           });
         };
         const toggleSheetMenu = () => {
@@ -1603,6 +1646,27 @@
           scheduleSave();
         };
 
+        const duplicateSheetAt = (idx) => {
+          if (idx === state.currentSheetIndex) persistFromDom();
+          const source = state.sheets[idx];
+          const copy = {
+            ...source,
+            title: `${source.title} (copy)`,
+            names: { ...source.names },
+            constants: { ...source.constants },
+            rows: source.rows.map((row) => ({ ...row })),
+            stats: [...source.stats]
+          };
+          const insertAt = idx + 1;
+          state.sheets.splice(insertAt, 0, copy);
+          undoHistoryBySheet.splice(insertAt, 0, []);
+          state.settingsView = false;
+          state.currentSheetIndex = insertAt;
+          ensureUndoHistoryAlignment();
+          renderSheet();
+          resetClearStage();
+          scheduleSave();
+        };
         const deleteBlankDynamicSheetAt = (idx) => {
           if (idx < 3 || state.sheets.length <= 3) return false;
           if (!sheetIsBlank(state.sheets[idx])) return false;
