@@ -26,12 +26,12 @@
         --keypad-pad: 6px;
         --key-gap: 6px;
         --key-row-h: calc((var(--keypad-h) - (var(--keypad-pad) * 2) - (var(--key-gap) * 5)) / 6);
-        --keypad-active-h: var(--keypad-h);
+        --keypad-active-h: calc(var(--keypad-h) + env(safe-area-inset-bottom));
         --keypad-bg: #7082a7;
       }
 
       body.keypad-is-minimized {
-        --keypad-active-h: var(--keypad-min-h);
+        --keypad-active-h: calc(var(--keypad-min-h) + env(safe-area-inset-bottom));
       }
 
       * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -520,7 +520,7 @@
         left: 0;
         right: 0;
         bottom: 0;
-        height: var(--keypad-h);
+        height: calc(var(--keypad-h) + env(safe-area-inset-bottom));
         padding: var(--keypad-pad);
         padding-bottom: calc(var(--keypad-pad) + env(safe-area-inset-bottom));
         background: var(--keypad-bg);
@@ -595,7 +595,7 @@
       }
 
       .keypad.minimized {
-        height: var(--keypad-min-h);
+        height: calc(var(--keypad-min-h) + env(safe-area-inset-bottom));
       }
 
       .keypad.minimized .keys {
