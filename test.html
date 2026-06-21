@@ -446,9 +446,9 @@
         table-layout: fixed;
       }
 
-      col.col-num { width: 6%; }
-      col.col-main { width: 18%; }
-      col.col-result { width: 22%; }
+      col.col-num { width: 9%; }
+      col.col-main { width: 17%; }
+      col.col-result { width: 21%; }
 
       th,
       td {
@@ -498,6 +498,17 @@
         z-index: 6;
         text-align: right;
         padding-right: 6px;
+        cursor: pointer;
+        touch-action: none;
+      }
+
+      tr.row-selected td.num {
+        background: var(--active);
+        color: #fff;
+      }
+
+      tr.row-selected td.editable-cell {
+        background: rgba(93, 141, 213, 0.18);
       }
 
       .num-head {
@@ -571,6 +582,47 @@
       .result-cell.is-selected {
         background: rgba(93, 141, 213, 0.25);
         box-shadow: inset 0 0 0 2px rgba(93, 141, 213, 0.55);
+      }
+
+      .row-selection-bar {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: var(--keypad-active-h);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 10px;
+        background: var(--active);
+        color: #fff;
+        z-index: 30;
+        box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.2);
+      }
+
+      .row-selection-bar[hidden] {
+        display: none;
+      }
+
+      .row-selection-count {
+        flex: 1;
+        font-size: 13px;
+        font-weight: 600;
+      }
+
+      .row-selection-bar button {
+        border: 0;
+        border-radius: 6px;
+        padding: 6px 12px;
+        font-weight: 700;
+        font-size: 13px;
+        background: #fff;
+        color: var(--active);
+      }
+
+      .row-selection-bar .row-action-done {
+        padding: 6px 10px;
+        background: rgba(255, 255, 255, 0.25);
+        color: #fff;
       }
 
       .result-head { z-index: 9; }
@@ -796,6 +848,13 @@
       <input class="formula-input" value="(B*C)/A" placeholder="Enter formula here" aria-label="Formula editor" />
       <button class="toggle" type="button" aria-label="Toggle formula labels">A / <strong>Name</strong></button>
     </section>
+
+    <div class="row-selection-bar" hidden>
+      <span class="row-selection-count"></span>
+      <button type="button" class="row-action-copy">Copy</button>
+      <button type="button" class="row-action-paste">Paste</button>
+      <button type="button" class="row-action-done" aria-label="Clear row selection">✕</button>
+    </div>
 
     <section class="settings-panel" aria-label="App info and settings" hidden>
       <h2>MiniSheet</h2>
@@ -1554,6 +1613,7 @@
               event.preventDefault();
               event.stopPropagation();
               if (idx !== state.currentSheetIndex || state.settingsView) {
+                clearRowSelection();
                 blurActiveTarget();
                 persistFromDom();
                 state.settingsView = false;
@@ -1679,6 +1739,7 @@
           return true;
         };
         const nav = (dir) => {
+          clearRowSelection();
           persistFromDom();
           const oldIndex = state.currentSheetIndex;
           const oldLength = state.sheets.length;
@@ -2128,6 +2189,7 @@
 
         const MIN_ROWS = ROW_COUNT;
         const tbodyEl = document.querySelector('tbody');
+        const selectedRowIndices = new Set();
         const buildRowDom = (rowNumber) => {
           const tr = document.createElement('tr');
           const numTd = document.createElement('td');
@@ -2182,12 +2244,153 @@
             const ri = resultCells.indexOf(resultCell);
             if (ri !== -1) resultCells.splice(ri, 1);
           }
+          selectedRowIndices.delete(dataRows.length);
+          updateRowSelectionBar();
           tr.remove();
         };
         const syncDomRowCount = (targetLength) => {
           while (dataRows.length < targetLength) appendRowToDom();
           while (dataRows.length > targetLength) removeLastRowFromDom();
         };
+
+        const rowSelectionBar = document.querySelector('.row-selection-bar');
+        const rowSelectionCountEl = document.querySelector('.row-selection-count');
+        const rowCopyBtn = document.querySelector('.row-action-copy');
+        const rowPasteBtn = document.querySelector('.row-action-paste');
+        const rowDoneBtn = document.querySelector('.row-action-done');
+
+        const updateRowSelectionBar = () => {
+          const count = selectedRowIndices.size;
+          if (rowSelectionBar) rowSelectionBar.hidden = count === 0;
+          if (rowSelectionCountEl) rowSelectionCountEl.textContent = count ? `${count} row${count > 1 ? 's' : ''} selected` : '';
+        };
+
+        const setRowSelected = (rowIndex, selected) => {
+          const tr = dataRows[rowIndex];
+          if (!tr) return;
+          tr.classList.toggle('row-selected', selected);
+          if (selected) selectedRowIndices.add(rowIndex);
+          else selectedRowIndices.delete(rowIndex);
+        };
+
+        const clearRowSelection = () => {
+          selectedRowIndices.forEach((rowIndex) => dataRows[rowIndex]?.classList.remove('row-selected'));
+          selectedRowIndices.clear();
+          updateRowSelectionBar();
+        };
+
+        const paintRowsBetween = (fromIndex, toIndex, value) => {
+          const lo = Math.min(fromIndex, toIndex);
+          const hi = Math.max(fromIndex, toIndex);
+          for (let i = lo; i <= hi; i++) setRowSelected(i, value);
+          updateRowSelectionBar();
+        };
+
+        const getSelectedRowsText = () => {
+          const sortedIndices = [...selectedRowIndices].sort((a, b) => a - b);
+          return sortedIndices.map((i) => KEY_ORDER.map((_, ci) => rowBindings[i].inputs[ci].value).join('\t')).join('\n');
+        };
+
+        const applyTextToSelectedRows = (text) => {
+          const sortedIndices = [...selectedRowIndices].sort((a, b) => a - b);
+          if (!sortedIndices.length) return;
+          const lines = text.replace(/\r\n/g, '\n').split('\n').filter((line) => line !== '');
+          lines.forEach((line, li) => {
+            const rowIndex = sortedIndices[li];
+            if (rowIndex === undefined) return;
+            const values = line.split('\t');
+            rowBindings[rowIndex].inputs.forEach((input, ci) => { if (values[ci] !== undefined) input.value = values[ci].trim(); });
+          });
+          computeAllRows();
+          persistFromDom();
+        };
+
+        let rowDragActive = false;
+        let rowDragMoved = false;
+        let rowDragPaintValue = false;
+        let rowDragStartX = 0;
+        let rowDragStartY = 0;
+        let rowDragLastIndex = null;
+
+        tbodyEl?.addEventListener('pointerdown', (event) => {
+          const numCell = event.target.closest('.num');
+          if (!numCell) return;
+          const rowIndex = dataRows.indexOf(numCell.closest('tr'));
+          if (rowIndex === -1) return;
+          if (activeTarget) blurActiveTarget();
+          if (event.cancelable) event.preventDefault();
+          rowDragActive = true;
+          rowDragMoved = false;
+          rowDragStartX = event.clientX;
+          rowDragStartY = event.clientY;
+          rowDragPaintValue = !selectedRowIndices.has(rowIndex);
+          rowDragLastIndex = rowIndex;
+          setRowSelected(rowIndex, rowDragPaintValue);
+          updateRowSelectionBar();
+        });
+
+        tbodyEl?.addEventListener('pointermove', (event) => {
+          if (!rowDragActive) return;
+          const moved = Math.hypot(event.clientX - rowDragStartX, event.clientY - rowDragStartY);
+          if (moved > 6) rowDragMoved = true;
+          if (!rowDragMoved) return;
+          const target = document.elementFromPoint(event.clientX, event.clientY);
+          const numCell = target?.closest('.num');
+          if (!numCell) return;
+          const rowIndex = dataRows.indexOf(numCell.closest('tr'));
+          if (rowIndex === -1 || rowIndex === rowDragLastIndex) return;
+          paintRowsBetween(rowDragLastIndex, rowIndex, rowDragPaintValue);
+          rowDragLastIndex = rowIndex;
+        });
+
+        const endRowDrag = () => { rowDragActive = false; };
+        document.addEventListener('pointerup', endRowDrag);
+        document.addEventListener('pointercancel', endRowDrag);
+
+        document.addEventListener('pointerdown', (event) => {
+          if (!selectedRowIndices.size) return;
+          if (event.target.closest('.num, .row-selection-bar')) return;
+          clearRowSelection();
+        }, true);
+
+        rowDoneBtn?.addEventListener('click', () => clearRowSelection());
+
+        rowCopyBtn?.addEventListener('click', async () => {
+          const text = getSelectedRowsText();
+          try {
+            await navigator.clipboard.writeText(text);
+          } catch {
+            window.prompt('Copy failed automatically. Copy this text manually:', text);
+          }
+        });
+
+        rowPasteBtn?.addEventListener('click', async () => {
+          let text = '';
+          try {
+            text = await navigator.clipboard.readText();
+          } catch {
+            text = window.prompt('Paste blocked by browser. Paste your values here:') || '';
+          }
+          if (!text) return;
+          applyTextToSelectedRows(text);
+        });
+
+        document.addEventListener('copy', (event) => {
+          if (!selectedRowIndices.size) return;
+          if (activeTarget && isInput(activeTarget)) return;
+          event.preventDefault();
+          event.clipboardData?.setData('text/plain', getSelectedRowsText());
+        });
+
+        document.addEventListener('paste', (event) => {
+          if (!selectedRowIndices.size) return;
+          if (activeTarget && isInput(activeTarget)) return;
+          const text = event.clipboardData?.getData('text/plain');
+          if (!text) return;
+          event.preventDefault();
+          applyTextToSelectedRows(text);
+        });
+
         const rowIsBlankForSizing = (row) => KEY_ORDER.every((k) => !String(row[k] || '').trim());
         const applyRowAutoSize = (sheet) => {
           let lastFilled = -1;
