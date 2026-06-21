@@ -513,6 +513,19 @@
         background: rgba(93, 141, 213, 0.18);
       }
 
+      .col-head:not(.result-head) .head-pill .letter {
+        cursor: pointer;
+      }
+
+      th.col-selected .head-pill {
+        background: var(--active);
+        color: #fff;
+      }
+
+      td.col-selected-cell {
+        background: rgba(93, 141, 213, 0.18);
+      }
+
       .num-head {
         font-size: 17px;
         font-weight: 700;
@@ -586,7 +599,8 @@
         box-shadow: inset 0 0 0 2px rgba(93, 141, 213, 0.55);
       }
 
-      .row-selection-bar {
+      .row-selection-bar,
+      .col-selection-bar {
         position: fixed;
         left: 0;
         right: 0;
@@ -601,33 +615,39 @@
         box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.2);
       }
 
-      .row-selection-bar[hidden] {
+      .row-selection-bar[hidden],
+      .col-selection-bar[hidden] {
         display: none;
       }
 
-      .row-selection-top {
+      .row-selection-top,
+      .col-selection-top {
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 8px;
       }
 
-      .row-selection-count {
+      .row-selection-count,
+      .col-selection-count {
         flex: 1;
         font-size: 13px;
         font-weight: 600;
       }
 
-      .row-selection-actions {
+      .row-selection-actions,
+      .col-selection-actions {
         display: flex;
         gap: 6px;
       }
 
-      .row-selection-actions button {
+      .row-selection-actions button,
+      .col-selection-actions button {
         flex: 1;
       }
 
-      .row-selection-bar button {
+      .row-selection-bar button,
+      .col-selection-bar button {
         border: 0;
         border-radius: 6px;
         padding: 6px 8px;
@@ -638,12 +658,14 @@
         transition: background-color 0.15s ease;
       }
 
-      .row-selection-bar button.is-confirmed {
+      .row-selection-bar button.is-confirmed,
+      .col-selection-bar button.is-confirmed {
         background: #cfe3f7;
         color: #1c4b7a;
       }
 
-      .row-selection-bar .row-action-done {
+      .row-selection-bar .row-action-done,
+      .col-selection-bar .col-action-done {
         flex: 0 0 auto;
         padding: 6px 10px;
         background: rgba(255, 255, 255, 0.25);
@@ -853,7 +875,7 @@
     <header class="nav">
       <button class="arrow" aria-label="Previous sheet">◀</button>
       <div class="title-block">
-        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">Proportion: A/B = C/Result</span><span class="version-tag">v0.0.20</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/2</button></div>
+        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">Proportion: A/B = C/Result</span><span class="version-tag">v0.0.21</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/2</button></div>
         <div class="sheet-menu" hidden role="menu" aria-label="Sheet selector"></div>
       </div>
       <button class="arrow" aria-label="Next sheet">▶</button>
@@ -886,9 +908,21 @@
       </div>
     </div>
 
+    <div class="col-selection-bar" hidden>
+      <div class="col-selection-top">
+        <span class="col-selection-count"></span>
+        <button type="button" class="col-action-done" aria-label="Clear column selection">✕</button>
+      </div>
+      <div class="col-selection-actions">
+        <button type="button" class="col-action-copy">Copy</button>
+        <button type="button" class="col-action-cut">Cut</button>
+        <button type="button" class="col-action-paste">Paste</button>
+      </div>
+    </div>
+
     <section class="settings-panel" aria-label="App info and settings" hidden>
       <h2>MiniSheet</h2>
-      <p class="settings-version">Version <span class="version-tag-settings">v0.0.20</span></p>
+      <p class="settings-version">Version <span class="version-tag-settings">v0.0.21</span></p>
       <p>MiniSheet is a formula-driven mini spreadsheet for quick calculations. This page (Sheet 0) is reserved for app info, settings, and developer controls.</p>
       <div class="settings-group">
         <h3>Developer</h3>
@@ -1123,7 +1157,7 @@
         const getInputContext = () => isNumberEntryContext() ? 'number' : (isFormulaEntryContext() ? 'formula' : 'default');
         const isKeyEnabled = (key) => {
           if (key === undoKey) return currentUndoStack().length > 0;
-          if (selectedRowIndices.size > 0) return key?.dataset.key === 'backspace' || key === minimizeKey;
+          if (selectedRowIndices.size > 0 || selectedColKeys.size > 0) return key?.dataset.key === 'backspace' || key === minimizeKey;
           if (key === shiftKey) return true;
           const label = getKeyLabel(key);
           if (TEMP_DISABLED_KEY_LABELS.has(label)) return false;
@@ -1135,7 +1169,7 @@
         const getMinimizeKeyLabel = () => {
           const isMinimized = !!keypad?.classList.contains('minimized');
           if (isMinimized) return MAXIMIZE_KEY_LABEL;
-          if (selectedRowIndices.size > 0 || isFormulaEntryContext() || keypadShiftActive) {
+          if (selectedRowIndices.size > 0 || selectedColKeys.size > 0 || isFormulaEntryContext() || keypadShiftActive) {
             return MINIMIZE_KEY_LABEL;
           }
           return NUMPAD_SWITCH_LABEL;
@@ -1646,6 +1680,7 @@
               event.stopPropagation();
               if (idx !== state.currentSheetIndex || state.settingsView) {
                 clearRowSelection();
+                clearColSelection();
                 blurActiveTarget();
                 persistFromDom();
                 state.settingsView = false;
@@ -1772,6 +1807,7 @@
         };
         const nav = (dir) => {
           clearRowSelection();
+          clearColSelection();
           persistFromDom();
           const oldIndex = state.currentSheetIndex;
           const oldLength = state.sheets.length;
@@ -1930,7 +1966,7 @@
           if (!isKeyEnabled(key)) return;
           if (key === minimizeKey) {
             const currentlyMinimized = !!keypad?.classList.contains('minimized');
-            if (!currentlyMinimized && !selectedRowIndices.size && !isFormulaEntryContext() && !keypadShiftActive) {
+            if (!currentlyMinimized && !selectedRowIndices.size && !selectedColKeys.size && !isFormulaEntryContext() && !keypadShiftActive) {
               state.numpadActive = !state.numpadActive;
               updateKeyAvailability();
               return;
@@ -1972,6 +2008,7 @@
           }
           if (key?.dataset.key === 'backspace') {
             if (selectedRowIndices.size > 0) return clearSelectedRowsValues();
+            if (selectedColKeys.size > 0) return clearSelectedColsValues();
             return deleteBackward();
           }
           if (key === leftKey) return moveCursor(-1);
@@ -2260,6 +2297,9 @@
           const resultCell = tr.querySelector('.result-cell');
           rowBindings.push({ inputs, resultCell });
           if (resultCell) resultCells.push(resultCell);
+          inputs.forEach((input, ci) => {
+            if (selectedColKeys.has(KEY_ORDER[ci])) input.closest('td')?.classList.add('col-selected-cell');
+          });
         };
         const removeLastRowFromDom = () => {
           const tr = dataRows.pop();
@@ -2296,12 +2336,19 @@
         const rowPasteBtn = document.querySelector('.row-action-paste');
         const rowDoneBtn = document.querySelector('.row-action-done');
 
+        const updateSelectionBarHeight = () => {
+          const visibleBar = (rowSelectionBar && !rowSelectionBar.hidden) ? rowSelectionBar
+            : (colSelectionBar && !colSelectionBar.hidden) ? colSelectionBar
+            : null;
+          const barHeight = visibleBar ? visibleBar.offsetHeight : 0;
+          document.documentElement.style.setProperty('--select-bar-h', `${barHeight}px`);
+        };
+
         const updateRowSelectionBar = () => {
           const count = selectedRowIndices.size;
           if (rowSelectionBar) rowSelectionBar.hidden = count === 0;
           if (rowSelectionCountEl) rowSelectionCountEl.textContent = count ? `${count} row${count > 1 ? 's' : ''} selected` : '';
-          const barHeight = count && rowSelectionBar ? rowSelectionBar.offsetHeight : 0;
-          document.documentElement.style.setProperty('--select-bar-h', `${barHeight}px`);
+          updateSelectionBarHeight();
           updateKeyAvailability();
         };
 
@@ -2428,6 +2475,7 @@
           if (!numCell) return;
           const rowIndex = dataRows.indexOf(numCell.closest('tr'));
           if (rowIndex === -1) return;
+          clearColSelection();
           if (activeTarget) blurActiveTarget();
           if (event.cancelable) event.preventDefault();
           rowDragActive = true;
@@ -2471,11 +2519,14 @@
         }, true);
 
         document.addEventListener('pointerup', (event) => {
-          if (!selectedRowIndices.size) return;
-          if (!outsideTapTarget || outsideTapTarget.closest('.num, .row-selection-bar, .keypad')) return;
           const moved = Math.hypot(event.clientX - outsideTapStartX, event.clientY - outsideTapStartY);
           if (moved > 6) return;
-          clearRowSelection();
+          if (selectedRowIndices.size && outsideTapTarget && !outsideTapTarget.closest('.num, .row-selection-bar, .keypad')) {
+            clearRowSelection();
+          }
+          if (selectedColKeys.size && outsideTapTarget && !outsideTapTarget.closest('.letter, .col-selection-bar, .keypad')) {
+            clearColSelection();
+          }
         });
 
         rowDoneBtn?.addEventListener('click', () => clearRowSelection());
@@ -2529,6 +2580,191 @@
           if (!text) return;
           event.preventDefault();
           applyTextToSelectedRows(text);
+        });
+
+        const selectedColKeys = new Set();
+        const colLetterEls = headerLetterEls;
+        const colHeadThs = headerPills.slice(0, 4).map((pill) => pill.closest('th'));
+        const keyToColIndex = (key) => KEY_ORDER.indexOf(key);
+
+        const colSelectionBar = document.querySelector('.col-selection-bar');
+        const colSelectionCountEl = document.querySelector('.col-selection-count');
+        const colCopyBtn = document.querySelector('.col-action-copy');
+        const colCutBtn = document.querySelector('.col-action-cut');
+        const colPasteBtn = document.querySelector('.col-action-paste');
+        const colDoneBtn = document.querySelector('.col-action-done');
+
+        const updateColSelectionBar = () => {
+          const count = selectedColKeys.size;
+          if (colSelectionBar) colSelectionBar.hidden = count === 0;
+          if (colSelectionCountEl) colSelectionCountEl.textContent = count ? `${count} column${count > 1 ? 's' : ''} selected` : '';
+          updateSelectionBarHeight();
+          updateKeyAvailability();
+        };
+
+        const setColSelected = (key, selected) => {
+          const idx = keyToColIndex(key);
+          if (idx === -1) return;
+          colHeadThs[idx]?.classList.toggle('col-selected', selected);
+          rowBindings.forEach((row) => { row.inputs[idx]?.closest('td')?.classList.toggle('col-selected-cell', selected); });
+          if (selected) selectedColKeys.add(key);
+          else selectedColKeys.delete(key);
+        };
+
+        const clearColSelection = () => {
+          selectedColKeys.forEach((key) => setColSelected(key, false));
+          selectedColKeys.clear();
+          updateColSelectionBar();
+        };
+
+        const paintColsBetween = (fromKey, toKey, value) => {
+          const fromIdx = keyToColIndex(fromKey);
+          const toIdx = keyToColIndex(toKey);
+          if (fromIdx === -1 || toIdx === -1) return;
+          const lo = Math.min(fromIdx, toIdx);
+          const hi = Math.max(fromIdx, toIdx);
+          for (let i = lo; i <= hi; i++) setColSelected(KEY_ORDER[i], value);
+          updateColSelectionBar();
+        };
+
+        const getSelectedColsText = () => {
+          const sortedKeys = KEY_ORDER.filter((k) => selectedColKeys.has(k));
+          if (!sortedKeys.length) return '';
+          return rowBindings.map((row) => sortedKeys.map((key) => row.inputs[keyToColIndex(key)].value).join('\t')).join('\n');
+        };
+
+        const applyTextToSelectedCols = (text) => {
+          const sortedKeys = KEY_ORDER.filter((k) => selectedColKeys.has(k));
+          if (!sortedKeys.length) return;
+          const lines = text.replace(/\r\n/g, '\n').split('\n').filter((line) => line !== '');
+          if (!lines.length) return;
+          captureUndoSnapshot();
+          lines.forEach((line, ri) => {
+            if (ri >= rowBindings.length) return;
+            const values = line.split('\t');
+            sortedKeys.forEach((key, ci) => {
+              if (values[ci] === undefined) return;
+              rowBindings[ri].inputs[keyToColIndex(key)].value = values[ci].trim();
+            });
+          });
+          computeAllRows();
+          updateKeyAvailability();
+        };
+
+        const clearSelectedColsValues = () => {
+          if (!selectedColKeys.size) return;
+          captureUndoSnapshot();
+          selectedColKeys.forEach((key) => {
+            const idx = keyToColIndex(key);
+            rowBindings.forEach((row) => { row.inputs[idx].value = ''; });
+          });
+          computeAllRows();
+          updateKeyAvailability();
+        };
+
+        let colDragActive = false;
+        let colDragPaintValue = false;
+        let colDragStartX = 0;
+        let colDragStartY = 0;
+        let colDragLastKey = null;
+
+        const paintToColAtPoint = (clientX, clientY) => {
+          const target = document.elementFromPoint(clientX, clientY);
+          const letterEl = target?.closest('.col-head:not(.result-head) .head-pill .letter');
+          if (!letterEl) return;
+          const th = letterEl.closest('th');
+          const idx = colHeadThs.indexOf(th);
+          if (idx === -1) return;
+          const key = KEY_ORDER[idx];
+          if (key === colDragLastKey) return;
+          paintColsBetween(colDragLastKey, key, colDragPaintValue);
+          colDragLastKey = key;
+        };
+
+        gridHeaderRow?.addEventListener('pointerdown', (event) => {
+          console.log('DEBUG colhead pointerdown', activeTarget === formulaInput, event.target.outerHTML);
+          if (activeTarget === formulaInput) return;
+          const letterEl = event.target.closest('.col-head:not(.result-head) .head-pill .letter');
+          console.log('DEBUG letterEl', !!letterEl);
+          if (!letterEl) return;
+          const th = letterEl.closest('th');
+          const idx = colHeadThs.indexOf(th);
+          console.log('DEBUG idx', idx);
+          if (idx === -1) return;
+          const key = KEY_ORDER[idx];
+          clearRowSelection();
+          if (activeTarget) blurActiveTarget();
+          if (event.cancelable) event.preventDefault();
+          colDragActive = true;
+          colDragStartX = event.clientX;
+          colDragStartY = event.clientY;
+          colDragPaintValue = !selectedColKeys.has(key);
+          colDragLastKey = key;
+          setColSelected(key, colDragPaintValue);
+          updateColSelectionBar();
+        });
+
+        document.addEventListener('pointermove', (event) => {
+          if (!colDragActive) return;
+          const moved = Math.hypot(event.clientX - colDragStartX, event.clientY - colDragStartY);
+          if (moved > 6) paintToColAtPoint(event.clientX, event.clientY);
+        });
+
+        const endColDrag = () => { colDragActive = false; };
+        document.addEventListener('pointerup', endColDrag);
+        document.addEventListener('pointercancel', endColDrag);
+
+        colDoneBtn?.addEventListener('click', () => clearColSelection());
+
+        colCopyBtn?.addEventListener('click', async () => {
+          const text = getSelectedColsText();
+          try {
+            await navigator.clipboard.writeText(text);
+            flashButtonFeedback(colCopyBtn, 'Copied');
+          } catch {
+            window.prompt('Copy failed automatically. Copy this text manually:', text);
+          }
+        });
+
+        colCutBtn?.addEventListener('click', async () => {
+          const text = getSelectedColsText();
+          let copied = true;
+          try {
+            await navigator.clipboard.writeText(text);
+          } catch {
+            copied = false;
+            window.prompt('Copy failed automatically. Copy this text manually:', text);
+          }
+          clearSelectedColsValues();
+          if (copied) flashButtonFeedback(colCutBtn, 'Cut');
+        });
+
+        colPasteBtn?.addEventListener('click', async () => {
+          let text = '';
+          try {
+            text = await navigator.clipboard.readText();
+          } catch {
+            text = window.prompt('Paste blocked by browser. Paste your values here:') || '';
+          }
+          if (!text) return;
+          applyTextToSelectedCols(text);
+        });
+
+        document.addEventListener('copy', (event) => {
+          if (!selectedColKeys.size) return;
+          if (activeTarget && isInput(activeTarget)) return;
+          event.preventDefault();
+          event.clipboardData?.setData('text/plain', getSelectedColsText());
+          flashButtonFeedback(colCopyBtn, 'Copied');
+        });
+
+        document.addEventListener('paste', (event) => {
+          if (!selectedColKeys.size) return;
+          if (activeTarget && isInput(activeTarget)) return;
+          const text = event.clipboardData?.getData('text/plain');
+          if (!text) return;
+          event.preventDefault();
+          applyTextToSelectedCols(text);
         });
 
         const rowIsBlankForSizing = (row) => KEY_ORDER.every((k) => !String(row[k] || '').trim());
