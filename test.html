@@ -942,7 +942,7 @@
     <header class="nav">
       <button class="arrow" aria-label="Previous sheet">◀</button>
       <div class="title-block">
-        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">New Sheet</span><span class="version-tag">v0.0.29</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/1</button></div>
+        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">New Sheet</span><span class="version-tag">v0.0.30</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/1</button></div>
         <div class="sheet-menu" hidden role="menu" aria-label="Sheet selector"></div>
       </div>
       <button class="arrow" aria-label="Next sheet">▶</button>
@@ -989,18 +989,21 @@
 
     <section class="settings-panel" aria-label="App info and settings" hidden>
       <h2>MiniSheet</h2>
-      <p class="settings-version">Version <span class="version-tag-settings">v0.0.29</span></p>
-      <p>MiniSheet is a formula-driven mini spreadsheet for quick calculations. This page (Sheet 0) is reserved for app info, settings, and developer controls.</p>
+      <p class="settings-version">Version <span class="version-tag-settings">v0.0.30</span></p>
+      <p>©2026 Craig Butz</p>
       <div class="settings-group">
-        <h3>Developer</h3>
+        <h3>Update Web App</h3>
         <button type="button" class="settings-btn" id="force-refresh-btn">Force Code Refresh</button>
-        <p class="settings-hint">Clears the cached app files and service worker, then reloads from the network. Use this if the app seems stuck on an old version.</p>
+        <p class="settings-hint">Minisheet maintains a local version for offline access. Refresh to load the most up-to-date version.</p>
       </div>
       <div class="settings-group">
-        <h3>Export Data</h3>
-        <p class="settings-hint">Choose which sheets to export as CSV. Each sheet's data, formula, and constants are saved in a single file.</p>
-        <div class="export-sheet-list"></div>
-        <button type="button" class="settings-btn" id="export-csv-btn">Export CSV</button>
+        <h3>Examples</h3>
+        <p class="settings-hint">Add example sheets to see how formulas, constants, and names work together.</p>
+        <div class="export-sheet-list examples-sheet-list"></div>
+        <label class="import-position-label">Insert after
+          <select class="examples-position-select"></select>
+        </label>
+        <button type="button" class="settings-btn" id="add-examples-btn">Add Selected</button>
       </div>
       <div class="settings-group">
         <h3>Import Data</h3>
@@ -1021,13 +1024,10 @@
         </div>
       </div>
       <div class="settings-group">
-        <h3>Examples</h3>
-        <p class="settings-hint">Add example sheets to see how formulas, constants, and names work together.</p>
-        <div class="export-sheet-list examples-sheet-list"></div>
-        <label class="import-position-label">Insert after
-          <select class="examples-position-select"></select>
-        </label>
-        <button type="button" class="settings-btn" id="add-examples-btn">Add Selected</button>
+        <h3>Export Data</h3>
+        <p class="settings-hint">Choose which sheets to export as CSV. Each sheet's data, formula, and constants are saved in a single file.</p>
+        <div class="export-sheet-list"></div>
+        <button type="button" class="settings-btn" id="export-csv-btn">Export CSV</button>
       </div>
       <div class="settings-group">
         <h3>Danger Zone</h3>
