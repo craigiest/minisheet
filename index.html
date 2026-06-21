@@ -1,3 +1,4 @@
+<!-- Bump the version-tag and version-tag-settings strings (increment the patch number) with every commit that changes this file, without asking. -->
 <!doctype html>
 <html lang="en">
   <head>
@@ -8,7 +9,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="MiniSheet" />
-    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="manifest" href="manifest-test.webmanifest" />
     <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon-180.png" />
     <style>
       :root {
@@ -21,17 +22,19 @@
         --nav-h: 34px;
         --const-h: 74px;
         --formula-h: 56px;
-        --keypad-h: 238px;
+        --keypad-h: 266px;
         --keypad-min-h: 50px;
         --keypad-pad: 6px;
         --key-gap: 6px;
+        --keypad-safe-bottom: calc(env(safe-area-inset-bottom) / 2);
         --key-row-h: calc((var(--keypad-h) - (var(--keypad-pad) * 2) - (var(--key-gap) * 5)) / 6);
-        --keypad-active-h: var(--keypad-h);
+        --keypad-active-h: calc(var(--keypad-h) + var(--keypad-safe-bottom));
         --keypad-bg: #7082a7;
+        --select-bar-h: 0px;
       }
 
       body.keypad-is-minimized {
-        --keypad-active-h: var(--keypad-min-h);
+        --keypad-active-h: calc(var(--keypad-min-h) + var(--keypad-safe-bottom));
       }
 
       * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -169,6 +172,32 @@
         padding: 6px 8px;
       }
 
+      .sheet-option-row {
+        display: flex;
+        align-items: stretch;
+        gap: 2px;
+      }
+
+      .sheet-option-row .sheet-option {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .sheet-duplicate-btn {
+        border: 0;
+        border-radius: 8px;
+        background: transparent;
+        color: var(--text-muted, #8a94a8);
+        font-size: 14px;
+        line-height: 1;
+        padding: 6px 8px;
+        flex-shrink: 0;
+      }
+
+      .sheet-duplicate-btn:active {
+        background: rgba(48, 85, 150, 0.2);
+      }
+
       .sheet-option.is-current {
         background: rgba(48, 85, 150, 0.14);
         font-weight: 700;
@@ -188,6 +217,10 @@
         white-space: nowrap;
         flex: 1;
         min-width: 0;
+      }
+
+      .version-tag {
+        display: none;
       }
 
       .constants-strip {
@@ -315,7 +348,7 @@
         top: calc(env(safe-area-inset-top) + var(--nav-h) + var(--const-h) + var(--formula-h));
         left: 0;
         right: 0;
-        bottom: var(--keypad-active-h);
+        bottom: calc(var(--keypad-active-h) + var(--select-bar-h));
         overflow-y: auto;
         overflow-x: hidden;
         -webkit-overflow-scrolling: touch;
@@ -323,16 +356,176 @@
         z-index: 20;
       }
 
+      .settings-panel {
+        position: fixed;
+        top: calc(env(safe-area-inset-top) + var(--nav-h));
+        left: 0;
+        right: 0;
+        bottom: 0;
+        overflow-y: auto;
+        overflow-x: hidden;
+        -webkit-overflow-scrolling: touch;
+        background: #fff;
+        z-index: 25;
+        padding: 20px;
+        padding-bottom: calc(20px + env(safe-area-inset-bottom));
+      }
+
+      .settings-panel h2 {
+        margin: 0 0 4px;
+        font-size: 20px;
+        color: var(--text);
+      }
+
+      .settings-panel h3 {
+        margin: 0 0 8px;
+        font-size: 15px;
+        color: var(--text);
+      }
+
+      .settings-version {
+        color: #8a94a8;
+        font-size: 13px;
+        margin: 0 0 16px;
+      }
+
+      .settings-panel p {
+        font-size: 14px;
+        line-height: 1.4;
+        color: var(--text);
+      }
+
+      .settings-group {
+        margin-top: 24px;
+        padding-top: 16px;
+        border-top: 1px solid var(--line);
+      }
+
+      .settings-btn {
+        appearance: none;
+        -webkit-appearance: none;
+        border: 0;
+        border-radius: 8px;
+        background: #305596;
+        color: #fff;
+        font-size: 15px;
+        padding: 10px 16px;
+      }
+
+      .settings-btn:active {
+        background: #24407a;
+      }
+
+      .settings-btn-danger {
+        background: #b3261e;
+      }
+
+      .settings-btn-danger:active {
+        background: #8c1d17;
+      }
+
+      .settings-hint {
+        margin-top: 8px;
+        font-size: 12px;
+        color: #8a94a8;
+      }
+
+      .export-sheet-list {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin: 12px 0;
+      }
+
+      .export-sheet-option {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        color: var(--text);
+      }
+
+      .settings-checkbox-label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        color: var(--text);
+      }
+
+      .settings-btn-secondary {
+        background: #eef1f6;
+        color: var(--text);
+      }
+
+      .settings-btn-secondary:active {
+        background: #dde2eb;
+      }
+
+      .import-error {
+        color: #b3261e;
+      }
+
+      .import-picker {
+        margin-top: 12px;
+      }
+
+      .import-sheet-list {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin: 12px 0;
+      }
+
+      .import-position-label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        color: var(--text);
+        min-width: 0;
+      }
+
+      .import-position-select {
+        flex: 1;
+        min-width: 0;
+        max-width: 100%;
+        font-size: 14px;
+        padding: 6px;
+      }
+
+      .import-picker-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 12px;
+      }
+
+      body.settings-view .constants-strip,
+      body.settings-view .formula-strip,
+      body.settings-view .grid-wrap,
+      body.settings-view .keypad {
+        display: none;
+      }
+
+      body.settings-view .settings-panel {
+        display: block;
+      }
+
+      .settings-panel[hidden] {
+        display: none;
+      }
+
       table {
         border-collapse: separate;
         border-spacing: 0;
         width: 100%;
+        height: 100%;
         table-layout: fixed;
       }
 
-      col.col-num { width: 6%; }
-      col.col-main { width: 18%; }
-      col.col-result { width: 22%; }
+      col.col-num { width: 9%; }
+      col.col-main { width: 17%; }
+      col.col-result { width: 21%; }
 
       th,
       td {
@@ -382,6 +575,30 @@
         z-index: 6;
         text-align: right;
         padding-right: 6px;
+        cursor: pointer;
+        touch-action: none;
+      }
+
+      tr.row-selected td.num {
+        background: var(--active);
+        color: #fff;
+      }
+
+      tr.row-selected td.editable-cell {
+        background: rgba(93, 141, 213, 0.18);
+      }
+
+      .col-head:not(.result-head) .head-pill .letter {
+        cursor: pointer;
+      }
+
+      th.col-selected .head-pill {
+        background: var(--active);
+        color: #fff;
+      }
+
+      td.col-selected-cell {
+        background: rgba(93, 141, 213, 0.18);
       }
 
       .num-head {
@@ -457,6 +674,79 @@
         box-shadow: inset 0 0 0 2px rgba(93, 141, 213, 0.55);
       }
 
+      .row-selection-bar,
+      .col-selection-bar {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: var(--keypad-active-h);
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        padding: 8px 10px;
+        background: var(--active);
+        color: #fff;
+        z-index: 30;
+        box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.2);
+      }
+
+      .row-selection-bar[hidden],
+      .col-selection-bar[hidden] {
+        display: none;
+      }
+
+      .row-selection-top,
+      .col-selection-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      .row-selection-count,
+      .col-selection-count {
+        flex: 1;
+        font-size: 13px;
+        font-weight: 600;
+      }
+
+      .row-selection-actions,
+      .col-selection-actions {
+        display: flex;
+        gap: 6px;
+      }
+
+      .row-selection-actions button,
+      .col-selection-actions button {
+        flex: 1;
+      }
+
+      .row-selection-bar button,
+      .col-selection-bar button {
+        border: 0;
+        border-radius: 6px;
+        padding: 6px 8px;
+        font-weight: 700;
+        font-size: 13px;
+        background: #fff;
+        color: var(--active);
+        transition: background-color 0.15s ease;
+      }
+
+      .row-selection-bar button.is-confirmed,
+      .col-selection-bar button.is-confirmed {
+        background: #cfe3f7;
+        color: #1c4b7a;
+      }
+
+      .row-selection-bar .row-action-done,
+      .col-selection-bar .col-action-done {
+        flex: 0 0 auto;
+        padding: 6px 10px;
+        background: rgba(255, 255, 255, 0.25);
+        color: #fff;
+      }
+
       .result-head { z-index: 9; }
 
       tfoot td {
@@ -520,9 +810,9 @@
         left: 0;
         right: 0;
         bottom: 0;
-        height: var(--keypad-h);
+        height: calc(var(--keypad-h) + var(--keypad-safe-bottom));
         padding: var(--keypad-pad);
-        padding-bottom: calc(var(--keypad-pad) + env(safe-area-inset-bottom));
+        padding-bottom: calc(var(--keypad-pad) + var(--keypad-safe-bottom));
         background: var(--keypad-bg);
         border-top: 1px solid #5d6f97;
         z-index: 41;
@@ -535,6 +825,19 @@
         grid-template-columns: repeat(6, minmax(0, 1fr));
         grid-template-rows: repeat(6, minmax(0, 1fr));
         gap: var(--key-gap);
+      }
+
+      .keys[hidden] {
+        display: none;
+      }
+
+      .numpad-keys {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-rows: repeat(4, minmax(0, 1fr));
+      }
+
+      .numpad-keys .key {
+        font-size: 24px;
       }
 
       .key {
@@ -595,7 +898,7 @@
       }
 
       .keypad.minimized {
-        height: var(--keypad-min-h);
+        height: calc(var(--keypad-min-h) + var(--keypad-safe-bottom));
       }
 
       .keypad.minimized .keys {
@@ -647,7 +950,7 @@
     <header class="nav">
       <button class="arrow" aria-label="Previous sheet">◀</button>
       <div class="title-block">
-        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">Proportion: A/B = C/Result</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/2</button></div>
+        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">New Sheet</span><span class="version-tag">v0.2.2</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/1</button></div>
         <div class="sheet-menu" hidden role="menu" aria-label="Sheet selector"></div>
       </div>
       <button class="arrow" aria-label="Next sheet">▶</button>
@@ -666,6 +969,87 @@
       <div class="fx-eq">=</div>
       <input class="formula-input" value="(B*C)/A" placeholder="Enter formula here" aria-label="Formula editor" />
       <button class="toggle" type="button" aria-label="Toggle formula labels">A / <strong>Name</strong></button>
+    </section>
+
+    <div class="row-selection-bar" hidden>
+      <div class="row-selection-top">
+        <span class="row-selection-count"></span>
+        <button type="button" class="row-action-done" aria-label="Clear row selection">✕</button>
+      </div>
+      <div class="row-selection-actions">
+        <button type="button" class="row-action-copy">Copy</button>
+        <button type="button" class="row-action-cut">Cut</button>
+        <button type="button" class="row-action-paste">Paste</button>
+      </div>
+    </div>
+
+    <div class="col-selection-bar" hidden>
+      <div class="col-selection-top">
+        <span class="col-selection-count"></span>
+        <button type="button" class="col-action-done" aria-label="Clear column selection">✕</button>
+      </div>
+      <div class="col-selection-actions">
+        <button type="button" class="col-action-copy">Copy</button>
+        <button type="button" class="col-action-cut">Cut</button>
+        <button type="button" class="col-action-paste">Paste</button>
+      </div>
+    </div>
+
+    <section class="settings-panel" aria-label="App info and settings" hidden>
+      <h2>MiniSheet</h2>
+      <p class="settings-version">Version <span class="version-tag-settings">v0.2.2</span></p>
+      <p>MiniSheet is a formula-driven mini spreadsheet for quick calculations.</p>
+      <p>©2026 Craig Butz</p>
+      <div class="settings-group">
+        <h3>Examples</h3>
+        <p class="settings-hint">Add example sheets to see how formulas, constants, and names work together.</p>
+        <div class="export-sheet-list examples-sheet-list"></div>
+        <label class="import-position-label">Insert after
+          <select class="examples-position-select"></select>
+        </label>
+        <button type="button" class="settings-btn" id="add-examples-btn">Add Selected</button>
+      </div>
+      <div class="settings-group">
+        <h3>Update Web App</h3>
+        <button type="button" class="settings-btn" id="force-refresh-btn">Force Code Refresh</button>
+        <p class="settings-hint">Minisheet maintains a local version for offline access. Refresh to load the most up-to-date version.</p>
+      </div>
+      <div class="settings-group">
+        <h3>Navigation</h3>
+        <label class="settings-checkbox-label">
+          <input type="checkbox" id="skip-settings-nav-checkbox" />
+          Skip this page when navigating between sheets
+        </label>
+      </div>
+      <div class="settings-group">
+        <h3>Import Data</h3>
+        <p class="settings-hint">Import sheets from a MiniSheet CSV export.</p>
+        <input type="file" accept=".csv,text/csv" id="import-csv-input" hidden />
+        <button type="button" class="settings-btn" id="import-csv-btn">Choose CSV File</button>
+        <p class="settings-hint import-error" hidden></p>
+        <div class="import-picker" hidden>
+          <p class="settings-hint">Select which sheets to import:</p>
+          <div class="import-sheet-list"></div>
+          <label class="import-position-label">Insert after
+            <select class="import-position-select"></select>
+          </label>
+          <div class="import-picker-actions">
+            <button type="button" class="settings-btn" id="import-confirm-btn">Import Selected</button>
+            <button type="button" class="settings-btn settings-btn-secondary" id="import-cancel-btn">Cancel</button>
+          </div>
+        </div>
+      </div>
+      <div class="settings-group">
+        <h3>Export Data</h3>
+        <p class="settings-hint">Choose which sheets to export as CSV. Each sheet's data, formula, and constants are saved in a single file.</p>
+        <div class="export-sheet-list"></div>
+        <button type="button" class="settings-btn" id="export-csv-btn">Export CSV</button>
+      </div>
+      <div class="settings-group">
+        <h3>Danger Zone</h3>
+        <button type="button" class="settings-btn settings-btn-danger" id="reset-defaults-btn">Erase All Sheets</button>
+        <p class="settings-hint">Permanently erases all data in every sheet and leaves a single blank sheet. This cannot be undone.</p>
+      </div>
     </section>
 
     <main class="grid-wrap" aria-label="Grid area">
@@ -724,7 +1108,7 @@
     </main>
 
     <section class="keypad" aria-label="Bottom keypad">
-      <div class="keys">
+      <div class="keys full-keys">
         <button class="key key-undo" data-key="undo">⤺</button><button class="key" data-key="minimize">⤓</button><button class="key">√</button><button class="key" data-shift-slot="e"><em>e</em></button><button class="key" data-shift-slot="pi">π</button><button class="key" data-key="backspace">⌫</button>
         <button class="key light">LOG</button><button class="key light">!</button><button class="key">^</button><button class="key">(</button><button class="key">)</button><button class="key">/</button>
         <button class="key light" data-shift-slot="sin">SIN</button><button class="key light" data-shift-slot="sum">SUM</button><button class="key">7</button><button class="key">8</button><button class="key">9</button><button class="key">*</button>
@@ -732,8 +1116,23 @@
         <button class="key light" data-shift-slot="tan">TAN</button><button class="key light" data-shift-slot="max">MAX</button><button class="key">1</button><button class="key">2</button><button class="key">3</button><button class="key">+</button>
         <button class="key light" data-key="shift">⇧</button><button class="key light" data-shift-slot="min">MIN</button><button class="key">0</button><button class="key">.</button><button class="key">,</button><button class="key">:</button>
       </div>
+      <div class="keys numpad-keys" hidden>
+        <button class="key">7</button><button class="key">8</button><button class="key">9</button><button class="key" data-key="backspace">⌫</button>
+        <button class="key">4</button><button class="key">5</button><button class="key">6</button><button class="key">/</button>
+        <button class="key">1</button><button class="key">2</button><button class="key">3</button><button class="key">−</button>
+        <button class="key">0</button><button class="key">.</button><button class="key" data-key="np-enter">↩︎</button><button class="key" data-key="full-keypad">⇲</button>
+      </div>
     </section>
 
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker
+            .register('sw-test.js', { updateViaCache: 'none' })
+            .then((registration) => registration.update());
+        });
+      }
+    </script>
     <script>
       (() => {
         let lastTouchEnd = 0;
@@ -758,14 +1157,18 @@
         const UNDO_KEY_LABEL = '⤺';
         const MINIMIZE_KEY_LABEL = '⤓';
         const MAXIMIZE_KEY_LABEL = '⤒';
+        const NUMPAD_SWITCH_LABEL = '⇱';
+        const FULL_KEYPAD_LABEL = '⇲';
+        const NUMPAD_ENTER_LABEL = '↩︎';
 
         const keypad = document.querySelector('.keypad');
         const constantsStrip = document.querySelector('.constants-strip');
         const gridHeaderRow = document.querySelector('thead');
+        const fullKeysEl = keypad?.querySelector('.full-keys') || null;
+        const numpadKeysEl = keypad?.querySelector('.numpad-keys') || null;
         const keys = [...document.querySelectorAll('.keypad .key')];
         const minimizeKey = keypad?.querySelector('[data-key="minimize"]') || null;
         const undoKey = keypad?.querySelector('[data-key="undo"]') || null;
-        const backspaceKey = keypad?.querySelector('[data-key="backspace"]') || null;
         const shiftKey = keypad?.querySelector('[data-key="shift"]') || null;
         const leftKey = keys.find((key) => key.textContent.trim() === '<');
         const rightKey = keys.find((key) => key.textContent.trim() === '>');
@@ -779,6 +1182,23 @@
         const sheetIndexEl = document.querySelector('.sheet-index');
         const sheetMenuEl = document.querySelector('.sheet-menu');
         const sheetNameLine = document.querySelector('.sheet-name');
+        const settingsPanelEl = document.querySelector('.settings-panel');
+        const forceRefreshBtn = document.getElementById('force-refresh-btn');
+        const resetDefaultsBtn = document.getElementById('reset-defaults-btn');
+        const exportSheetListEl = document.querySelector('.export-sheet-list');
+        const exportCsvBtn = document.getElementById('export-csv-btn');
+        const importCsvInput = document.getElementById('import-csv-input');
+        const importCsvBtn = document.getElementById('import-csv-btn');
+        const importErrorEl = document.querySelector('.import-error');
+        const importPickerEl = document.querySelector('.import-picker');
+        const importSheetListEl = document.querySelector('.import-sheet-list');
+        const importPositionSelect = document.querySelector('.import-position-select');
+        const importConfirmBtn = document.getElementById('import-confirm-btn');
+        const importCancelBtn = document.getElementById('import-cancel-btn');
+        const examplesSheetListEl = document.querySelector('.examples-sheet-list');
+        const examplesPositionSelect = document.querySelector('.examples-position-select');
+        const addExamplesBtn = document.getElementById('add-examples-btn');
+        const skipSettingsNavCheckbox = document.getElementById('skip-settings-nav-checkbox');
         const formulaInput = document.querySelector('.formula-input');
         const constantInputs = [...document.querySelectorAll('.const-cell input')];
         const constTopEls = [...document.querySelectorAll('.const-top')];
@@ -786,7 +1206,7 @@
         const statCells = [...document.querySelectorAll('tfoot .stat-cell')];
         const headerPills = [...document.querySelectorAll('thead .head-pill')];
         const getKeyLabel = (key) => key?.textContent.trim() || '';
-        const NUMBER_ENTRY_KEY_LABELS = new Set(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '−', 'e', 'π', 'c', 'g', UNDO_KEY_LABEL, '⌫', '=', MINIMIZE_KEY_LABEL, MAXIMIZE_KEY_LABEL]);
+        const NUMBER_ENTRY_KEY_LABELS = new Set(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '−', '/', 'e', 'π', 'c', 'g', UNDO_KEY_LABEL, '⌫', '=', MINIMIZE_KEY_LABEL, MAXIMIZE_KEY_LABEL, NUMPAD_SWITCH_LABEL, FULL_KEYPAD_LABEL, NUMPAD_ENTER_LABEL]);
         const FORMULA_ENTRY_KEY_LABELS = new Set(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '−', '+', '*', '/', '^', '!', '(', ')', ',', ':', '√', 'LOG', 'SUM', 'MEAN', 'MAX', 'MIN', 'COUNT', 'CNT', 'MDN', 'MODE', 'GMN', 'SIN', 'COS', 'TAN', 'ASIN', 'ACOS', 'ATAN', 'e', 'π', 'c', 'g', '⌫', UNDO_KEY_LABEL, MINIMIZE_KEY_LABEL, MAXIMIZE_KEY_LABEL]);
         const TEMP_DISABLED_KEY_LABELS = new Set([]);
 
@@ -802,18 +1222,7 @@
           }
         };
 
-        const sheetTemplate = (idx) => {
-          if (idx === 0) {
-            return {
-              title: '* for US-->metric, / for metric-->US',
-              formula: 'A*V',
-              names: { V: 'in/cm', W: 'ft/m', X: 'mi/km', Y: 'oz/g', Z: 'lb/kg' },
-              constants: { V: '2.54', W: '0.3048', X: '1.60934', Y: '28.3495', Z: '0.453592' }
-            };
-          }
-          if (idx === 1) return { title: 'Proportion: A/B = C/Result', formula: '(B*C)/A' };
-          return { title: 'New Sheet', formula: '' };
-        };
+        const sheetTemplate = () => ({ title: 'New Sheet', formula: '' });
 
         const baseNames = { A: 'value1', B: 'value2', C: 'value3', D: 'value4', V: 'const1', W: 'const2', X: 'const3', Y: 'const4', Z: 'const5' };
         const makeBlankRows = () => Array.from({ length: ROW_COUNT }, () => ({ A: '', B: '', C: '', D: '', Result: '' }));
@@ -848,12 +1257,12 @@
           };
         };
 
-        const state = { sheets: [makeSheet(0), makeSheet(1), makeSheet(2)], currentSheetIndex: 0, formulaMode: 'name', clearStage: 0, acConfirmPresses: 0 };
+        const state = { sheets: [makeSheet(0)], currentSheetIndex: 0, formulaMode: 'name', clearStage: 0, acConfirmPresses: 0, settingsView: false, numpadActive: false, skipSettingsInNav: false };
 
         let saveTimer = null;
         const scheduleSave = () => {
           if (saveTimer) clearTimeout(saveTimer);
-          saveTimer = setTimeout(() => asyncStorage.set({ sheets: state.sheets, currentSheetIndex: state.currentSheetIndex, formulaMode: state.formulaMode }), 250);
+          saveTimer = setTimeout(() => asyncStorage.set({ sheets: state.sheets, currentSheetIndex: state.currentSheetIndex, formulaMode: state.formulaMode, skipSettingsInNav: state.skipSettingsInNav }), 250);
         };
 
         dataRows.forEach((row) => {
@@ -873,6 +1282,7 @@
         const getInputContext = () => isNumberEntryContext() ? 'number' : (isFormulaEntryContext() ? 'formula' : 'default');
         const isKeyEnabled = (key) => {
           if (key === undoKey) return currentUndoStack().length > 0;
+          if (selectedRowIndices.size > 0 || selectedColKeys.size > 0) return key?.dataset.key === 'backspace' || key === minimizeKey;
           if (key === shiftKey) return true;
           const label = getKeyLabel(key);
           if (TEMP_DISABLED_KEY_LABELS.has(label)) return false;
@@ -881,7 +1291,22 @@
           if (context === 'formula') return FORMULA_ENTRY_KEY_LABELS.has(label);
           return true;
         };
+        const getMinimizeKeyLabel = () => {
+          const isMinimized = !!keypad?.classList.contains('minimized');
+          if (isMinimized) return MAXIMIZE_KEY_LABEL;
+          if (selectedRowIndices.size > 0 || selectedColKeys.size > 0 || isFormulaEntryContext() || keypadShiftActive) {
+            return MINIMIZE_KEY_LABEL;
+          }
+          return NUMPAD_SWITCH_LABEL;
+        };
+        const syncKeypadMode = () => {
+          const showNumpad = !isFormulaEntryContext() && state.numpadActive;
+          if (fullKeysEl) fullKeysEl.hidden = showNumpad;
+          if (numpadKeysEl) numpadKeysEl.hidden = !showNumpad;
+        };
         const updateKeyAvailability = () => {
+          syncKeypadMode();
+          if (minimizeKey) minimizeKey.textContent = getMinimizeKeyLabel();
           keys.forEach((key) => {
             const enabled = isKeyEnabled(key);
             key.disabled = !enabled;
@@ -916,8 +1341,7 @@
           { label: 'C', ariaLabel: 'Clear selected item', danger: false },
           { label: '#C', ariaLabel: 'Clear all grid values', danger: false },
           { label: 'CC', ariaLabel: 'Clear constants', danger: false },
-          { label: 'AC', ariaLabel: 'Clear entire sheet', danger: false },
-          { label: 'Rst', ariaLabel: 'Reset all sheets to defaults', danger: true }
+          { label: 'AC', ariaLabel: 'Clear entire sheet', danger: false }
         ];
         const syncClearButtonUi = () => {
           if (!clearButton) return;
@@ -1202,7 +1626,22 @@
         const NAMED_NUMERIC_CONSTANTS = { PI: Math.PI, E: Math.E, C: 299792458, G: 9.80665 };
         const DEG_TO_RAD = Math.PI / 180;
         const RAD_TO_DEG = 180 / Math.PI;
-        const toNumericOrZero = (rawValue) => { const value = String(rawValue ?? '').trim(); if (!value) return 0; const normalized = value === 'π' ? 'PI' : value.toUpperCase(); if (Object.prototype.hasOwnProperty.call(NAMED_NUMERIC_CONSTANTS, normalized)) return NAMED_NUMERIC_CONSTANTS[normalized]; const numeric = Number(value); if (!Number.isFinite(numeric)) throw new Error('NON_NUMERIC'); return numeric; };
+        const toNumericOrZero = (rawValue) => {
+          const value = String(rawValue ?? '').trim();
+          if (!value) return 0;
+          const fractionMatch = value.match(/^(-?\d+(?:\.\d+)?)\s*\/\s*(-?\d+(?:\.\d+)?)$/);
+          if (fractionMatch) {
+            const numerator = Number(fractionMatch[1]);
+            const denominator = Number(fractionMatch[2]);
+            if (!Number.isFinite(numerator) || !Number.isFinite(denominator) || denominator === 0) throw new Error('NON_NUMERIC');
+            return numerator / denominator;
+          }
+          const normalized = value === 'π' ? 'PI' : value.toUpperCase();
+          if (Object.prototype.hasOwnProperty.call(NAMED_NUMERIC_CONSTANTS, normalized)) return NAMED_NUMERIC_CONSTANTS[normalized];
+          const numeric = Number(value);
+          if (!Number.isFinite(numeric)) throw new Error('NON_NUMERIC');
+          return numeric;
+        };
 
         const FORMULA_IDENTIFIER_NAMES = ['MEDIAN', 'COUNT', 'MEAN', 'MODE', 'ASIN', 'ACOS', 'ATAN', 'LOG', 'SUM', 'MAX', 'MIN', 'CNT', 'MDN', 'GMN', 'SIN', 'COS', 'TAN'];
         const tokenizeAlphaRun = (raw) => {
@@ -1308,6 +1747,7 @@
 
         const recomputeStatsFromSheet = (sheet) => { statCells.forEach((cell, index) => { const output = cell.querySelector('output'); const statName = sheet.stats[index] || '--'; if (statName === '--') { output.textContent = '—'; return; } const values = sheet.rows.map((row) => index < 4 ? String(row[KEY_ORDER[index]] || '').trim() : String(row.Result || '').trim()).filter((v) => v !== '').map(Number).filter((n) => Number.isFinite(n)); output.textContent = applyStat(values, statName); }); };
         const persistFromDom = () => {
+          if (state.settingsView) { scheduleSave(); return; }
           const sheet = state.sheets[state.currentSheetIndex];
           const rawTitle = (titleLine?.textContent || '').trim();
           const isEditingLabel = !!activeTarget && labelEditableFields.has(activeTarget);
@@ -1329,7 +1769,28 @@
         const buildSheetMenu = () => {
           if (!sheetMenuEl || !sheetIndexEl) return;
           sheetMenuEl.innerHTML = '';
+          const settingsOption = document.createElement('button');
+          settingsOption.type = 'button';
+          settingsOption.className = 'sheet-option';
+          if (state.settingsView) settingsOption.classList.add('is-current');
+          settingsOption.textContent = '0. Settings & Info';
+          settingsOption.setAttribute('role', 'menuitem');
+          settingsOption.setAttribute('aria-label', 'Go to settings and info');
+          settingsOption.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            if (!state.settingsView) {
+              blurActiveTarget();
+              persistFromDom();
+              state.settingsView = true;
+              renderSheet();
+            }
+            closeSheetMenu();
+          });
+          sheetMenuEl.appendChild(settingsOption);
           state.sheets.forEach((sheet, idx) => {
+            const row = document.createElement('div');
+            row.className = 'sheet-option-row';
             const option = document.createElement('button');
             option.type = 'button';
             option.className = 'sheet-option';
@@ -1341,9 +1802,12 @@
             option.addEventListener('click', (event) => {
               event.preventDefault();
               event.stopPropagation();
-              if (idx !== state.currentSheetIndex) {
+              if (idx !== state.currentSheetIndex || state.settingsView) {
+                clearRowSelection();
+                clearColSelection();
                 blurActiveTarget();
                 persistFromDom();
+                state.settingsView = false;
                 state.currentSheetIndex = idx;
                 ensureUndoHistoryAlignment();
                 renderSheet();
@@ -1352,7 +1816,22 @@
               }
               closeSheetMenu();
             });
-            sheetMenuEl.appendChild(option);
+            const duplicateBtn = document.createElement('button');
+            duplicateBtn.type = 'button';
+            duplicateBtn.className = 'sheet-duplicate-btn';
+            duplicateBtn.textContent = '⧉';
+            duplicateBtn.setAttribute('role', 'menuitem');
+            duplicateBtn.setAttribute('aria-label', `Duplicate sheet ${idx + 1}`);
+            duplicateBtn.addEventListener('click', (event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              blurActiveTarget();
+              duplicateSheetAt(idx);
+              closeSheetMenu();
+            });
+            row.appendChild(option);
+            row.appendChild(duplicateBtn);
+            sheetMenuEl.appendChild(row);
           });
         };
         const toggleSheetMenu = () => {
@@ -1368,7 +1847,21 @@
         };
 
         const renderSheet = () => {
+          document.body.classList.toggle('settings-view', state.settingsView);
+          if (settingsPanelEl) settingsPanelEl.hidden = !state.settingsView;
+          if (sheetTitleEl) sheetTitleEl.setAttribute('contenteditable', state.settingsView ? 'false' : 'true');
+          if (state.settingsView) {
+            if (titleLine) titleLine.textContent = 'Settings & Info';
+            if (sheetNameLine) sheetNameLine.textContent = '';
+            sheetIndexEl.textContent = `0/${state.sheets.length}`;
+            closeSheetMenu();
+            buildExportPicker();
+            buildExamplesPicker();
+            if (skipSettingsNavCheckbox) skipSettingsNavCheckbox.checked = Boolean(state.skipSettingsInNav);
+            return;
+          }
           const sheet = state.sheets[state.currentSheetIndex];
+          syncDomRowCount(sheet.rows.length);
           const { ui } = buildNameMaps(sheet);
           if (titleLine) titleLine.textContent = String(sheet.title ?? '');
           if (sheetNameLine) sheetNameLine.textContent = '';
@@ -1389,6 +1882,7 @@
         const computeAllRows = () => {
           persistFromDom();
           const sheet = state.sheets[state.currentSheetIndex];
+          if (!state.settingsView) applyRowAutoSize(sheet);
           const rowIsEmpty = (row) => KEY_ORDER.every((k) => !String(row[k] || '').trim());
           if (!String(sheet.formulaCanonical || '').trim()) {
             sheet.rows.forEach((row) => { row.Result = ''; });
@@ -1410,26 +1904,55 @@
           scheduleSave();
         };
 
+        const duplicateSheetAt = (idx) => {
+          if (idx === state.currentSheetIndex) persistFromDom();
+          const source = state.sheets[idx];
+          const copy = {
+            ...source,
+            title: `${source.title} (copy)`,
+            names: { ...source.names },
+            constants: { ...source.constants },
+            rows: source.rows.map((row) => ({ ...row })),
+            stats: [...source.stats]
+          };
+          const insertAt = idx + 1;
+          state.sheets.splice(insertAt, 0, copy);
+          undoHistoryBySheet.splice(insertAt, 0, []);
+          state.settingsView = false;
+          state.currentSheetIndex = insertAt;
+          ensureUndoHistoryAlignment();
+          renderSheet();
+          resetClearStage();
+          scheduleSave();
+        };
         const deleteBlankDynamicSheetAt = (idx) => {
-          if (idx < 3 || state.sheets.length <= 3) return false;
+          if (idx < 1 || state.sheets.length <= 1) return false;
           if (!sheetIsBlank(state.sheets[idx])) return false;
           state.sheets.splice(idx, 1);
           undoHistoryBySheet.splice(idx, 1);
           return true;
         };
         const nav = (dir) => {
+          clearRowSelection();
+          clearColSelection();
           persistFromDom();
           const oldIndex = state.currentSheetIndex;
           const oldLength = state.sheets.length;
           const wasLast = oldIndex === oldLength - 1;
+          const wasFirst = oldIndex === 0;
           let nextIndex = (oldIndex + dir + oldLength) % oldLength;
           const deletedCurrent = deleteBlankDynamicSheetAt(oldIndex);
           if (deletedCurrent && oldIndex < nextIndex) nextIndex -= 1;
-          if (dir > 0 && wasLast) {
+          if (dir > 0 && wasLast && !deletedCurrent) {
             state.sheets.push(makeSheet(state.sheets.length));
             undoHistoryBySheet.push([]);
             state.currentSheetIndex = state.sheets.length - 1;
+          } else if (!state.skipSettingsInNav && dir > 0 && wasLast && deletedCurrent) {
+            state.settingsView = true;
+          } else if (!state.skipSettingsInNav && dir < 0 && wasFirst) {
+            state.settingsView = true;
           } else {
+            state.settingsView = false;
             state.currentSheetIndex = ((nextIndex % state.sheets.length) + state.sheets.length) % state.sheets.length;
           }
           ensureUndoHistoryAlignment();
@@ -1467,25 +1990,503 @@
             scheduleSave();
             return;
           }
-          if (state.clearStage === 3) {
-            if (state.acConfirmPresses === 0) {
-              captureUndoSnapshot();
-              blurActiveTarget();
-              state.sheets[state.currentSheetIndex] = makeSheet(state.currentSheetIndex);
-              renderSheet();
-              scheduleSave();
-            }
-            state.acConfirmPresses += 1;
-            if (state.acConfirmPresses >= 4) setClearStage(4);
-            return;
+          if (state.acConfirmPresses === 0) {
+            captureUndoSnapshot();
+            blurActiveTarget();
+            state.sheets[state.currentSheetIndex] = makeSheet(state.currentSheetIndex);
+            renderSheet();
+            scheduleSave();
           }
+          state.acConfirmPresses += 1;
+        };
+
+        const resetAllSheetsToDefaults = () => {
           undoSnapshot = null;
           blurActiveTarget();
-          state.sheets = [makeSheet(0), makeSheet(1), makeSheet(2)];
-          state.currentSheetIndex = 2;
+          state.sheets = [makeSheet(0)];
           clearAllUndoHistory();
           renderSheet();
-          activateTarget(formulaInput);
+          resetClearStage();
+          scheduleSave();
+        };
+
+        const csvField = (value) => {
+          const text = String(value ?? '');
+          return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+        };
+        const csvRow = (values) => values.map(csvField).join(',') + '\n';
+
+        const buildSheetCsv = (sheet, idx) => {
+          let csv = '';
+          csv += csvRow(['#SHEET', idx]);
+          csv += csvRow(['#TITLE', sheet.title]);
+          csv += csvRow(['#FORMULA', sheet.formulaCanonical]);
+          csv += csvRow(['#CONSTANTS']);
+          csv += csvRow(CONST_ORDER);
+          csv += csvRow(CONST_ORDER.map((key) => sheet.names[key]));
+          csv += csvRow(CONST_ORDER.map((key) => sheet.constants[key]));
+          csv += csvRow([...KEY_ORDER, 'Result']);
+          csv += csvRow([...KEY_ORDER.map((key) => sheet.names[key]), sheet.names.Result || 'Result']);
+          sheet.rows.forEach((row) => { csv += csvRow([...KEY_ORDER.map((key) => row[key]), row.Result]); });
+          return csv;
+        };
+
+        const buildExportPicker = () => {
+          if (!exportSheetListEl) return;
+          exportSheetListEl.innerHTML = '';
+          const allLabel = document.createElement('label');
+          allLabel.className = 'export-sheet-option';
+          const allCheckbox = document.createElement('input');
+          allCheckbox.type = 'checkbox';
+          allCheckbox.className = 'export-sheet-all';
+          allCheckbox.checked = true;
+          allLabel.appendChild(allCheckbox);
+          allLabel.appendChild(document.createTextNode('All sheets'));
+          exportSheetListEl.appendChild(allLabel);
+          const sheetCheckboxes = state.sheets.map((sheet, idx) => {
+            const label = document.createElement('label');
+            label.className = 'export-sheet-option';
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.checked = true;
+            checkbox.dataset.sheetIndex = String(idx);
+            const title = String(sheet?.title || `Sheet ${idx + 1}`).trim() || `Sheet ${idx + 1}`;
+            label.appendChild(checkbox);
+            label.appendChild(document.createTextNode(`${idx + 1}. ${title}`));
+            exportSheetListEl.appendChild(label);
+            return checkbox;
+          });
+          allCheckbox.addEventListener('change', () => {
+            sheetCheckboxes.forEach((checkbox) => { checkbox.checked = allCheckbox.checked; });
+          });
+          sheetCheckboxes.forEach((checkbox) => {
+            checkbox.addEventListener('change', () => {
+              allCheckbox.checked = sheetCheckboxes.every((cb) => cb.checked);
+            });
+          });
+        };
+
+        const exportSelectedSheetsCsv = () => {
+          if (!exportSheetListEl) return;
+          const checkboxes = [...exportSheetListEl.querySelectorAll('input[data-sheet-index]')];
+          const selectedIndices = checkboxes.filter((cb) => cb.checked).map((cb) => Number(cb.dataset.sheetIndex));
+          if (!selectedIndices.length) return;
+          let csv = csvRow(['#MINISHEET', 'v1']);
+          selectedIndices.forEach((idx) => { csv += buildSheetCsv(state.sheets[idx], idx + 1); });
+          const blob = new Blob([csv], { type: 'text/csv' });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          const pad = (n) => String(n).padStart(2, '0');
+          const now = new Date();
+          const timestamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`;
+          const filename = selectedIndices.length === 1 ? `minisheet-sheet-${selectedIndices[0] + 1}_${timestamp}.csv` : `minisheet-export_${timestamp}.csv`;
+          link.download = filename;
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          URL.revokeObjectURL(url);
+        };
+
+        const parseCsvRows = (text) => {
+          const rows = [];
+          let row = [];
+          let field = '';
+          let inQuotes = false;
+          let i = 0;
+          while (i < text.length) {
+            const char = text[i];
+            if (inQuotes) {
+              if (char === '"') {
+                if (text[i + 1] === '"') { field += '"'; i += 2; continue; }
+                inQuotes = false; i += 1; continue;
+              }
+              field += char; i += 1; continue;
+            }
+            if (char === '"') { inQuotes = true; i += 1; continue; }
+            if (char === ',') { row.push(field); field = ''; i += 1; continue; }
+            if (char === '\n') { row.push(field); rows.push(row); row = []; field = ''; i += 1; continue; }
+            if (char === '\r') { i += 1; continue; }
+            field += char; i += 1;
+          }
+          if (field !== '' || row.length) { row.push(field); rows.push(row); }
+          return rows;
+        };
+
+        const parseMiniSheetCsv = (text) => {
+          const rows = parseCsvRows(text);
+          const sheets = [];
+          let i = rows[0]?.[0] === '#MINISHEET' ? 1 : 0;
+          while (i < rows.length) {
+            if (!rows[i]?.length || rows[i][0] !== '#SHEET') { i += 1; continue; }
+            i += 1;
+            const sheet = makeSheet(2);
+            sheet.rows = [];
+            if (rows[i]?.[0] === '#TITLE') { sheet.title = rows[i][1] || sheet.title; i += 1; }
+            if (rows[i]?.[0] === '#FORMULA') { sheet.formulaCanonical = rows[i][1] || ''; i += 1; }
+            if (rows[i]?.[0] === '#CONSTANTS') {
+              i += 1;
+              const letters = rows[i] || []; i += 1;
+              const names = rows[i] || []; i += 1;
+              const values = rows[i] || []; i += 1;
+              letters.forEach((letter, col) => {
+                if (!CONST_ORDER.includes(letter)) return;
+                if (names[col] !== undefined) sheet.names[letter] = names[col];
+                sheet.constants[letter] = values[col] ?? '';
+              });
+            }
+            const dataLetters = rows[i] || []; i += 1;
+            const dataNames = rows[i] || []; i += 1;
+            dataLetters.forEach((letter, col) => {
+              if (KEY_ORDER.includes(letter) && dataNames[col] !== undefined) sheet.names[letter] = dataNames[col];
+            });
+            while (i < rows.length && rows[i][0] !== '#SHEET') {
+              const row = rows[i]; i += 1;
+              if (!row.length || row.every((field) => field === '')) continue;
+              const rowObj = { A: '', B: '', C: '', D: '', Result: '' };
+              dataLetters.forEach((letter, col) => {
+                if (letter === 'Result' || KEY_ORDER.includes(letter)) rowObj[letter] = row[col] ?? '';
+              });
+              sheet.rows.push(rowObj);
+            }
+            while (sheet.rows.length < ROW_COUNT) sheet.rows.push({ A: '', B: '', C: '', D: '', Result: '' });
+            sheets.push(sheet);
+          }
+          return sheets;
+        };
+
+        const EXAMPLES_CSV = `#MINISHEET,v1,,,
+#SHEET,1,,,
+#TITLE,Gas Mileage,,,
+#FORMULA,A/B,,,
+#CONSTANTS,,,,
+V,W,X,Y,Z
+const1,const2,const3,const4,const5
+,,,,
+A,B,C,D,Result
+Miles,Gallons,value3,value4,Result
+277,7.815,,,35.44465771
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+#SHEET,2,,,
+#TITLE,Proportion: A/B = C/Result,,,
+#FORMULA,(B*C)/A,,,
+#CONSTANTS,,,,
+V,W,X,Y,Z
+const1,const2,const3,const4,const5
+,,,,
+A,B,C,D,Result
+value1,value2,value3,value4,Result
+1,4,25,,100
+3,2,100,,66.66666667
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+#SHEET,3,,,
+#TITLE,Price comparison,,,
+#FORMULA,A/B,,,
+#CONSTANTS,,,,
+V,W,X,Y,Z
+const1,const2,const3,const4,const5
+,,,,
+A,B,C,D,Result
+value1,value2,value3,value4,Result
+4.99,11,,,0.45363636
+5.99,16,,,0.374375
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+#SHEET,4,,,
+#TITLE,Pizza price per square inch,,,
+#FORMULA,A/(π*(B/2)^2),,,
+#CONSTANTS,,,,
+V,W,X,Y,Z
+const1,const2,const3,const4,const5
+,,,,
+A,B,C,D,Result
+Price,diameter,value3,value4,Result
+26.99,14,,,0.17533028
+30.99,16,,,0.15413162
+35.99,18,,,0.14143176
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+#SHEET,5,,,
+#TITLE,Pythagorean theorem,,,
+#FORMULA,√(A^2+B^2),,,
+#CONSTANTS,,,,
+V,W,X,Y,Z
+const1,const2,const3,const4,const5
+,,,,
+A,B,C,D,Result
+value1,value2,value3,value4,Result
+3,4,,,5
+1,1,,,1.41421356
+5,9,,,10.29563014
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+#SHEET,6,,,
+#TITLE,Weighted average,,,
+#FORMULA,A*B,,,
+#CONSTANTS,,,,
+V,W,X,Y,Z
+const1,const2,const3,const4,const5
+,,,,
+A,B,C,D,Result
+Weight,Value,value3,value4,Result
+0.24,32,,,7.68
+0.78,28,,,21.84
+0.01,18,,,0.18
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+#SHEET,7,,,
+#TITLE,"* for US-->metric, / for metric-->US",,,
+#FORMULA,A*V,,,
+#CONSTANTS,,,,
+V,W,X,Y,Z
+in/cm,ft/m,mi/km,oz/g,lb/kg
+2.54,0.3048,1.60934,28.3495,0.453592
+A,B,C,D,Result
+value1,value2,value3,value4,Result
+12,,,,30.48
+36,,,,91.44
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+#SHEET,8,,,
+#TITLE,Cylinder inches to cubic ft,,,
+#FORMULA,(π*(A/2)^2*B)/(12^3),,,
+#CONSTANTS,,,,
+V,W,X,Y,Z
+const1,const2,const3,const4,const5
+,,,,
+A,B,C,D,Result
+diameter,height,value3,value4,Result
+5,20,,,0.22725641
+12,12,,,0.78539816
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+`;
+
+        let parsedImportSheets = [];
+
+        const showImportError = (message) => {
+          if (!importErrorEl) return;
+          importErrorEl.textContent = message;
+          importErrorEl.hidden = !message;
+        };
+
+        const buildImportPicker = (sheets) => {
+          parsedImportSheets = sheets;
+          if (!importSheetListEl || !importPositionSelect || !importPickerEl) return;
+          importSheetListEl.innerHTML = '';
+          sheets.forEach((sheet, idx) => {
+            const label = document.createElement('label');
+            label.className = 'export-sheet-option';
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.checked = true;
+            checkbox.dataset.importIndex = String(idx);
+            const title = String(sheet?.title || `Sheet ${idx + 1}`).trim() || `Sheet ${idx + 1}`;
+            label.appendChild(checkbox);
+            label.appendChild(document.createTextNode(`${idx + 1}. ${title} (from file)`));
+            importSheetListEl.appendChild(label);
+          });
+          importPositionSelect.innerHTML = '';
+          const beginningOption = document.createElement('option');
+          beginningOption.value = '-1';
+          beginningOption.textContent = 'Beginning (before 1. ' + (String(state.sheets[0]?.title || 'Sheet 1').trim() || 'Sheet 1') + ')';
+          importPositionSelect.appendChild(beginningOption);
+          state.sheets.forEach((sheet, idx) => {
+            const option = document.createElement('option');
+            option.value = String(idx);
+            const title = String(sheet?.title || `Sheet ${idx + 1}`).trim() || `Sheet ${idx + 1}`;
+            option.textContent = `After ${idx + 1}. ${title}`;
+            importPositionSelect.appendChild(option);
+          });
+          importPositionSelect.value = String(state.sheets.length - 1);
+          importPickerEl.hidden = false;
+          showImportError('');
+        };
+
+        const closeImportPicker = () => {
+          parsedImportSheets = [];
+          if (importPickerEl) importPickerEl.hidden = true;
+          if (importCsvInput) importCsvInput.value = '';
+        };
+
+        const importSelectedSheets = () => {
+          if (!importSheetListEl || !parsedImportSheets.length) return;
+          const checkboxes = [...importSheetListEl.querySelectorAll('input[data-import-index]')];
+          const selectedSheets = checkboxes.filter((cb) => cb.checked).map((cb) => parsedImportSheets[Number(cb.dataset.importIndex)]);
+          if (!selectedSheets.length) return;
+          const insertAt = Number(importPositionSelect.value) + 1;
+          blurActiveTarget();
+          persistFromDom();
+          state.sheets.splice(insertAt, 0, ...selectedSheets);
+          selectedSheets.forEach((_, offset) => undoHistoryBySheet.splice(insertAt + offset, 0, []));
+          state.settingsView = false;
+          state.currentSheetIndex = insertAt;
+          ensureUndoHistoryAlignment();
+          renderSheet();
+          resetClearStage();
+          scheduleSave();
+          closeImportPicker();
+        };
+
+        const parsedExampleSheets = parseMiniSheetCsv(EXAMPLES_CSV);
+
+        const buildExamplesPicker = () => {
+          if (!examplesSheetListEl || !examplesPositionSelect) return;
+          examplesSheetListEl.innerHTML = '';
+          parsedExampleSheets.forEach((sheet, idx) => {
+            const label = document.createElement('label');
+            label.className = 'export-sheet-option';
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.dataset.exampleIndex = String(idx);
+            const title = String(sheet?.title || `Sheet ${idx + 1}`).trim() || `Sheet ${idx + 1}`;
+            label.appendChild(checkbox);
+            label.appendChild(document.createTextNode(title));
+            examplesSheetListEl.appendChild(label);
+          });
+          examplesPositionSelect.innerHTML = '';
+          const beginningOption = document.createElement('option');
+          beginningOption.value = '-1';
+          beginningOption.textContent = 'Beginning (before 1. ' + (String(state.sheets[0]?.title || 'Sheet 1').trim() || 'Sheet 1') + ')';
+          examplesPositionSelect.appendChild(beginningOption);
+          state.sheets.forEach((sheet, idx) => {
+            const option = document.createElement('option');
+            option.value = String(idx);
+            const title = String(sheet?.title || `Sheet ${idx + 1}`).trim() || `Sheet ${idx + 1}`;
+            option.textContent = `After ${idx + 1}. ${title}`;
+            examplesPositionSelect.appendChild(option);
+          });
+          examplesPositionSelect.value = String(state.sheets.length - 1);
+        };
+
+        const addSelectedExamples = () => {
+          if (!examplesSheetListEl) return;
+          const checkboxes = [...examplesSheetListEl.querySelectorAll('input[data-example-index]')];
+          const selectedSheets = checkboxes.filter((cb) => cb.checked).map((cb) => cloneData(parsedExampleSheets[Number(cb.dataset.exampleIndex)]));
+          if (!selectedSheets.length) return;
+          const insertAt = Number(examplesPositionSelect.value) + 1;
+          blurActiveTarget();
+          persistFromDom();
+          state.sheets.splice(insertAt, 0, ...selectedSheets);
+          selectedSheets.forEach((_, offset) => undoHistoryBySheet.splice(insertAt + offset, 0, []));
+          state.settingsView = false;
+          state.currentSheetIndex = insertAt;
+          ensureUndoHistoryAlignment();
+          renderSheet();
           resetClearStage();
           scheduleSave();
         };
@@ -1505,7 +2506,7 @@
           formulaSelectionWasAllOnPointerDown = textLength > 0 && start === 0 && end === textLength;
         });
 
-        numericTargets.forEach((target) => {
+        const bindNumericTarget = (target) => {
           target.setAttribute('inputmode', 'none');
           target.addEventListener('focus', () => {
             const shouldSelectAll = target === formulaInput ? activeTarget !== target : false;
@@ -1517,7 +2518,8 @@
           }));
           target.addEventListener('beforeinput', () => { if (activeTarget === target) captureUndoForFocusedTarget(); });
           target.addEventListener('input', () => { if (target === formulaInput && state.formulaMode === 'letter') { const selectionStart = formulaInput.selectionStart; const selectionEnd = formulaInput.selectionEnd; const normalized = formulaInput.value.replace(/\b[vwxyz]\b/g, (m) => m.toUpperCase()); if (normalized !== formulaInput.value) { formulaInput.value = normalized; if (selectionStart !== null && selectionEnd !== null) formulaInput.setSelectionRange(selectionStart, selectionEnd); } } resetClearStage(); persistFromDom(); });
-        });
+        };
+        numericTargets.forEach(bindNumericTarget);
         titleFields.forEach((target) => {
           ['focus', 'pointerup', 'click'].forEach((eventName) => target.addEventListener(eventName, (event) => {
             if (activeTarget === formulaInput && labelEditableFields.has(target)) {
@@ -1536,12 +2538,32 @@
           target.addEventListener('input', () => { resetClearStage(); persistFromDom(); });
         });
 
+        const gridWrapEl = document.querySelector('.grid-wrap');
+        const tfootEl = document.querySelector('tfoot');
+        const scrollRowIntoView = (row) => {
+          if (!row || !gridWrapEl) return;
+          const apply = () => {
+            const wrapRect = gridWrapEl.getBoundingClientRect();
+            const rowRect = row.getBoundingClientRect();
+            const obscuredBottom = tfootEl ? tfootEl.getBoundingClientRect().height : 0;
+            const visibleBottom = wrapRect.bottom - obscuredBottom;
+            if (rowRect.bottom > visibleBottom) {
+              gridWrapEl.scrollTop += rowRect.bottom - visibleBottom;
+            } else if (rowRect.top < wrapRect.top) {
+              gridWrapEl.scrollTop -= wrapRect.top - rowRect.top;
+            }
+          };
+          apply();
+          requestAnimationFrame(apply);
+        };
         const moveVariableSelectionDown = () => {
           if (!activeTarget || !cellInputs.includes(activeTarget)) return;
           const currentIndex = cellInputs.indexOf(activeTarget);
           const nextIndex = currentIndex + KEY_ORDER.length;
           if (nextIndex >= cellInputs.length) return;
-          activateTarget(cellInputs[nextIndex], { selectAll: true });
+          const nextTarget = cellInputs[nextIndex];
+          activateTarget(nextTarget, { selectAll: true });
+          scrollRowIntoView(nextTarget.closest('tr'));
         };
         const runResultAction = () => {
           computeAllRows();
@@ -1554,9 +2576,26 @@
           if (key?.disabled) return;
           if (!isKeyEnabled(key)) return;
           if (key === minimizeKey) {
+            const currentlyMinimized = !!keypad?.classList.contains('minimized');
+            if (!currentlyMinimized && !selectedRowIndices.size && !selectedColKeys.size && !isFormulaEntryContext() && !keypadShiftActive) {
+              state.numpadActive = !state.numpadActive;
+              updateKeyAvailability();
+              return;
+            }
             const isMinimized = keypad.classList.toggle('minimized');
             document.body.classList.toggle('keypad-is-minimized', isMinimized);
-            minimizeKey.textContent = isMinimized ? MAXIMIZE_KEY_LABEL : MINIMIZE_KEY_LABEL;
+            updateKeyAvailability();
+            return;
+          }
+          if (key?.dataset.key === 'full-keypad') {
+            state.numpadActive = false;
+            updateKeyAvailability();
+            return;
+          }
+          if (key?.dataset.key === 'np-enter') {
+            computeAllRows();
+            moveVariableSelectionDown();
+            resetClearStage();
             return;
           }
           if (key === shiftKey) {
@@ -1578,7 +2617,11 @@
             resetClearStage();
             return;
           }
-          if (key === backspaceKey) return deleteBackward();
+          if (key?.dataset.key === 'backspace') {
+            if (selectedRowIndices.size > 0) return clearSelectedRowsValues();
+            if (selectedColKeys.size > 0) return clearSelectedColsValues();
+            return deleteBackward();
+          }
           if (key === leftKey) return moveCursor(-1);
           if (key === rightKey) return moveCursor(1);
           if (key === resultKey) { runResultAction(); return; }
@@ -1596,7 +2639,17 @@
         const bindSheetArrow = (button, direction) => {
           if (!button) return;
           let pointerTriggered = false;
-          const navigate = () => { blurActiveTarget(); nav(direction); };
+          const navigate = () => {
+            blurActiveTarget();
+            if (state.settingsView) {
+              state.settingsView = false;
+              state.currentSheetIndex = direction > 0 ? 0 : state.sheets.length - 1;
+              renderSheet();
+              scheduleSave();
+              return;
+            }
+            nav(direction);
+          };
           button.addEventListener('pointerdown', (event) => {
             event.preventDefault();
             pointerTriggered = true;
@@ -1620,6 +2673,7 @@
             event.preventDefault();
             event.stopPropagation();
             sheetIndexPointerTriggered = true;
+            blurActiveTarget();
             toggleSheetMenu();
           });
           sheetIndexEl.addEventListener('click', (event) => {
@@ -1635,6 +2689,7 @@
             if (!['Enter', ' ', 'ArrowDown'].includes(event.key)) return;
             event.preventDefault();
             event.stopPropagation();
+            blurActiveTarget();
             toggleSheetMenu();
           });
         }
@@ -1805,7 +2860,7 @@
           event.clipboardData?.setData('text/plain', selectedResultCells.map((cell) => cell.textContent?.trim() || '').join('\n'));
         });
 
-        editableTargets.forEach((target) => target.addEventListener('blur', () => {
+        const bindEditableBlur = (target) => target.addEventListener('blur', () => {
           const shouldRecompute = recalcOnBlurTargets.has(target);
           if (activeTarget === target) {
             target.classList.remove('is-active-target');
@@ -1815,9 +2870,541 @@
           }
           if (shouldRecompute) computeAllRows();
           else persistFromDom();
-        }));
+        });
+        editableTargets.forEach(bindEditableBlur);
+
+        const MIN_ROWS = ROW_COUNT;
+        const tbodyEl = document.querySelector('tbody');
+        const selectedRowIndices = new Set();
+        const buildRowDom = (rowNumber) => {
+          const tr = document.createElement('tr');
+          const numTd = document.createElement('td');
+          numTd.className = 'num';
+          numTd.textContent = String(rowNumber);
+          tr.appendChild(numTd);
+          KEY_ORDER.forEach(() => {
+            const td = document.createElement('td');
+            td.className = 'editable-cell';
+            td.innerHTML = '<input class="cell-input" inputmode="none" value="" aria-label="Grid cell value" />';
+            tr.appendChild(td);
+          });
+          const resultTd = document.createElement('td');
+          resultTd.className = 'result-cell';
+          tr.appendChild(resultTd);
+          return tr;
+        };
+        const appendRowToDom = () => {
+          if (!tbodyEl) return;
+          const tr = buildRowDom(dataRows.length + 1);
+          tbodyEl.appendChild(tr);
+          dataRows.push(tr);
+          const inputs = [...tr.querySelectorAll('.cell-input')];
+          inputs.forEach((input) => {
+            cellInputs.push(input);
+            numberEntryTargets.add(input);
+            recalcOnBlurTargets.add(input);
+            editableTargets.push(input);
+            bindNumericTarget(input);
+            bindEditableBlur(input);
+          });
+          const resultCell = tr.querySelector('.result-cell');
+          rowBindings.push({ inputs, resultCell });
+          if (resultCell) resultCells.push(resultCell);
+          inputs.forEach((input, ci) => {
+            if (selectedColKeys.has(KEY_ORDER[ci])) input.closest('td')?.classList.add('col-selected-cell');
+          });
+        };
+        const removeLastRowFromDom = () => {
+          const tr = dataRows.pop();
+          if (!tr) return;
+          const inputs = [...tr.querySelectorAll('.cell-input')];
+          inputs.forEach((input) => {
+            const ci = cellInputs.indexOf(input);
+            if (ci !== -1) cellInputs.splice(ci, 1);
+            numberEntryTargets.delete(input);
+            recalcOnBlurTargets.delete(input);
+            const ei = editableTargets.indexOf(input);
+            if (ei !== -1) editableTargets.splice(ei, 1);
+            if (activeTarget === input) activeTarget = null;
+          });
+          rowBindings.pop();
+          const resultCell = tr.querySelector('.result-cell');
+          if (resultCell) {
+            const ri = resultCells.indexOf(resultCell);
+            if (ri !== -1) resultCells.splice(ri, 1);
+          }
+          selectedRowIndices.delete(dataRows.length);
+          updateRowSelectionBar();
+          tr.remove();
+        };
+        const syncDomRowCount = (targetLength) => {
+          while (dataRows.length < targetLength) appendRowToDom();
+          while (dataRows.length > targetLength) removeLastRowFromDom();
+        };
+
+        const rowSelectionBar = document.querySelector('.row-selection-bar');
+        const rowSelectionCountEl = document.querySelector('.row-selection-count');
+        const rowCopyBtn = document.querySelector('.row-action-copy');
+        const rowCutBtn = document.querySelector('.row-action-cut');
+        const rowPasteBtn = document.querySelector('.row-action-paste');
+        const rowDoneBtn = document.querySelector('.row-action-done');
+
+        const updateSelectionBarHeight = () => {
+          const visibleBar = (rowSelectionBar && !rowSelectionBar.hidden) ? rowSelectionBar
+            : (colSelectionBar && !colSelectionBar.hidden) ? colSelectionBar
+            : null;
+          const barHeight = visibleBar ? visibleBar.offsetHeight : 0;
+          document.documentElement.style.setProperty('--select-bar-h', `${barHeight}px`);
+        };
+
+        const updateRowSelectionBar = () => {
+          const count = selectedRowIndices.size;
+          if (rowSelectionBar) rowSelectionBar.hidden = count === 0;
+          if (rowSelectionCountEl) rowSelectionCountEl.textContent = count ? `${count} row${count > 1 ? 's' : ''} selected` : '';
+          updateSelectionBarHeight();
+          updateKeyAvailability();
+        };
+
+        const flashButtonFeedback = (button, label, duration = 1100) => {
+          if (!button) return;
+          if (button.dataset.flashOriginal === undefined) button.dataset.flashOriginal = button.textContent;
+          clearTimeout(Number(button.dataset.flashTimer) || undefined);
+          button.textContent = label;
+          button.classList.add('is-confirmed');
+          const timer = setTimeout(() => {
+            button.textContent = button.dataset.flashOriginal;
+            button.classList.remove('is-confirmed');
+          }, duration);
+          button.dataset.flashTimer = String(timer);
+        };
+
+        const setRowSelected = (rowIndex, selected) => {
+          const tr = dataRows[rowIndex];
+          if (!tr) return;
+          tr.classList.toggle('row-selected', selected);
+          if (selected) selectedRowIndices.add(rowIndex);
+          else selectedRowIndices.delete(rowIndex);
+        };
+
+        const clearRowSelection = () => {
+          selectedRowIndices.forEach((rowIndex) => dataRows[rowIndex]?.classList.remove('row-selected'));
+          selectedRowIndices.clear();
+          updateRowSelectionBar();
+        };
+
+        const paintRowsBetween = (fromIndex, toIndex, value) => {
+          const lo = Math.min(fromIndex, toIndex);
+          const hi = Math.max(fromIndex, toIndex);
+          for (let i = lo; i <= hi; i++) setRowSelected(i, value);
+          updateRowSelectionBar();
+        };
+
+        const getSelectedRowsText = () => {
+          const sortedIndices = [...selectedRowIndices].sort((a, b) => a - b);
+          return sortedIndices.map((i) => KEY_ORDER.map((_, ci) => rowBindings[i].inputs[ci].value).join('\t')).join('\n');
+        };
+
+        const applyTextToSelectedRows = (text) => {
+          const sortedIndices = [...selectedRowIndices].sort((a, b) => a - b);
+          if (!sortedIndices.length) return;
+          const lines = text.replace(/\r\n/g, '\n').split('\n').filter((line) => line !== '');
+          if (!lines.length) return;
+          captureUndoSnapshot();
+          let targetIndices = sortedIndices;
+          if (sortedIndices.length === 1 && lines.length > 1) {
+            const start = sortedIndices[0];
+            targetIndices = Array.from({ length: lines.length }, (_, i) => start + i);
+          }
+          const maxIndex = Math.max(...targetIndices);
+          while (dataRows.length <= maxIndex) appendRowToDom();
+          const sheet = state.sheets[state.currentSheetIndex];
+          while (sheet.rows.length < dataRows.length) sheet.rows.push({ A: '', B: '', C: '', D: '', Result: '' });
+          lines.forEach((line, li) => {
+            const rowIndex = targetIndices[li];
+            if (rowIndex === undefined) return;
+            const values = line.split('\t');
+            rowBindings[rowIndex].inputs.forEach((input, ci) => { if (values[ci] !== undefined) input.value = values[ci].trim(); });
+          });
+          clearRowSelection();
+          targetIndices.forEach((i) => setRowSelected(i, true));
+          updateRowSelectionBar();
+          computeAllRows();
+          updateKeyAvailability();
+        };
+
+        const clearSelectedRowsValues = () => {
+          if (!selectedRowIndices.size) return;
+          captureUndoSnapshot();
+          selectedRowIndices.forEach((rowIndex) => {
+            rowBindings[rowIndex]?.inputs.forEach((input) => { input.value = ''; });
+          });
+          computeAllRows();
+          updateKeyAvailability();
+        };
+
+        let rowDragActive = false;
+        let rowDragMoved = false;
+        let rowDragPaintValue = false;
+        let rowDragStartX = 0;
+        let rowDragStartY = 0;
+        let rowDragLastIndex = null;
+        let rowDragPointerX = 0;
+        let rowDragPointerY = 0;
+        let rowDragAutoScrollFrame = null;
+
+        const ROW_DRAG_EDGE_MARGIN = 36;
+        const ROW_DRAG_MAX_SCROLL_SPEED = 14;
+
+        const paintToRowAtPoint = (clientX, clientY) => {
+          const target = document.elementFromPoint(clientX, clientY);
+          const numCell = target?.closest('.num');
+          if (!numCell) return;
+          const rowIndex = dataRows.indexOf(numCell.closest('tr'));
+          if (rowIndex === -1 || rowIndex === rowDragLastIndex) return;
+          paintRowsBetween(rowDragLastIndex, rowIndex, rowDragPaintValue);
+          rowDragLastIndex = rowIndex;
+        };
+
+        const rowDragAutoScrollStep = () => {
+          if (!rowDragActive) { rowDragAutoScrollFrame = null; return; }
+          if (gridWrapEl) {
+            const rect = gridWrapEl.getBoundingClientRect();
+            let scrollDelta = 0;
+            if (rowDragPointerY < rect.top + ROW_DRAG_EDGE_MARGIN) {
+              const intensity = (rect.top + ROW_DRAG_EDGE_MARGIN - rowDragPointerY) / ROW_DRAG_EDGE_MARGIN;
+              scrollDelta = -Math.ceil(intensity * ROW_DRAG_MAX_SCROLL_SPEED);
+            } else if (rowDragPointerY > rect.bottom - ROW_DRAG_EDGE_MARGIN) {
+              const intensity = (rowDragPointerY - (rect.bottom - ROW_DRAG_EDGE_MARGIN)) / ROW_DRAG_EDGE_MARGIN;
+              scrollDelta = Math.ceil(intensity * ROW_DRAG_MAX_SCROLL_SPEED);
+            }
+            if (scrollDelta !== 0) gridWrapEl.scrollTop += scrollDelta;
+          }
+          if (rowDragMoved) paintToRowAtPoint(rowDragPointerX, rowDragPointerY);
+          rowDragAutoScrollFrame = requestAnimationFrame(rowDragAutoScrollStep);
+        };
+
+        tbodyEl?.addEventListener('pointerdown', (event) => {
+          const numCell = event.target.closest('.num');
+          if (!numCell) return;
+          const rowIndex = dataRows.indexOf(numCell.closest('tr'));
+          if (rowIndex === -1) return;
+          clearColSelection();
+          if (activeTarget) blurActiveTarget();
+          if (event.cancelable) event.preventDefault();
+          rowDragActive = true;
+          rowDragMoved = false;
+          rowDragStartX = event.clientX;
+          rowDragStartY = event.clientY;
+          rowDragPointerX = event.clientX;
+          rowDragPointerY = event.clientY;
+          rowDragPaintValue = !selectedRowIndices.has(rowIndex);
+          rowDragLastIndex = rowIndex;
+          setRowSelected(rowIndex, rowDragPaintValue);
+          updateRowSelectionBar();
+          if (rowDragAutoScrollFrame === null) rowDragAutoScrollFrame = requestAnimationFrame(rowDragAutoScrollStep);
+        });
+
+        document.addEventListener('pointermove', (event) => {
+          if (!rowDragActive) return;
+          rowDragPointerX = event.clientX;
+          rowDragPointerY = event.clientY;
+          const moved = Math.hypot(event.clientX - rowDragStartX, event.clientY - rowDragStartY);
+          if (moved > 6) rowDragMoved = true;
+        });
+
+        const endRowDrag = () => {
+          rowDragActive = false;
+          if (rowDragAutoScrollFrame !== null) {
+            cancelAnimationFrame(rowDragAutoScrollFrame);
+            rowDragAutoScrollFrame = null;
+          }
+        };
+        document.addEventListener('pointerup', endRowDrag);
+        document.addEventListener('pointercancel', endRowDrag);
+
+        let outsideTapStartX = 0;
+        let outsideTapStartY = 0;
+        let outsideTapTarget = null;
+        document.addEventListener('pointerdown', (event) => {
+          outsideTapStartX = event.clientX;
+          outsideTapStartY = event.clientY;
+          outsideTapTarget = event.target;
+        }, true);
+
+        document.addEventListener('pointerup', (event) => {
+          const moved = Math.hypot(event.clientX - outsideTapStartX, event.clientY - outsideTapStartY);
+          if (moved > 6) return;
+          if (selectedRowIndices.size && outsideTapTarget && !outsideTapTarget.closest('.num, .row-selection-bar, .keypad')) {
+            clearRowSelection();
+          }
+          if (selectedColKeys.size && outsideTapTarget && !outsideTapTarget.closest('.letter, .col-selection-bar, .keypad')) {
+            clearColSelection();
+          }
+        });
+
+        rowDoneBtn?.addEventListener('click', () => clearRowSelection());
+
+        rowCopyBtn?.addEventListener('click', async () => {
+          const text = getSelectedRowsText();
+          try {
+            await navigator.clipboard.writeText(text);
+            flashButtonFeedback(rowCopyBtn, 'Copied');
+          } catch {
+            window.prompt('Copy failed automatically. Copy this text manually:', text);
+          }
+        });
+
+        rowCutBtn?.addEventListener('click', async () => {
+          const text = getSelectedRowsText();
+          let copied = true;
+          try {
+            await navigator.clipboard.writeText(text);
+          } catch {
+            copied = false;
+            window.prompt('Copy failed automatically. Copy this text manually:', text);
+          }
+          clearSelectedRowsValues();
+          if (copied) flashButtonFeedback(rowCutBtn, 'Cut');
+        });
+
+        rowPasteBtn?.addEventListener('click', async () => {
+          let text = '';
+          try {
+            text = await navigator.clipboard.readText();
+          } catch {
+            text = window.prompt('Paste blocked by browser. Paste your values here:') || '';
+          }
+          if (!text) return;
+          applyTextToSelectedRows(text);
+        });
+
+        document.addEventListener('copy', (event) => {
+          if (!selectedRowIndices.size) return;
+          if (activeTarget && isInput(activeTarget)) return;
+          event.preventDefault();
+          event.clipboardData?.setData('text/plain', getSelectedRowsText());
+          flashButtonFeedback(rowCopyBtn, 'Copied');
+        });
+
+        document.addEventListener('paste', (event) => {
+          if (!selectedRowIndices.size) return;
+          if (activeTarget && isInput(activeTarget)) return;
+          const text = event.clipboardData?.getData('text/plain');
+          if (!text) return;
+          event.preventDefault();
+          applyTextToSelectedRows(text);
+        });
+
+        const selectedColKeys = new Set();
+        const colLetterEls = headerLetterEls;
+        const colHeadThs = headerPills.slice(0, 4).map((pill) => pill.closest('th'));
+        const keyToColIndex = (key) => KEY_ORDER.indexOf(key);
+
+        const colSelectionBar = document.querySelector('.col-selection-bar');
+        const colSelectionCountEl = document.querySelector('.col-selection-count');
+        const colCopyBtn = document.querySelector('.col-action-copy');
+        const colCutBtn = document.querySelector('.col-action-cut');
+        const colPasteBtn = document.querySelector('.col-action-paste');
+        const colDoneBtn = document.querySelector('.col-action-done');
+
+        const updateColSelectionBar = () => {
+          const count = selectedColKeys.size;
+          if (colSelectionBar) colSelectionBar.hidden = count === 0;
+          if (colSelectionCountEl) colSelectionCountEl.textContent = count ? `${count} column${count > 1 ? 's' : ''} selected` : '';
+          updateSelectionBarHeight();
+          updateKeyAvailability();
+        };
+
+        const setColSelected = (key, selected) => {
+          const idx = keyToColIndex(key);
+          if (idx === -1) return;
+          colHeadThs[idx]?.classList.toggle('col-selected', selected);
+          rowBindings.forEach((row) => { row.inputs[idx]?.closest('td')?.classList.toggle('col-selected-cell', selected); });
+          if (selected) selectedColKeys.add(key);
+          else selectedColKeys.delete(key);
+        };
+
+        const clearColSelection = () => {
+          selectedColKeys.forEach((key) => setColSelected(key, false));
+          selectedColKeys.clear();
+          updateColSelectionBar();
+        };
+
+        const paintColsBetween = (fromKey, toKey, value) => {
+          const fromIdx = keyToColIndex(fromKey);
+          const toIdx = keyToColIndex(toKey);
+          if (fromIdx === -1 || toIdx === -1) return;
+          const lo = Math.min(fromIdx, toIdx);
+          const hi = Math.max(fromIdx, toIdx);
+          for (let i = lo; i <= hi; i++) setColSelected(KEY_ORDER[i], value);
+          updateColSelectionBar();
+        };
+
+        const getSelectedColsText = () => {
+          const sortedKeys = KEY_ORDER.filter((k) => selectedColKeys.has(k));
+          if (!sortedKeys.length) return '';
+          return rowBindings.map((row) => sortedKeys.map((key) => row.inputs[keyToColIndex(key)].value).join('\t')).join('\n');
+        };
+
+        const applyTextToSelectedCols = (text) => {
+          const sortedKeys = KEY_ORDER.filter((k) => selectedColKeys.has(k));
+          if (!sortedKeys.length) return;
+          const lines = text.replace(/\r\n/g, '\n').split('\n').filter((line) => line !== '');
+          if (!lines.length) return;
+          captureUndoSnapshot();
+          lines.forEach((line, ri) => {
+            if (ri >= rowBindings.length) return;
+            const values = line.split('\t');
+            sortedKeys.forEach((key, ci) => {
+              if (values[ci] === undefined) return;
+              rowBindings[ri].inputs[keyToColIndex(key)].value = values[ci].trim();
+            });
+          });
+          computeAllRows();
+          updateKeyAvailability();
+        };
+
+        const clearSelectedColsValues = () => {
+          if (!selectedColKeys.size) return;
+          captureUndoSnapshot();
+          selectedColKeys.forEach((key) => {
+            const idx = keyToColIndex(key);
+            rowBindings.forEach((row) => { row.inputs[idx].value = ''; });
+          });
+          computeAllRows();
+          updateKeyAvailability();
+        };
+
+        let colDragActive = false;
+        let colDragPaintValue = false;
+        let colDragStartX = 0;
+        let colDragStartY = 0;
+        let colDragLastKey = null;
+
+        const paintToColAtPoint = (clientX, clientY) => {
+          const target = document.elementFromPoint(clientX, clientY);
+          const letterEl = target?.closest('.col-head:not(.result-head) .head-pill .letter');
+          if (!letterEl) return;
+          const th = letterEl.closest('th');
+          const idx = colHeadThs.indexOf(th);
+          if (idx === -1) return;
+          const key = KEY_ORDER[idx];
+          if (key === colDragLastKey) return;
+          paintColsBetween(colDragLastKey, key, colDragPaintValue);
+          colDragLastKey = key;
+        };
+
+        gridHeaderRow?.addEventListener('pointerdown', (event) => {
+          console.log('DEBUG colhead pointerdown', activeTarget === formulaInput, event.target.outerHTML);
+          if (activeTarget === formulaInput) return;
+          const letterEl = event.target.closest('.col-head:not(.result-head) .head-pill .letter');
+          console.log('DEBUG letterEl', !!letterEl);
+          if (!letterEl) return;
+          const th = letterEl.closest('th');
+          const idx = colHeadThs.indexOf(th);
+          console.log('DEBUG idx', idx);
+          if (idx === -1) return;
+          const key = KEY_ORDER[idx];
+          clearRowSelection();
+          if (activeTarget) blurActiveTarget();
+          if (event.cancelable) event.preventDefault();
+          colDragActive = true;
+          colDragStartX = event.clientX;
+          colDragStartY = event.clientY;
+          colDragPaintValue = !selectedColKeys.has(key);
+          colDragLastKey = key;
+          setColSelected(key, colDragPaintValue);
+          updateColSelectionBar();
+        });
+
+        document.addEventListener('pointermove', (event) => {
+          if (!colDragActive) return;
+          const moved = Math.hypot(event.clientX - colDragStartX, event.clientY - colDragStartY);
+          if (moved > 6) paintToColAtPoint(event.clientX, event.clientY);
+        });
+
+        const endColDrag = () => { colDragActive = false; };
+        document.addEventListener('pointerup', endColDrag);
+        document.addEventListener('pointercancel', endColDrag);
+
+        colDoneBtn?.addEventListener('click', () => clearColSelection());
+
+        colCopyBtn?.addEventListener('click', async () => {
+          const text = getSelectedColsText();
+          try {
+            await navigator.clipboard.writeText(text);
+            flashButtonFeedback(colCopyBtn, 'Copied');
+          } catch {
+            window.prompt('Copy failed automatically. Copy this text manually:', text);
+          }
+        });
+
+        colCutBtn?.addEventListener('click', async () => {
+          const text = getSelectedColsText();
+          let copied = true;
+          try {
+            await navigator.clipboard.writeText(text);
+          } catch {
+            copied = false;
+            window.prompt('Copy failed automatically. Copy this text manually:', text);
+          }
+          clearSelectedColsValues();
+          if (copied) flashButtonFeedback(colCutBtn, 'Cut');
+        });
+
+        colPasteBtn?.addEventListener('click', async () => {
+          let text = '';
+          try {
+            text = await navigator.clipboard.readText();
+          } catch {
+            text = window.prompt('Paste blocked by browser. Paste your values here:') || '';
+          }
+          if (!text) return;
+          applyTextToSelectedCols(text);
+        });
+
+        document.addEventListener('copy', (event) => {
+          if (!selectedColKeys.size) return;
+          if (activeTarget && isInput(activeTarget)) return;
+          event.preventDefault();
+          event.clipboardData?.setData('text/plain', getSelectedColsText());
+          flashButtonFeedback(colCopyBtn, 'Copied');
+        });
+
+        document.addEventListener('paste', (event) => {
+          if (!selectedColKeys.size) return;
+          if (activeTarget && isInput(activeTarget)) return;
+          const text = event.clipboardData?.getData('text/plain');
+          if (!text) return;
+          event.preventDefault();
+          applyTextToSelectedCols(text);
+        });
+
+        const rowIsBlankForSizing = (row) => KEY_ORDER.every((k) => !String(row[k] || '').trim());
+        const applyRowAutoSize = (sheet) => {
+          let lastFilled = -1;
+          for (let i = sheet.rows.length - 1; i >= 0; i--) {
+            if (!rowIsBlankForSizing(sheet.rows[i])) { lastFilled = i; break; }
+          }
+          const targetLength = Math.max(MIN_ROWS, lastFilled + 2);
+          while (sheet.rows.length < targetLength) sheet.rows.push({ A: '', B: '', C: '', D: '', Result: '' });
+          while (sheet.rows.length > targetLength) sheet.rows.pop();
+        };
         statCells.forEach((cell, idx) => { const select = cell.querySelector('select'); select?.addEventListener('change', () => { state.sheets[state.currentSheetIndex].stats[idx] = select.value; recomputeStatsFromSheet(state.sheets[state.currentSheetIndex]); scheduleSave(); resetClearStage(); }); });
-        document.addEventListener('keydown', (event) => { if (event.key !== 'Enter') return; if (!activeTarget || !editableTargets.includes(activeTarget)) return; event.preventDefault(); blurActiveTarget(); computeAllRows(); resetClearStage(); });
+        document.addEventListener('keydown', (event) => {
+          if (event.key !== 'Enter') return;
+          if (!activeTarget || !editableTargets.includes(activeTarget)) return;
+          event.preventDefault();
+          if (cellInputs.includes(activeTarget)) {
+            computeAllRows();
+            moveVariableSelectionDown();
+            resetClearStage();
+            return;
+          }
+          blurActiveTarget();
+          computeAllRows();
+          resetClearStage();
+        });
 
         (async () => {
           const saved = await asyncStorage.get();
@@ -1825,17 +3412,79 @@
             state.sheets = saved.sheets.map((sheet, idx) => hydrateSheet(sheet, idx));
             state.currentSheetIndex = Math.max(0, Math.min(saved.currentSheetIndex ?? 0, state.sheets.length - 1));
             state.formulaMode = saved.formulaMode === 'letter' ? 'letter' : 'name';
+            state.skipSettingsInNav = Boolean(saved.skipSettingsInNav);
           } else {
-            state.currentSheetIndex = 2;
+            state.currentSheetIndex = 0;
           }
-          while (state.sheets.length < 3) state.sheets.push(makeSheet(state.sheets.length));
+          while (state.sheets.length < 1) state.sheets.push(makeSheet(state.sheets.length));
           clearAllUndoHistory();
           ensureUndoHistoryAlignment();
           renderSheet();
-          if (state.currentSheetIndex === 2 && !String(state.sheets[2]?.formulaCanonical || '').trim()) activateTarget(formulaInput);
+          if (state.currentSheetIndex === 0 && !String(state.sheets[0]?.formulaCanonical || '').trim()) activateTarget(formulaInput);
           resetClearStage();
           updateKeyAvailability();
         })();
+
+        skipSettingsNavCheckbox?.addEventListener('change', () => {
+          state.skipSettingsInNav = skipSettingsNavCheckbox.checked;
+          scheduleSave();
+        });
+
+        forceRefreshBtn?.addEventListener('click', async () => {
+          forceRefreshBtn.disabled = true;
+          forceRefreshBtn.textContent = 'Refreshing…';
+          try {
+            if ('serviceWorker' in navigator) {
+              const registrations = await navigator.serviceWorker.getRegistrations();
+              await Promise.all(registrations.map((registration) => registration.unregister()));
+            }
+            if ('caches' in window) {
+              const keys = await caches.keys();
+              await Promise.all(keys.map((key) => caches.delete(key)));
+            }
+          } finally {
+            window.location.reload();
+          }
+        });
+
+        exportCsvBtn?.addEventListener('click', () => {
+          exportSelectedSheetsCsv();
+        });
+
+        importCsvBtn?.addEventListener('click', () => {
+          importCsvInput?.click();
+        });
+
+        importCsvInput?.addEventListener('change', async () => {
+          const file = importCsvInput.files?.[0];
+          if (!file) return;
+          try {
+            const text = await file.text();
+            const sheets = parseMiniSheetCsv(text);
+            if (!sheets.length) { showImportError('No sheets found in that file.'); return; }
+            buildImportPicker(sheets);
+          } catch (error) {
+            showImportError('Could not read that file as a MiniSheet CSV export.');
+          }
+        });
+
+        importConfirmBtn?.addEventListener('click', () => {
+          importSelectedSheets();
+        });
+
+        importCancelBtn?.addEventListener('click', () => {
+          closeImportPicker();
+        });
+
+        addExamplesBtn?.addEventListener('click', () => {
+          addSelectedExamples();
+        });
+
+        resetDefaultsBtn?.addEventListener('click', () => {
+          const confirmed = window.confirm('Erase all sheets? This erases all data in every sheet, leaving a single blank sheet, and cannot be undone.');
+          if (!confirmed) return;
+          resetAllSheetsToDefaults();
+        });
       })();
     </script>
   </body>
