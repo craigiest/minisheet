@@ -1,4 +1,4 @@
-const CACHE_NAME = 'minisheet-test-v13';
+const CACHE_NAME = 'minisheet-test-v14';
 const ASSETS = [
   'test.html',
   'manifest-test.webmanifest',
@@ -26,12 +26,21 @@ self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
   event.respondWith(
-    fetch(event.request, { cache: 'no-store' })
-      .then((response) => {
+    caches.match(event.request).then((cached) => {
+      if (cached) {
+        // Serve from cache instantly (no network round-trip), then refresh
+        // the cache in the background for next time. Users pull updates
+        // explicitly via the "Force Code Refresh" button.
+        fetch(event.request, { cache: 'no-store' })
+          .then((response) => caches.open(CACHE_NAME).then((cache) => cache.put(event.request, response)))
+          .catch(() => {});
+        return cached;
+      }
+      return fetch(event.request, { cache: 'no-store' }).then((response) => {
         const copy = response.clone();
         caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
         return response;
-      })
-      .catch(() => caches.match(event.request))
+      });
+    })
   );
 });
