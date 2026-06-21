@@ -1,3 +1,4 @@
+<!-- Bump the version-tag and version-tag-settings strings (increment the patch number) with every commit that changes this file, without asking. -->
 <!doctype html>
 <html lang="en">
   <head>
@@ -29,6 +30,7 @@
         --key-row-h: calc((var(--keypad-h) - (var(--keypad-pad) * 2) - (var(--key-gap) * 5)) / 6);
         --keypad-active-h: calc(var(--keypad-h) + var(--keypad-safe-bottom));
         --keypad-bg: #7082a7;
+        --select-bar-h: 0px;
       }
 
       body.keypad-is-minimized {
@@ -350,7 +352,7 @@
         top: calc(env(safe-area-inset-top) + var(--nav-h) + var(--const-h) + var(--formula-h));
         left: 0;
         right: 0;
-        bottom: var(--keypad-active-h);
+        bottom: calc(var(--keypad-active-h) + var(--select-bar-h));
         overflow-y: auto;
         overflow-x: hidden;
         -webkit-overflow-scrolling: touch;
@@ -851,7 +853,7 @@
     <header class="nav">
       <button class="arrow" aria-label="Previous sheet">◀</button>
       <div class="title-block">
-        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">Proportion: A/B = C/Result</span><span class="version-tag">v0.0.19</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/2</button></div>
+        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">Proportion: A/B = C/Result</span><span class="version-tag">v0.0.20</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/2</button></div>
         <div class="sheet-menu" hidden role="menu" aria-label="Sheet selector"></div>
       </div>
       <button class="arrow" aria-label="Next sheet">▶</button>
@@ -886,7 +888,7 @@
 
     <section class="settings-panel" aria-label="App info and settings" hidden>
       <h2>MiniSheet</h2>
-      <p class="settings-version">Version <span class="version-tag-settings">v0.0.19</span></p>
+      <p class="settings-version">Version <span class="version-tag-settings">v0.0.20</span></p>
       <p>MiniSheet is a formula-driven mini spreadsheet for quick calculations. This page (Sheet 0) is reserved for app info, settings, and developer controls.</p>
       <div class="settings-group">
         <h3>Developer</h3>
@@ -2298,6 +2300,8 @@
           const count = selectedRowIndices.size;
           if (rowSelectionBar) rowSelectionBar.hidden = count === 0;
           if (rowSelectionCountEl) rowSelectionCountEl.textContent = count ? `${count} row${count > 1 ? 's' : ''} selected` : '';
+          const barHeight = count && rowSelectionBar ? rowSelectionBar.offsetHeight : 0;
+          document.documentElement.style.setProperty('--select-bar-h', `${barHeight}px`);
           updateKeyAvailability();
         };
 
