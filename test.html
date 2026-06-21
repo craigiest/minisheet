@@ -942,7 +942,7 @@
     <header class="nav">
       <button class="arrow" aria-label="Previous sheet">◀</button>
       <div class="title-block">
-        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">Proportion: A/B = C/Result</span><span class="version-tag">v0.0.27</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/2</button></div>
+        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">New Sheet</span><span class="version-tag">v0.0.28</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/1</button></div>
         <div class="sheet-menu" hidden role="menu" aria-label="Sheet selector"></div>
       </div>
       <button class="arrow" aria-label="Next sheet">▶</button>
@@ -989,7 +989,7 @@
 
     <section class="settings-panel" aria-label="App info and settings" hidden>
       <h2>MiniSheet</h2>
-      <p class="settings-version">Version <span class="version-tag-settings">v0.0.27</span></p>
+      <p class="settings-version">Version <span class="version-tag-settings">v0.0.28</span></p>
       <p>MiniSheet is a formula-driven mini spreadsheet for quick calculations. This page (Sheet 0) is reserved for app info, settings, and developer controls.</p>
       <div class="settings-group">
         <h3>Developer</h3>
@@ -1021,9 +1021,18 @@
         </div>
       </div>
       <div class="settings-group">
+        <h3>Examples</h3>
+        <p class="settings-hint">Add example sheets to see how formulas, constants, and names work together.</p>
+        <div class="export-sheet-list examples-sheet-list"></div>
+        <label class="import-position-label">Insert after
+          <select class="examples-position-select"></select>
+        </label>
+        <button type="button" class="settings-btn" id="add-examples-btn">Add Selected</button>
+      </div>
+      <div class="settings-group">
         <h3>Danger Zone</h3>
-        <button type="button" class="settings-btn settings-btn-danger" id="reset-defaults-btn">Reset All Sheets to Defaults</button>
-        <p class="settings-hint">Permanently erases all data in every sheet and restores the original titles, formulas, and constants. This cannot be undone.</p>
+        <button type="button" class="settings-btn settings-btn-danger" id="reset-defaults-btn">Erase All Sheets</button>
+        <p class="settings-hint">Permanently erases all data in every sheet and leaves a single blank sheet. This cannot be undone.</p>
       </div>
     </section>
 
@@ -1170,6 +1179,9 @@
         const importPositionSelect = document.querySelector('.import-position-select');
         const importConfirmBtn = document.getElementById('import-confirm-btn');
         const importCancelBtn = document.getElementById('import-cancel-btn');
+        const examplesSheetListEl = document.querySelector('.examples-sheet-list');
+        const examplesPositionSelect = document.querySelector('.examples-position-select');
+        const addExamplesBtn = document.getElementById('add-examples-btn');
         const formulaInput = document.querySelector('.formula-input');
         const constantInputs = [...document.querySelectorAll('.const-cell input')];
         const constTopEls = [...document.querySelectorAll('.const-top')];
@@ -1193,18 +1205,7 @@
           }
         };
 
-        const sheetTemplate = (idx) => {
-          if (idx === 0) {
-            return {
-              title: '* for US-->metric, / for metric-->US',
-              formula: 'A*V',
-              names: { V: 'in/cm', W: 'ft/m', X: 'mi/km', Y: 'oz/g', Z: 'lb/kg' },
-              constants: { V: '2.54', W: '0.3048', X: '1.60934', Y: '28.3495', Z: '0.453592' }
-            };
-          }
-          if (idx === 1) return { title: 'Proportion: A/B = C/Result', formula: '(B*C)/A' };
-          return { title: 'New Sheet', formula: '' };
-        };
+        const sheetTemplate = () => ({ title: 'New Sheet', formula: '' });
 
         const baseNames = { A: 'value1', B: 'value2', C: 'value3', D: 'value4', V: 'const1', W: 'const2', X: 'const3', Y: 'const4', Z: 'const5' };
         const makeBlankRows = () => Array.from({ length: ROW_COUNT }, () => ({ A: '', B: '', C: '', D: '', Result: '' }));
@@ -1239,7 +1240,7 @@
           };
         };
 
-        const state = { sheets: [makeSheet(0), makeSheet(1), makeSheet(2)], currentSheetIndex: 0, formulaMode: 'name', clearStage: 0, acConfirmPresses: 0, settingsView: false, numpadActive: false };
+        const state = { sheets: [makeSheet(0)], currentSheetIndex: 0, formulaMode: 'name', clearStage: 0, acConfirmPresses: 0, settingsView: false, numpadActive: false };
 
         let saveTimer = null;
         const scheduleSave = () => {
@@ -1838,6 +1839,7 @@
             sheetIndexEl.textContent = `0/${state.sheets.length}`;
             closeSheetMenu();
             buildExportPicker();
+            buildExamplesPicker();
             return;
           }
           const sheet = state.sheets[state.currentSheetIndex];
@@ -1906,7 +1908,7 @@
           scheduleSave();
         };
         const deleteBlankDynamicSheetAt = (idx) => {
-          if (idx < 3 || state.sheets.length <= 3) return false;
+          if (idx < 1 || state.sheets.length <= 1) return false;
           if (!sheetIsBlank(state.sheets[idx])) return false;
           state.sheets.splice(idx, 1);
           undoHistoryBySheet.splice(idx, 1);
@@ -1977,7 +1979,7 @@
         const resetAllSheetsToDefaults = () => {
           undoSnapshot = null;
           blurActiveTarget();
-          state.sheets = [makeSheet(0), makeSheet(1), makeSheet(2)];
+          state.sheets = [makeSheet(0)];
           clearAllUndoHistory();
           renderSheet();
           resetClearStage();
@@ -2129,6 +2131,199 @@
           return sheets;
         };
 
+        const EXAMPLES_CSV = `#MINISHEET,v1,,,
+#SHEET,1,,,
+#TITLE,Proportion: A/B = C/Result,,,
+#FORMULA,(B*C)/A,,,
+#CONSTANTS,,,,
+V,W,X,Y,Z
+const1,const2,const3,const4,const5
+,,,,
+A,B,C,D,Result
+value1,value2,value3,value4,Result
+1,4,25,,100
+3,2,100,,66.66666667
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+#SHEET,2,,,
+#TITLE,Price comparison,,,
+#FORMULA,A/B,,,
+#CONSTANTS,,,,
+V,W,X,Y,Z
+const1,const2,const3,const4,const5
+,,,,
+A,B,C,D,Result
+value1,value2,value3,value4,Result
+4.99,11,,,0.45363636
+5.99,16,,,0.374375
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+#SHEET,3,,,
+#TITLE,Pizza price per square inch,,,
+#FORMULA,A/(π*(B/2)^2),,,
+#CONSTANTS,,,,
+V,W,X,Y,Z
+const1,const2,const3,const4,const5
+,,,,
+A,B,C,D,Result
+Price,diameter,value3,value4,Result
+26.99,14,,,0.17533028
+30.99,16,,,0.15413162
+35.99,18,,,0.14143176
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+#SHEET,4,,,
+#TITLE,Pythagorean theorem,,,
+#FORMULA,√(A^2+B^2),,,
+#CONSTANTS,,,,
+V,W,X,Y,Z
+const1,const2,const3,const4,const5
+,,,,
+A,B,C,D,Result
+value1,value2,value3,value4,Result
+3,4,,,5
+1,1,,,1.41421356
+5,9,,,10.29563014
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+#SHEET,5,,,
+#TITLE,Weighted average,,,
+#FORMULA,A*B,,,
+#CONSTANTS,,,,
+V,W,X,Y,Z
+const1,const2,const3,const4,const5
+,,,,
+A,B,C,D,Result
+Weight,Value,value3,value4,Result
+0.24,32,,,7.68
+0.78,28,,,21.84
+0.01,18,,,0.18
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+#SHEET,6,,,
+#TITLE,"* for US-->metric, / for metric-->US",,,
+#FORMULA,A*V,,,
+#CONSTANTS,,,,
+V,W,X,Y,Z
+in/cm,ft/m,mi/km,oz/g,lb/kg
+2.54,0.3048,1.60934,28.3495,0.453592
+A,B,C,D,Result
+value1,value2,value3,value4,Result
+12,,,,30.48
+36,,,,91.44
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+#SHEET,7,,,
+#TITLE,Cylinder inches to cubic ft,,,
+#FORMULA,(π*(A/2)^2*B)/(12^3),,,
+#CONSTANTS,,,,
+V,W,X,Y,Z
+const1,const2,const3,const4,const5
+,,,,
+A,B,C,D,Result
+diameter,height,value3,value4,Result
+5,20,,,0.22725641
+12,12,,,0.78539816
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+,,,,
+`;
+
         let parsedImportSheets = [];
 
         const showImportError = (message) => {
@@ -2193,6 +2388,55 @@
           resetClearStage();
           scheduleSave();
           closeImportPicker();
+        };
+
+        const parsedExampleSheets = parseMiniSheetCsv(EXAMPLES_CSV);
+
+        const buildExamplesPicker = () => {
+          if (!examplesSheetListEl || !examplesPositionSelect) return;
+          examplesSheetListEl.innerHTML = '';
+          parsedExampleSheets.forEach((sheet, idx) => {
+            const label = document.createElement('label');
+            label.className = 'export-sheet-option';
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.dataset.exampleIndex = String(idx);
+            const title = String(sheet?.title || `Sheet ${idx + 1}`).trim() || `Sheet ${idx + 1}`;
+            label.appendChild(checkbox);
+            label.appendChild(document.createTextNode(title));
+            examplesSheetListEl.appendChild(label);
+          });
+          examplesPositionSelect.innerHTML = '';
+          const beginningOption = document.createElement('option');
+          beginningOption.value = '-1';
+          beginningOption.textContent = 'Beginning (before 1. ' + (String(state.sheets[0]?.title || 'Sheet 1').trim() || 'Sheet 1') + ')';
+          examplesPositionSelect.appendChild(beginningOption);
+          state.sheets.forEach((sheet, idx) => {
+            const option = document.createElement('option');
+            option.value = String(idx);
+            const title = String(sheet?.title || `Sheet ${idx + 1}`).trim() || `Sheet ${idx + 1}`;
+            option.textContent = `After ${idx + 1}. ${title}`;
+            examplesPositionSelect.appendChild(option);
+          });
+          examplesPositionSelect.value = String(state.sheets.length - 1);
+        };
+
+        const addSelectedExamples = () => {
+          if (!examplesSheetListEl) return;
+          const checkboxes = [...examplesSheetListEl.querySelectorAll('input[data-example-index]')];
+          const selectedSheets = checkboxes.filter((cb) => cb.checked).map((cb) => cloneData(parsedExampleSheets[Number(cb.dataset.exampleIndex)]));
+          if (!selectedSheets.length) return;
+          const insertAt = Number(examplesPositionSelect.value) + 1;
+          blurActiveTarget();
+          persistFromDom();
+          state.sheets.splice(insertAt, 0, ...selectedSheets);
+          selectedSheets.forEach((_, offset) => undoHistoryBySheet.splice(insertAt + offset, 0, []));
+          state.settingsView = false;
+          state.currentSheetIndex = insertAt;
+          ensureUndoHistoryAlignment();
+          renderSheet();
+          resetClearStage();
+          scheduleSave();
         };
 
         const numericTargets = [...constantInputs, formulaInput, ...cellInputs];
@@ -3115,13 +3359,13 @@
             state.currentSheetIndex = Math.max(0, Math.min(saved.currentSheetIndex ?? 0, state.sheets.length - 1));
             state.formulaMode = saved.formulaMode === 'letter' ? 'letter' : 'name';
           } else {
-            state.currentSheetIndex = 2;
+            state.currentSheetIndex = 0;
           }
-          while (state.sheets.length < 3) state.sheets.push(makeSheet(state.sheets.length));
+          while (state.sheets.length < 1) state.sheets.push(makeSheet(state.sheets.length));
           clearAllUndoHistory();
           ensureUndoHistoryAlignment();
           renderSheet();
-          if (state.currentSheetIndex === 2 && !String(state.sheets[2]?.formulaCanonical || '').trim()) activateTarget(formulaInput);
+          if (state.currentSheetIndex === 0 && !String(state.sheets[0]?.formulaCanonical || '').trim()) activateTarget(formulaInput);
           resetClearStage();
           updateKeyAvailability();
         })();
@@ -3172,8 +3416,12 @@
           closeImportPicker();
         });
 
+        addExamplesBtn?.addEventListener('click', () => {
+          addSelectedExamples();
+        });
+
         resetDefaultsBtn?.addEventListener('click', () => {
-          const confirmed = window.confirm('Reset all sheets to defaults? This erases all data in every sheet and cannot be undone.');
+          const confirmed = window.confirm('Erase all sheets? This erases all data in every sheet, leaving a single blank sheet, and cannot be undone.');
           if (!confirmed) return;
           resetAllSheetsToDefaults();
         });
