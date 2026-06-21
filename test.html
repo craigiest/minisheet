@@ -2682,14 +2682,11 @@
         };
 
         gridHeaderRow?.addEventListener('pointerdown', (event) => {
-          console.log('DEBUG colhead pointerdown', activeTarget === formulaInput, event.target.outerHTML);
           if (activeTarget === formulaInput) return;
           const letterEl = event.target.closest('.col-head:not(.result-head) .head-pill .letter');
-          console.log('DEBUG letterEl', !!letterEl);
           if (!letterEl) return;
           const th = letterEl.closest('th');
           const idx = colHeadThs.indexOf(th);
-          console.log('DEBUG idx', idx);
           if (idx === -1) return;
           const key = KEY_ORDER[idx];
           clearRowSelection();
