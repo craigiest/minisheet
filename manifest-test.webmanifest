@@ -1,7 +1,7 @@
 {
-  "name": "MiniSheet (Test)",
-  "short_name": "MiniSheet Test",
-  "description": "MiniSheet calculator with formula-driven rows (v2 test build).",
+  "name": "MiniSheet",
+  "short_name": "MiniSheet",
+  "description": "MiniSheet calculator with formula-driven rows.",
   "id": "./index.html",
   "start_url": "./index.html",
   "scope": "./",
