@@ -63,7 +63,7 @@ V,W,X,Y,Z
 const1,const2,const3,const4,const5
 ,,,,
 A,B,C,D,Result
-value1,value2,value3,value4,Result
+Price,Amount,value3,value4,Result
 4.99,11,,,0.45363636
 5.99,16,,,0.374375
 ,,,,
