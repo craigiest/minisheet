@@ -637,8 +637,8 @@
       }
 
       .row-selection-bar button.is-confirmed {
-        background: #cfe8d6;
-        color: #1c6b35;
+        background: #cfe3f7;
+        color: #1c4b7a;
       }
 
       .row-selection-bar .row-action-done {
@@ -646,12 +646,6 @@
         padding: 6px 10px;
         background: rgba(255, 255, 255, 0.25);
         color: #fff;
-      }
-
-      .row-selection-bar .row-action-cut,
-      .row-selection-bar .row-action-delete {
-        background: #ffe4e4;
-        color: #9b1c1c;
       }
 
       .result-head { z-index: 9; }
@@ -887,7 +881,6 @@
         <button type="button" class="row-action-copy">Copy</button>
         <button type="button" class="row-action-cut">Cut</button>
         <button type="button" class="row-action-paste">Paste</button>
-        <button type="button" class="row-action-delete">Delete</button>
       </div>
     </div>
 
@@ -1128,6 +1121,7 @@
         const getInputContext = () => isNumberEntryContext() ? 'number' : (isFormulaEntryContext() ? 'formula' : 'default');
         const isKeyEnabled = (key) => {
           if (key === undoKey) return currentUndoStack().length > 0;
+          if (selectedRowIndices.size > 0) return key?.dataset.key === 'backspace';
           if (key === shiftKey) return true;
           const label = getKeyLabel(key);
           if (TEMP_DISABLED_KEY_LABELS.has(label)) return false;
@@ -1972,7 +1966,10 @@
             resetClearStage();
             return;
           }
-          if (key?.dataset.key === 'backspace') return deleteBackward();
+          if (key?.dataset.key === 'backspace') {
+            if (selectedRowIndices.size > 0) return clearSelectedRowsValues();
+            return deleteBackward();
+          }
           if (key === leftKey) return moveCursor(-1);
           if (key === rightKey) return moveCursor(1);
           if (key === resultKey) { runResultAction(); return; }
@@ -2293,13 +2290,13 @@
         const rowCopyBtn = document.querySelector('.row-action-copy');
         const rowCutBtn = document.querySelector('.row-action-cut');
         const rowPasteBtn = document.querySelector('.row-action-paste');
-        const rowDeleteBtn = document.querySelector('.row-action-delete');
         const rowDoneBtn = document.querySelector('.row-action-done');
 
         const updateRowSelectionBar = () => {
           const count = selectedRowIndices.size;
           if (rowSelectionBar) rowSelectionBar.hidden = count === 0;
           if (rowSelectionCountEl) rowSelectionCountEl.textContent = count ? `${count} row${count > 1 ? 's' : ''} selected` : '';
+          updateKeyAvailability();
         };
 
         const flashButtonFeedback = (button, label, duration = 1100) => {
@@ -2423,7 +2420,7 @@
 
         document.addEventListener('pointerdown', (event) => {
           if (!selectedRowIndices.size) return;
-          if (event.target.closest('.num, .row-selection-bar')) return;
+          if (event.target.closest('.num, .row-selection-bar, .keypad')) return;
           clearRowSelection();
         }, true);
 
@@ -2462,8 +2459,6 @@
           if (!text) return;
           applyTextToSelectedRows(text);
         });
-
-        rowDeleteBtn?.addEventListener('click', () => clearSelectedRowsValues());
 
         document.addEventListener('copy', (event) => {
           if (!selectedRowIndices.size) return;
