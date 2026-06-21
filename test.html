@@ -419,6 +419,14 @@
         background: #24407a;
       }
 
+      .settings-btn-danger {
+        background: #b3261e;
+      }
+
+      .settings-btn-danger:active {
+        background: #8c1d17;
+      }
+
       .settings-hint {
         margin-top: 8px;
         font-size: 12px;
@@ -929,6 +937,11 @@
         <button type="button" class="settings-btn" id="force-refresh-btn">Force Code Refresh</button>
         <p class="settings-hint">Clears the cached app files and service worker, then reloads from the network. Use this if the app seems stuck on an old version.</p>
       </div>
+      <div class="settings-group">
+        <h3>Danger Zone</h3>
+        <button type="button" class="settings-btn settings-btn-danger" id="reset-defaults-btn">Reset All Sheets to Defaults</button>
+        <p class="settings-hint">Permanently erases all data in every sheet and restores the original titles, formulas, and constants. This cannot be undone.</p>
+      </div>
     </section>
 
     <main class="grid-wrap" aria-label="Grid area">
@@ -1063,6 +1076,7 @@
         const sheetNameLine = document.querySelector('.sheet-name');
         const settingsPanelEl = document.querySelector('.settings-panel');
         const forceRefreshBtn = document.getElementById('force-refresh-btn');
+        const resetDefaultsBtn = document.getElementById('reset-defaults-btn');
         const formulaInput = document.querySelector('.formula-input');
         const constantInputs = [...document.querySelectorAll('.const-cell input')];
         const constTopEls = [...document.querySelectorAll('.const-top')];
@@ -1216,8 +1230,7 @@
           { label: 'C', ariaLabel: 'Clear selected item', danger: false },
           { label: '#C', ariaLabel: 'Clear all grid values', danger: false },
           { label: 'CC', ariaLabel: 'Clear constants', danger: false },
-          { label: 'AC', ariaLabel: 'Clear entire sheet', danger: false },
-          { label: 'Rst', ariaLabel: 'Reset all sheets to defaults', danger: true }
+          { label: 'AC', ariaLabel: 'Clear entire sheet', danger: false }
         ];
         const syncClearButtonUi = () => {
           if (!clearButton) return;
@@ -1857,25 +1870,22 @@
             scheduleSave();
             return;
           }
-          if (state.clearStage === 3) {
-            if (state.acConfirmPresses === 0) {
-              captureUndoSnapshot();
-              blurActiveTarget();
-              state.sheets[state.currentSheetIndex] = makeSheet(state.currentSheetIndex);
-              renderSheet();
-              scheduleSave();
-            }
-            state.acConfirmPresses += 1;
-            if (state.acConfirmPresses >= 4) setClearStage(4);
-            return;
+          if (state.acConfirmPresses === 0) {
+            captureUndoSnapshot();
+            blurActiveTarget();
+            state.sheets[state.currentSheetIndex] = makeSheet(state.currentSheetIndex);
+            renderSheet();
+            scheduleSave();
           }
+          state.acConfirmPresses += 1;
+        };
+
+        const resetAllSheetsToDefaults = () => {
           undoSnapshot = null;
           blurActiveTarget();
           state.sheets = [makeSheet(0), makeSheet(1), makeSheet(2)];
-          state.currentSheetIndex = 2;
           clearAllUndoHistory();
           renderSheet();
-          activateTarget(formulaInput);
           resetClearStage();
           scheduleSave();
         };
@@ -2826,6 +2836,12 @@
           } finally {
             window.location.reload();
           }
+        });
+
+        resetDefaultsBtn?.addEventListener('click', () => {
+          const confirmed = window.confirm('Reset all sheets to defaults? This erases all data in every sheet and cannot be undone.');
+          if (!confirmed) return;
+          resetAllSheetsToDefaults();
         });
       })();
     </script>
