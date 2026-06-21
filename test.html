@@ -942,7 +942,7 @@
     <header class="nav">
       <button class="arrow" aria-label="Previous sheet">◀</button>
       <div class="title-block">
-        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">Proportion: A/B = C/Result</span><span class="version-tag">v0.0.26</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/2</button></div>
+        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">Proportion: A/B = C/Result</span><span class="version-tag">v0.0.27</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/2</button></div>
         <div class="sheet-menu" hidden role="menu" aria-label="Sheet selector"></div>
       </div>
       <button class="arrow" aria-label="Next sheet">▶</button>
@@ -989,7 +989,7 @@
 
     <section class="settings-panel" aria-label="App info and settings" hidden>
       <h2>MiniSheet</h2>
-      <p class="settings-version">Version <span class="version-tag-settings">v0.0.26</span></p>
+      <p class="settings-version">Version <span class="version-tag-settings">v0.0.27</span></p>
       <p>MiniSheet is a formula-driven mini spreadsheet for quick calculations. This page (Sheet 0) is reserved for app info, settings, and developer controls.</p>
       <div class="settings-group">
         <h3>Developer</h3>
@@ -2046,7 +2046,7 @@
           const selectedIndices = checkboxes.filter((cb) => cb.checked).map((cb) => Number(cb.dataset.sheetIndex));
           if (!selectedIndices.length) return;
           let csv = csvRow(['#MINISHEET', 'v1']);
-          selectedIndices.forEach((idx) => { csv += buildSheetCsv(state.sheets[idx], idx); });
+          selectedIndices.forEach((idx) => { csv += buildSheetCsv(state.sheets[idx], idx + 1); });
           const blob = new Blob([csv], { type: 'text/csv' });
           const url = URL.createObjectURL(blob);
           const link = document.createElement('a');
