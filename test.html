@@ -433,6 +433,21 @@
         color: #8a94a8;
       }
 
+      .export-sheet-list {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin: 12px 0;
+      }
+
+      .export-sheet-option {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        color: var(--text);
+      }
+
       body.settings-view .constants-strip,
       body.settings-view .formula-strip,
       body.settings-view .grid-wrap,
@@ -938,6 +953,12 @@
         <p class="settings-hint">Clears the cached app files and service worker, then reloads from the network. Use this if the app seems stuck on an old version.</p>
       </div>
       <div class="settings-group">
+        <h3>Export Data</h3>
+        <p class="settings-hint">Choose which sheets to export as CSV. Each sheet's data, formula, and constants are saved in a single file.</p>
+        <div class="export-sheet-list"></div>
+        <button type="button" class="settings-btn" id="export-csv-btn">Export CSV</button>
+      </div>
+      <div class="settings-group">
         <h3>Danger Zone</h3>
         <button type="button" class="settings-btn settings-btn-danger" id="reset-defaults-btn">Reset All Sheets to Defaults</button>
         <p class="settings-hint">Permanently erases all data in every sheet and restores the original titles, formulas, and constants. This cannot be undone.</p>
@@ -1077,6 +1098,8 @@
         const settingsPanelEl = document.querySelector('.settings-panel');
         const forceRefreshBtn = document.getElementById('force-refresh-btn');
         const resetDefaultsBtn = document.getElementById('reset-defaults-btn');
+        const exportSheetListEl = document.querySelector('.export-sheet-list');
+        const exportCsvBtn = document.getElementById('export-csv-btn');
         const formulaInput = document.querySelector('.formula-input');
         const constantInputs = [...document.querySelectorAll('.const-cell input')];
         const constTopEls = [...document.querySelectorAll('.const-top')];
@@ -1744,6 +1767,7 @@
             if (sheetNameLine) sheetNameLine.textContent = '';
             sheetIndexEl.textContent = `0/${state.sheets.length}`;
             closeSheetMenu();
+            buildExportPicker();
             return;
           }
           const sheet = state.sheets[state.currentSheetIndex];
@@ -1888,6 +1912,81 @@
           renderSheet();
           resetClearStage();
           scheduleSave();
+        };
+
+        const csvField = (value) => {
+          const text = String(value ?? '');
+          return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+        };
+        const csvRow = (values) => values.map(csvField).join(',') + '\n';
+
+        const buildSheetCsv = (sheet, idx) => {
+          let csv = '';
+          csv += csvRow(['#SHEET', idx]);
+          csv += csvRow(['#TITLE', sheet.title]);
+          csv += csvRow(['#FORMULA', sheet.formulaCanonical]);
+          csv += csvRow(['#CONSTANTS']);
+          csv += csvRow(CONST_ORDER);
+          csv += csvRow(CONST_ORDER.map((key) => sheet.names[key]));
+          csv += csvRow(CONST_ORDER.map((key) => sheet.constants[key]));
+          csv += csvRow([...KEY_ORDER, 'Result']);
+          csv += csvRow([...KEY_ORDER.map((key) => sheet.names[key]), sheet.names.Result || 'Result']);
+          sheet.rows.forEach((row) => { csv += csvRow([...KEY_ORDER.map((key) => row[key]), row.Result]); });
+          return csv;
+        };
+
+        const buildExportPicker = () => {
+          if (!exportSheetListEl) return;
+          exportSheetListEl.innerHTML = '';
+          const allLabel = document.createElement('label');
+          allLabel.className = 'export-sheet-option';
+          const allCheckbox = document.createElement('input');
+          allCheckbox.type = 'checkbox';
+          allCheckbox.className = 'export-sheet-all';
+          allCheckbox.checked = true;
+          allLabel.appendChild(allCheckbox);
+          allLabel.appendChild(document.createTextNode('All sheets'));
+          exportSheetListEl.appendChild(allLabel);
+          const sheetCheckboxes = state.sheets.map((sheet, idx) => {
+            const label = document.createElement('label');
+            label.className = 'export-sheet-option';
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.checked = true;
+            checkbox.dataset.sheetIndex = String(idx);
+            const title = String(sheet?.title || `Sheet ${idx + 1}`).trim() || `Sheet ${idx + 1}`;
+            label.appendChild(checkbox);
+            label.appendChild(document.createTextNode(`${idx + 1}. ${title}`));
+            exportSheetListEl.appendChild(label);
+            return checkbox;
+          });
+          allCheckbox.addEventListener('change', () => {
+            sheetCheckboxes.forEach((checkbox) => { checkbox.checked = allCheckbox.checked; });
+          });
+          sheetCheckboxes.forEach((checkbox) => {
+            checkbox.addEventListener('change', () => {
+              allCheckbox.checked = sheetCheckboxes.every((cb) => cb.checked);
+            });
+          });
+        };
+
+        const exportSelectedSheetsCsv = () => {
+          if (!exportSheetListEl) return;
+          const checkboxes = [...exportSheetListEl.querySelectorAll('input[data-sheet-index]')];
+          const selectedIndices = checkboxes.filter((cb) => cb.checked).map((cb) => Number(cb.dataset.sheetIndex));
+          if (!selectedIndices.length) return;
+          let csv = csvRow(['#MINISHEET', 'v1']);
+          selectedIndices.forEach((idx) => { csv += buildSheetCsv(state.sheets[idx], idx); });
+          const blob = new Blob([csv], { type: 'text/csv' });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          const filename = selectedIndices.length === 1 ? `minisheet-sheet-${selectedIndices[0] + 1}.csv` : 'minisheet-export.csv';
+          link.download = filename;
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          URL.revokeObjectURL(url);
         };
 
         const numericTargets = [...constantInputs, formulaInput, ...cellInputs];
@@ -2836,6 +2935,10 @@
           } finally {
             window.location.reload();
           }
+        });
+
+        exportCsvBtn?.addEventListener('click', () => {
+          exportSelectedSheetsCsv();
         });
 
         resetDefaultsBtn?.addEventListener('click', () => {
