@@ -363,6 +363,7 @@
         right: 0;
         bottom: 0;
         overflow-y: auto;
+        overflow-x: hidden;
         -webkit-overflow-scrolling: touch;
         background: #fff;
         z-index: 25;
@@ -482,10 +483,13 @@
         gap: 8px;
         font-size: 14px;
         color: var(--text);
+        min-width: 0;
       }
 
       .import-position-select {
         flex: 1;
+        min-width: 0;
+        max-width: 100%;
         font-size: 14px;
         padding: 6px;
       }
@@ -946,7 +950,7 @@
     <header class="nav">
       <button class="arrow" aria-label="Previous sheet">◀</button>
       <div class="title-block">
-        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">New Sheet</span><span class="version-tag">v0.2.0</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/1</button></div>
+        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">New Sheet</span><span class="version-tag">v0.2.1</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/1</button></div>
         <div class="sheet-menu" hidden role="menu" aria-label="Sheet selector"></div>
       </div>
       <button class="arrow" aria-label="Next sheet">▶</button>
@@ -993,7 +997,7 @@
 
     <section class="settings-panel" aria-label="App info and settings" hidden>
       <h2>MiniSheet</h2>
-      <p class="settings-version">Version <span class="version-tag-settings">v0.2.0</span></p>
+      <p class="settings-version">Version <span class="version-tag-settings">v0.2.1</span></p>
       <p>MiniSheet is a formula-driven mini spreadsheet for quick calculations.</p>
       <p>©2026 Craig Butz</p>
       <div class="settings-group">
