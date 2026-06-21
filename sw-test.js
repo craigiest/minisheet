@@ -1,6 +1,6 @@
-const CACHE_NAME = 'minisheet-test-v14';
+const CACHE_NAME = 'minisheet-test-v15';
 const ASSETS = [
-  'test.html',
+  'index.html',
   'manifest-test.webmanifest',
   'icons/icon-192.png',
   'icons/icon-512.png',
