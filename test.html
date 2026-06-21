@@ -1121,7 +1121,7 @@
         const getInputContext = () => isNumberEntryContext() ? 'number' : (isFormulaEntryContext() ? 'formula' : 'default');
         const isKeyEnabled = (key) => {
           if (key === undoKey) return currentUndoStack().length > 0;
-          if (selectedRowIndices.size > 0) return key?.dataset.key === 'backspace';
+          if (selectedRowIndices.size > 0) return key?.dataset.key === 'backspace' || key === minimizeKey;
           if (key === shiftKey) return true;
           const label = getKeyLabel(key);
           if (TEMP_DISABLED_KEY_LABELS.has(label)) return false;
@@ -1132,7 +1132,7 @@
         };
         const getMinimizeKeyLabel = () => {
           const isMinimized = !!keypad?.classList.contains('minimized');
-          if (isFormulaEntryContext() || keypadShiftActive) {
+          if (selectedRowIndices.size > 0 || isFormulaEntryContext() || keypadShiftActive) {
             return isMinimized ? MAXIMIZE_KEY_LABEL : MINIMIZE_KEY_LABEL;
           }
           return NUMPAD_SWITCH_LABEL;
@@ -1926,7 +1926,7 @@
           if (key?.disabled) return;
           if (!isKeyEnabled(key)) return;
           if (key === minimizeKey) {
-            if (!isFormulaEntryContext() && !keypadShiftActive) {
+            if (!selectedRowIndices.size && !isFormulaEntryContext() && !keypadShiftActive) {
               state.numpadActive = !state.numpadActive;
               updateKeyAvailability();
               return;
