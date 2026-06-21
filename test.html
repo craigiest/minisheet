@@ -448,6 +448,50 @@
         color: var(--text);
       }
 
+      .settings-btn-secondary {
+        background: #eef1f6;
+        color: var(--text);
+      }
+
+      .settings-btn-secondary:active {
+        background: #dde2eb;
+      }
+
+      .import-error {
+        color: #b3261e;
+      }
+
+      .import-picker {
+        margin-top: 12px;
+      }
+
+      .import-sheet-list {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin: 12px 0;
+      }
+
+      .import-position-label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        color: var(--text);
+      }
+
+      .import-position-select {
+        flex: 1;
+        font-size: 14px;
+        padding: 6px;
+      }
+
+      .import-picker-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 12px;
+      }
+
       body.settings-view .constants-strip,
       body.settings-view .formula-strip,
       body.settings-view .grid-wrap,
@@ -898,7 +942,7 @@
     <header class="nav">
       <button class="arrow" aria-label="Previous sheet">◀</button>
       <div class="title-block">
-        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">Proportion: A/B = C/Result</span><span class="version-tag">v0.0.24</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/2</button></div>
+        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">Proportion: A/B = C/Result</span><span class="version-tag">v0.0.25</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/2</button></div>
         <div class="sheet-menu" hidden role="menu" aria-label="Sheet selector"></div>
       </div>
       <button class="arrow" aria-label="Next sheet">▶</button>
@@ -945,7 +989,7 @@
 
     <section class="settings-panel" aria-label="App info and settings" hidden>
       <h2>MiniSheet</h2>
-      <p class="settings-version">Version <span class="version-tag-settings">v0.0.24</span></p>
+      <p class="settings-version">Version <span class="version-tag-settings">v0.0.25</span></p>
       <p>MiniSheet is a formula-driven mini spreadsheet for quick calculations. This page (Sheet 0) is reserved for app info, settings, and developer controls.</p>
       <div class="settings-group">
         <h3>Developer</h3>
@@ -957,6 +1001,24 @@
         <p class="settings-hint">Choose which sheets to export as CSV. Each sheet's data, formula, and constants are saved in a single file.</p>
         <div class="export-sheet-list"></div>
         <button type="button" class="settings-btn" id="export-csv-btn">Export CSV</button>
+      </div>
+      <div class="settings-group">
+        <h3>Import Data</h3>
+        <p class="settings-hint">Import sheets from a MiniSheet CSV export.</p>
+        <input type="file" accept=".csv,text/csv" id="import-csv-input" hidden />
+        <button type="button" class="settings-btn" id="import-csv-btn">Choose CSV File</button>
+        <p class="settings-hint import-error" hidden></p>
+        <div class="import-picker" hidden>
+          <p class="settings-hint">Select which sheets to import:</p>
+          <div class="import-sheet-list"></div>
+          <label class="import-position-label">Insert after
+            <select class="import-position-select"></select>
+          </label>
+          <div class="import-picker-actions">
+            <button type="button" class="settings-btn" id="import-confirm-btn">Import Selected</button>
+            <button type="button" class="settings-btn settings-btn-secondary" id="import-cancel-btn">Cancel</button>
+          </div>
+        </div>
       </div>
       <div class="settings-group">
         <h3>Danger Zone</h3>
@@ -1100,6 +1162,14 @@
         const resetDefaultsBtn = document.getElementById('reset-defaults-btn');
         const exportSheetListEl = document.querySelector('.export-sheet-list');
         const exportCsvBtn = document.getElementById('export-csv-btn');
+        const importCsvInput = document.getElementById('import-csv-input');
+        const importCsvBtn = document.getElementById('import-csv-btn');
+        const importErrorEl = document.querySelector('.import-error');
+        const importPickerEl = document.querySelector('.import-picker');
+        const importSheetListEl = document.querySelector('.import-sheet-list');
+        const importPositionSelect = document.querySelector('.import-position-select');
+        const importConfirmBtn = document.getElementById('import-confirm-btn');
+        const importCancelBtn = document.getElementById('import-cancel-btn');
         const formulaInput = document.querySelector('.formula-input');
         const constantInputs = [...document.querySelectorAll('.const-cell input')];
         const constTopEls = [...document.querySelectorAll('.const-top')];
@@ -1990,6 +2060,139 @@
           link.click();
           link.remove();
           URL.revokeObjectURL(url);
+        };
+
+        const parseCsvRows = (text) => {
+          const rows = [];
+          let row = [];
+          let field = '';
+          let inQuotes = false;
+          let i = 0;
+          while (i < text.length) {
+            const char = text[i];
+            if (inQuotes) {
+              if (char === '"') {
+                if (text[i + 1] === '"') { field += '"'; i += 2; continue; }
+                inQuotes = false; i += 1; continue;
+              }
+              field += char; i += 1; continue;
+            }
+            if (char === '"') { inQuotes = true; i += 1; continue; }
+            if (char === ',') { row.push(field); field = ''; i += 1; continue; }
+            if (char === '\n') { row.push(field); rows.push(row); row = []; field = ''; i += 1; continue; }
+            if (char === '\r') { i += 1; continue; }
+            field += char; i += 1;
+          }
+          if (field !== '' || row.length) { row.push(field); rows.push(row); }
+          return rows;
+        };
+
+        const parseMiniSheetCsv = (text) => {
+          const rows = parseCsvRows(text);
+          const sheets = [];
+          let i = rows[0]?.[0] === '#MINISHEET' ? 1 : 0;
+          while (i < rows.length) {
+            if (!rows[i]?.length || rows[i][0] !== '#SHEET') { i += 1; continue; }
+            i += 1;
+            const sheet = makeSheet(2);
+            sheet.rows = [];
+            if (rows[i]?.[0] === '#TITLE') { sheet.title = rows[i][1] || sheet.title; i += 1; }
+            if (rows[i]?.[0] === '#FORMULA') { sheet.formulaCanonical = rows[i][1] || ''; i += 1; }
+            if (rows[i]?.[0] === '#CONSTANTS') {
+              i += 1;
+              const letters = rows[i] || []; i += 1;
+              const names = rows[i] || []; i += 1;
+              const values = rows[i] || []; i += 1;
+              letters.forEach((letter, col) => {
+                if (!CONST_ORDER.includes(letter)) return;
+                if (names[col] !== undefined) sheet.names[letter] = names[col];
+                sheet.constants[letter] = values[col] ?? '';
+              });
+            }
+            const dataLetters = rows[i] || []; i += 1;
+            const dataNames = rows[i] || []; i += 1;
+            dataLetters.forEach((letter, col) => {
+              if (KEY_ORDER.includes(letter) && dataNames[col] !== undefined) sheet.names[letter] = dataNames[col];
+            });
+            while (i < rows.length && rows[i][0] !== '#SHEET') {
+              const row = rows[i]; i += 1;
+              if (!row.length || row.every((field) => field === '')) continue;
+              const rowObj = { A: '', B: '', C: '', D: '', Result: '' };
+              dataLetters.forEach((letter, col) => {
+                if (letter === 'Result' || KEY_ORDER.includes(letter)) rowObj[letter] = row[col] ?? '';
+              });
+              sheet.rows.push(rowObj);
+            }
+            while (sheet.rows.length < ROW_COUNT) sheet.rows.push({ A: '', B: '', C: '', D: '', Result: '' });
+            sheets.push(sheet);
+          }
+          return sheets;
+        };
+
+        let parsedImportSheets = [];
+
+        const showImportError = (message) => {
+          if (!importErrorEl) return;
+          importErrorEl.textContent = message;
+          importErrorEl.hidden = !message;
+        };
+
+        const buildImportPicker = (sheets) => {
+          parsedImportSheets = sheets;
+          if (!importSheetListEl || !importPositionSelect || !importPickerEl) return;
+          importSheetListEl.innerHTML = '';
+          sheets.forEach((sheet, idx) => {
+            const label = document.createElement('label');
+            label.className = 'export-sheet-option';
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.checked = true;
+            checkbox.dataset.importIndex = String(idx);
+            const title = String(sheet?.title || `Sheet ${idx + 1}`).trim() || `Sheet ${idx + 1}`;
+            label.appendChild(checkbox);
+            label.appendChild(document.createTextNode(`${idx + 1}. ${title} (from file)`));
+            importSheetListEl.appendChild(label);
+          });
+          importPositionSelect.innerHTML = '';
+          const beginningOption = document.createElement('option');
+          beginningOption.value = '-1';
+          beginningOption.textContent = 'Beginning (before 1. ' + (String(state.sheets[0]?.title || 'Sheet 1').trim() || 'Sheet 1') + ')';
+          importPositionSelect.appendChild(beginningOption);
+          state.sheets.forEach((sheet, idx) => {
+            const option = document.createElement('option');
+            option.value = String(idx);
+            const title = String(sheet?.title || `Sheet ${idx + 1}`).trim() || `Sheet ${idx + 1}`;
+            option.textContent = `After ${idx + 1}. ${title}`;
+            importPositionSelect.appendChild(option);
+          });
+          importPositionSelect.value = String(state.sheets.length - 1);
+          importPickerEl.hidden = false;
+          showImportError('');
+        };
+
+        const closeImportPicker = () => {
+          parsedImportSheets = [];
+          if (importPickerEl) importPickerEl.hidden = true;
+          if (importCsvInput) importCsvInput.value = '';
+        };
+
+        const importSelectedSheets = () => {
+          if (!importSheetListEl || !parsedImportSheets.length) return;
+          const checkboxes = [...importSheetListEl.querySelectorAll('input[data-import-index]')];
+          const selectedSheets = checkboxes.filter((cb) => cb.checked).map((cb) => parsedImportSheets[Number(cb.dataset.importIndex)]);
+          if (!selectedSheets.length) return;
+          const insertAt = Number(importPositionSelect.value) + 1;
+          blurActiveTarget();
+          persistFromDom();
+          state.sheets.splice(insertAt, 0, ...selectedSheets);
+          selectedSheets.forEach((_, offset) => undoHistoryBySheet.splice(insertAt + offset, 0, []));
+          state.settingsView = false;
+          state.currentSheetIndex = insertAt;
+          ensureUndoHistoryAlignment();
+          renderSheet();
+          resetClearStage();
+          scheduleSave();
+          closeImportPicker();
         };
 
         const numericTargets = [...constantInputs, formulaInput, ...cellInputs];
@@ -2942,6 +3145,31 @@
 
         exportCsvBtn?.addEventListener('click', () => {
           exportSelectedSheetsCsv();
+        });
+
+        importCsvBtn?.addEventListener('click', () => {
+          importCsvInput?.click();
+        });
+
+        importCsvInput?.addEventListener('change', async () => {
+          const file = importCsvInput.files?.[0];
+          if (!file) return;
+          try {
+            const text = await file.text();
+            const sheets = parseMiniSheetCsv(text);
+            if (!sheets.length) { showImportError('No sheets found in that file.'); return; }
+            buildImportPicker(sheets);
+          } catch (error) {
+            showImportError('Could not read that file as a MiniSheet CSV export.');
+          }
+        });
+
+        importConfirmBtn?.addEventListener('click', () => {
+          importSelectedSheets();
+        });
+
+        importCancelBtn?.addEventListener('click', () => {
+          closeImportPicker();
         });
 
         resetDefaultsBtn?.addEventListener('click', () => {
