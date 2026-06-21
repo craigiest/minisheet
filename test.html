@@ -1132,8 +1132,9 @@
         };
         const getMinimizeKeyLabel = () => {
           const isMinimized = !!keypad?.classList.contains('minimized');
+          if (isMinimized) return MAXIMIZE_KEY_LABEL;
           if (selectedRowIndices.size > 0 || isFormulaEntryContext() || keypadShiftActive) {
-            return isMinimized ? MAXIMIZE_KEY_LABEL : MINIMIZE_KEY_LABEL;
+            return MINIMIZE_KEY_LABEL;
           }
           return NUMPAD_SWITCH_LABEL;
         };
@@ -1926,7 +1927,8 @@
           if (key?.disabled) return;
           if (!isKeyEnabled(key)) return;
           if (key === minimizeKey) {
-            if (!selectedRowIndices.size && !isFormulaEntryContext() && !keypadShiftActive) {
+            const currentlyMinimized = !!keypad?.classList.contains('minimized');
+            if (!currentlyMinimized && !selectedRowIndices.size && !isFormulaEntryContext() && !keypadShiftActive) {
               state.numpadActive = !state.numpadActive;
               updateKeyAvailability();
               return;
