@@ -590,9 +590,9 @@
         right: 0;
         bottom: var(--keypad-active-h);
         display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 6px 10px;
+        flex-direction: column;
+        gap: 6px;
+        padding: 8px 10px;
         background: var(--active);
         color: #fff;
         z-index: 30;
@@ -603,26 +603,55 @@
         display: none;
       }
 
+      .row-selection-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
       .row-selection-count {
         flex: 1;
         font-size: 13px;
         font-weight: 600;
       }
 
+      .row-selection-actions {
+        display: flex;
+        gap: 6px;
+      }
+
+      .row-selection-actions button {
+        flex: 1;
+      }
+
       .row-selection-bar button {
         border: 0;
         border-radius: 6px;
-        padding: 6px 12px;
+        padding: 6px 8px;
         font-weight: 700;
         font-size: 13px;
         background: #fff;
         color: var(--active);
+        transition: background-color 0.15s ease;
+      }
+
+      .row-selection-bar button.is-confirmed {
+        background: #cfe8d6;
+        color: #1c6b35;
       }
 
       .row-selection-bar .row-action-done {
+        flex: 0 0 auto;
         padding: 6px 10px;
         background: rgba(255, 255, 255, 0.25);
         color: #fff;
+      }
+
+      .row-selection-bar .row-action-cut,
+      .row-selection-bar .row-action-delete {
+        background: #ffe4e4;
+        color: #9b1c1c;
       }
 
       .result-head { z-index: 9; }
@@ -850,10 +879,16 @@
     </section>
 
     <div class="row-selection-bar" hidden>
-      <span class="row-selection-count"></span>
-      <button type="button" class="row-action-copy">Copy</button>
-      <button type="button" class="row-action-paste">Paste</button>
-      <button type="button" class="row-action-done" aria-label="Clear row selection">✕</button>
+      <div class="row-selection-top">
+        <span class="row-selection-count"></span>
+        <button type="button" class="row-action-done" aria-label="Clear row selection">✕</button>
+      </div>
+      <div class="row-selection-actions">
+        <button type="button" class="row-action-copy">Copy</button>
+        <button type="button" class="row-action-cut">Cut</button>
+        <button type="button" class="row-action-paste">Paste</button>
+        <button type="button" class="row-action-delete">Delete</button>
+      </div>
     </div>
 
     <section class="settings-panel" aria-label="App info and settings" hidden>
@@ -2256,13 +2291,28 @@
         const rowSelectionBar = document.querySelector('.row-selection-bar');
         const rowSelectionCountEl = document.querySelector('.row-selection-count');
         const rowCopyBtn = document.querySelector('.row-action-copy');
+        const rowCutBtn = document.querySelector('.row-action-cut');
         const rowPasteBtn = document.querySelector('.row-action-paste');
+        const rowDeleteBtn = document.querySelector('.row-action-delete');
         const rowDoneBtn = document.querySelector('.row-action-done');
 
         const updateRowSelectionBar = () => {
           const count = selectedRowIndices.size;
           if (rowSelectionBar) rowSelectionBar.hidden = count === 0;
           if (rowSelectionCountEl) rowSelectionCountEl.textContent = count ? `${count} row${count > 1 ? 's' : ''} selected` : '';
+        };
+
+        const flashButtonFeedback = (button, label, duration = 1100) => {
+          if (!button) return;
+          if (button.dataset.flashOriginal === undefined) button.dataset.flashOriginal = button.textContent;
+          clearTimeout(Number(button.dataset.flashTimer) || undefined);
+          button.textContent = label;
+          button.classList.add('is-confirmed');
+          const timer = setTimeout(() => {
+            button.textContent = button.dataset.flashOriginal;
+            button.classList.remove('is-confirmed');
+          }, duration);
+          button.dataset.flashTimer = String(timer);
         };
 
         const setRowSelected = (rowIndex, selected) => {
@@ -2295,14 +2345,38 @@
           const sortedIndices = [...selectedRowIndices].sort((a, b) => a - b);
           if (!sortedIndices.length) return;
           const lines = text.replace(/\r\n/g, '\n').split('\n').filter((line) => line !== '');
+          if (!lines.length) return;
+          captureUndoSnapshot();
+          let targetIndices = sortedIndices;
+          if (sortedIndices.length === 1 && lines.length > 1) {
+            const start = sortedIndices[0];
+            targetIndices = Array.from({ length: lines.length }, (_, i) => start + i);
+          }
+          const maxIndex = Math.max(...targetIndices);
+          while (dataRows.length <= maxIndex) appendRowToDom();
+          const sheet = state.sheets[state.currentSheetIndex];
+          while (sheet.rows.length < dataRows.length) sheet.rows.push({ A: '', B: '', C: '', D: '', Result: '' });
           lines.forEach((line, li) => {
-            const rowIndex = sortedIndices[li];
+            const rowIndex = targetIndices[li];
             if (rowIndex === undefined) return;
             const values = line.split('\t');
             rowBindings[rowIndex].inputs.forEach((input, ci) => { if (values[ci] !== undefined) input.value = values[ci].trim(); });
           });
+          clearRowSelection();
+          targetIndices.forEach((i) => setRowSelected(i, true));
+          updateRowSelectionBar();
           computeAllRows();
-          persistFromDom();
+          updateKeyAvailability();
+        };
+
+        const clearSelectedRowsValues = () => {
+          if (!selectedRowIndices.size) return;
+          captureUndoSnapshot();
+          selectedRowIndices.forEach((rowIndex) => {
+            rowBindings[rowIndex]?.inputs.forEach((input) => { input.value = ''; });
+          });
+          computeAllRows();
+          updateKeyAvailability();
         };
 
         let rowDragActive = false;
@@ -2359,9 +2433,23 @@
           const text = getSelectedRowsText();
           try {
             await navigator.clipboard.writeText(text);
+            flashButtonFeedback(rowCopyBtn, 'Copied');
           } catch {
             window.prompt('Copy failed automatically. Copy this text manually:', text);
           }
+        });
+
+        rowCutBtn?.addEventListener('click', async () => {
+          const text = getSelectedRowsText();
+          let copied = true;
+          try {
+            await navigator.clipboard.writeText(text);
+          } catch {
+            copied = false;
+            window.prompt('Copy failed automatically. Copy this text manually:', text);
+          }
+          clearSelectedRowsValues();
+          if (copied) flashButtonFeedback(rowCutBtn, 'Cut');
         });
 
         rowPasteBtn?.addEventListener('click', async () => {
@@ -2375,11 +2463,14 @@
           applyTextToSelectedRows(text);
         });
 
+        rowDeleteBtn?.addEventListener('click', () => clearSelectedRowsValues());
+
         document.addEventListener('copy', (event) => {
           if (!selectedRowIndices.size) return;
           if (activeTarget && isInput(activeTarget)) return;
           event.preventDefault();
           event.clipboardData?.setData('text/plain', getSelectedRowsText());
+          flashButtonFeedback(rowCopyBtn, 'Copied');
         });
 
         document.addEventListener('paste', (event) => {
