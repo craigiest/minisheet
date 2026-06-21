@@ -220,11 +220,7 @@
       }
 
       .version-tag {
-        font-size: 11px;
-        color: var(--text-muted, #8a94a8);
-        flex: 0 0 auto;
-        padding: 0 6px;
-        white-space: nowrap;
+        display: none;
       }
 
       .constants-strip {
@@ -441,6 +437,14 @@
       }
 
       .export-sheet-option {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        color: var(--text);
+      }
+
+      .settings-checkbox-label {
         display: flex;
         align-items: center;
         gap: 8px;
@@ -942,7 +946,7 @@
     <header class="nav">
       <button class="arrow" aria-label="Previous sheet">◀</button>
       <div class="title-block">
-        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">New Sheet</span><span class="version-tag">v0.0.30</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/1</button></div>
+        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">New Sheet</span><span class="version-tag">v0.2.0</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/1</button></div>
         <div class="sheet-menu" hidden role="menu" aria-label="Sheet selector"></div>
       </div>
       <button class="arrow" aria-label="Next sheet">▶</button>
@@ -989,13 +993,9 @@
 
     <section class="settings-panel" aria-label="App info and settings" hidden>
       <h2>MiniSheet</h2>
-      <p class="settings-version">Version <span class="version-tag-settings">v0.0.30</span></p>
+      <p class="settings-version">Version <span class="version-tag-settings">v0.2.0</span></p>
+      <p>MiniSheet is a formula-driven mini spreadsheet for quick calculations.</p>
       <p>©2026 Craig Butz</p>
-      <div class="settings-group">
-        <h3>Update Web App</h3>
-        <button type="button" class="settings-btn" id="force-refresh-btn">Force Code Refresh</button>
-        <p class="settings-hint">Minisheet maintains a local version for offline access. Refresh to load the most up-to-date version.</p>
-      </div>
       <div class="settings-group">
         <h3>Examples</h3>
         <p class="settings-hint">Add example sheets to see how formulas, constants, and names work together.</p>
@@ -1004,6 +1004,18 @@
           <select class="examples-position-select"></select>
         </label>
         <button type="button" class="settings-btn" id="add-examples-btn">Add Selected</button>
+      </div>
+      <div class="settings-group">
+        <h3>Update Web App</h3>
+        <button type="button" class="settings-btn" id="force-refresh-btn">Force Code Refresh</button>
+        <p class="settings-hint">Minisheet maintains a local version for offline access. Refresh to load the most up-to-date version.</p>
+      </div>
+      <div class="settings-group">
+        <h3>Navigation</h3>
+        <label class="settings-checkbox-label">
+          <input type="checkbox" id="skip-settings-nav-checkbox" />
+          Skip this page when navigating between sheets
+        </label>
       </div>
       <div class="settings-group">
         <h3>Import Data</h3>
@@ -1182,6 +1194,7 @@
         const examplesSheetListEl = document.querySelector('.examples-sheet-list');
         const examplesPositionSelect = document.querySelector('.examples-position-select');
         const addExamplesBtn = document.getElementById('add-examples-btn');
+        const skipSettingsNavCheckbox = document.getElementById('skip-settings-nav-checkbox');
         const formulaInput = document.querySelector('.formula-input');
         const constantInputs = [...document.querySelectorAll('.const-cell input')];
         const constTopEls = [...document.querySelectorAll('.const-top')];
@@ -1240,12 +1253,12 @@
           };
         };
 
-        const state = { sheets: [makeSheet(0)], currentSheetIndex: 0, formulaMode: 'name', clearStage: 0, acConfirmPresses: 0, settingsView: false, numpadActive: false };
+        const state = { sheets: [makeSheet(0)], currentSheetIndex: 0, formulaMode: 'name', clearStage: 0, acConfirmPresses: 0, settingsView: false, numpadActive: false, skipSettingsInNav: false };
 
         let saveTimer = null;
         const scheduleSave = () => {
           if (saveTimer) clearTimeout(saveTimer);
-          saveTimer = setTimeout(() => asyncStorage.set({ sheets: state.sheets, currentSheetIndex: state.currentSheetIndex, formulaMode: state.formulaMode }), 250);
+          saveTimer = setTimeout(() => asyncStorage.set({ sheets: state.sheets, currentSheetIndex: state.currentSheetIndex, formulaMode: state.formulaMode, skipSettingsInNav: state.skipSettingsInNav }), 250);
         };
 
         dataRows.forEach((row) => {
@@ -1840,6 +1853,7 @@
             closeSheetMenu();
             buildExportPicker();
             buildExamplesPicker();
+            if (skipSettingsNavCheckbox) skipSettingsNavCheckbox.checked = Boolean(state.skipSettingsInNav);
             return;
           }
           const sheet = state.sheets[state.currentSheetIndex];
@@ -1921,6 +1935,7 @@
           const oldIndex = state.currentSheetIndex;
           const oldLength = state.sheets.length;
           const wasLast = oldIndex === oldLength - 1;
+          const wasFirst = oldIndex === 0;
           let nextIndex = (oldIndex + dir + oldLength) % oldLength;
           const deletedCurrent = deleteBlankDynamicSheetAt(oldIndex);
           if (deletedCurrent && oldIndex < nextIndex) nextIndex -= 1;
@@ -1928,7 +1943,12 @@
             state.sheets.push(makeSheet(state.sheets.length));
             undoHistoryBySheet.push([]);
             state.currentSheetIndex = state.sheets.length - 1;
+          } else if (!state.skipSettingsInNav && dir > 0 && wasLast && deletedCurrent) {
+            state.settingsView = true;
+          } else if (!state.skipSettingsInNav && dir < 0 && wasFirst) {
+            state.settingsView = true;
           } else {
+            state.settingsView = false;
             state.currentSheetIndex = ((nextIndex % state.sheets.length) + state.sheets.length) % state.sheets.length;
           }
           ensureUndoHistoryAlignment();
@@ -2619,7 +2639,9 @@ diameter,height,value3,value4,Result
             blurActiveTarget();
             if (state.settingsView) {
               state.settingsView = false;
+              state.currentSheetIndex = direction > 0 ? 0 : state.sheets.length - 1;
               renderSheet();
+              scheduleSave();
               return;
             }
             nav(direction);
@@ -3386,6 +3408,7 @@ diameter,height,value3,value4,Result
             state.sheets = saved.sheets.map((sheet, idx) => hydrateSheet(sheet, idx));
             state.currentSheetIndex = Math.max(0, Math.min(saved.currentSheetIndex ?? 0, state.sheets.length - 1));
             state.formulaMode = saved.formulaMode === 'letter' ? 'letter' : 'name';
+            state.skipSettingsInNav = Boolean(saved.skipSettingsInNav);
           } else {
             state.currentSheetIndex = 0;
           }
@@ -3397,6 +3420,11 @@ diameter,height,value3,value4,Result
           resetClearStage();
           updateKeyAvailability();
         })();
+
+        skipSettingsNavCheckbox?.addEventListener('change', () => {
+          state.skipSettingsInNav = skipSettingsNavCheckbox.checked;
+          scheduleSave();
+        });
 
         forceRefreshBtn?.addEventListener('click', async () => {
           forceRefreshBtn.disabled = true;
