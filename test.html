@@ -2384,6 +2384,40 @@
         let rowDragStartX = 0;
         let rowDragStartY = 0;
         let rowDragLastIndex = null;
+        let rowDragPointerX = 0;
+        let rowDragPointerY = 0;
+        let rowDragAutoScrollFrame = null;
+
+        const ROW_DRAG_EDGE_MARGIN = 36;
+        const ROW_DRAG_MAX_SCROLL_SPEED = 14;
+
+        const paintToRowAtPoint = (clientX, clientY) => {
+          const target = document.elementFromPoint(clientX, clientY);
+          const numCell = target?.closest('.num');
+          if (!numCell) return;
+          const rowIndex = dataRows.indexOf(numCell.closest('tr'));
+          if (rowIndex === -1 || rowIndex === rowDragLastIndex) return;
+          paintRowsBetween(rowDragLastIndex, rowIndex, rowDragPaintValue);
+          rowDragLastIndex = rowIndex;
+        };
+
+        const rowDragAutoScrollStep = () => {
+          if (!rowDragActive) { rowDragAutoScrollFrame = null; return; }
+          if (gridWrapEl) {
+            const rect = gridWrapEl.getBoundingClientRect();
+            let scrollDelta = 0;
+            if (rowDragPointerY < rect.top + ROW_DRAG_EDGE_MARGIN) {
+              const intensity = (rect.top + ROW_DRAG_EDGE_MARGIN - rowDragPointerY) / ROW_DRAG_EDGE_MARGIN;
+              scrollDelta = -Math.ceil(intensity * ROW_DRAG_MAX_SCROLL_SPEED);
+            } else if (rowDragPointerY > rect.bottom - ROW_DRAG_EDGE_MARGIN) {
+              const intensity = (rowDragPointerY - (rect.bottom - ROW_DRAG_EDGE_MARGIN)) / ROW_DRAG_EDGE_MARGIN;
+              scrollDelta = Math.ceil(intensity * ROW_DRAG_MAX_SCROLL_SPEED);
+            }
+            if (scrollDelta !== 0) gridWrapEl.scrollTop += scrollDelta;
+          }
+          if (rowDragMoved) paintToRowAtPoint(rowDragPointerX, rowDragPointerY);
+          rowDragAutoScrollFrame = requestAnimationFrame(rowDragAutoScrollStep);
+        };
 
         tbodyEl?.addEventListener('pointerdown', (event) => {
           const numCell = event.target.closest('.num');
@@ -2396,27 +2430,30 @@
           rowDragMoved = false;
           rowDragStartX = event.clientX;
           rowDragStartY = event.clientY;
+          rowDragPointerX = event.clientX;
+          rowDragPointerY = event.clientY;
           rowDragPaintValue = !selectedRowIndices.has(rowIndex);
           rowDragLastIndex = rowIndex;
           setRowSelected(rowIndex, rowDragPaintValue);
           updateRowSelectionBar();
+          if (rowDragAutoScrollFrame === null) rowDragAutoScrollFrame = requestAnimationFrame(rowDragAutoScrollStep);
         });
 
-        tbodyEl?.addEventListener('pointermove', (event) => {
+        document.addEventListener('pointermove', (event) => {
           if (!rowDragActive) return;
+          rowDragPointerX = event.clientX;
+          rowDragPointerY = event.clientY;
           const moved = Math.hypot(event.clientX - rowDragStartX, event.clientY - rowDragStartY);
           if (moved > 6) rowDragMoved = true;
-          if (!rowDragMoved) return;
-          const target = document.elementFromPoint(event.clientX, event.clientY);
-          const numCell = target?.closest('.num');
-          if (!numCell) return;
-          const rowIndex = dataRows.indexOf(numCell.closest('tr'));
-          if (rowIndex === -1 || rowIndex === rowDragLastIndex) return;
-          paintRowsBetween(rowDragLastIndex, rowIndex, rowDragPaintValue);
-          rowDragLastIndex = rowIndex;
         });
 
-        const endRowDrag = () => { rowDragActive = false; };
+        const endRowDrag = () => {
+          rowDragActive = false;
+          if (rowDragAutoScrollFrame !== null) {
+            cancelAnimationFrame(rowDragAutoScrollFrame);
+            rowDragAutoScrollFrame = null;
+          }
+        };
         document.addEventListener('pointerup', endRowDrag);
         document.addEventListener('pointercancel', endRowDrag);
 
