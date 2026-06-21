@@ -2418,11 +2418,22 @@
         document.addEventListener('pointerup', endRowDrag);
         document.addEventListener('pointercancel', endRowDrag);
 
+        let outsideTapStartX = 0;
+        let outsideTapStartY = 0;
+        let outsideTapTarget = null;
         document.addEventListener('pointerdown', (event) => {
-          if (!selectedRowIndices.size) return;
-          if (event.target.closest('.num, .row-selection-bar, .keypad')) return;
-          clearRowSelection();
+          outsideTapStartX = event.clientX;
+          outsideTapStartY = event.clientY;
+          outsideTapTarget = event.target;
         }, true);
+
+        document.addEventListener('pointerup', (event) => {
+          if (!selectedRowIndices.size) return;
+          if (!outsideTapTarget || outsideTapTarget.closest('.num, .row-selection-bar, .keypad')) return;
+          const moved = Math.hypot(event.clientX - outsideTapStartX, event.clientY - outsideTapStartY);
+          if (moved > 6) return;
+          clearRowSelection();
+        });
 
         rowDoneBtn?.addEventListener('click', () => clearRowSelection());
 
