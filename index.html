@@ -680,7 +680,8 @@
 
       .row-selection-bar,
       .col-selection-bar,
-      .result-selection-bar {
+      .result-selection-bar,
+      .stat-selection-bar {
         position: fixed;
         left: 0;
         right: 0;
@@ -697,13 +698,15 @@
 
       .row-selection-bar[hidden],
       .col-selection-bar[hidden],
-      .result-selection-bar[hidden] {
+      .result-selection-bar[hidden],
+      .stat-selection-bar[hidden] {
         display: none;
       }
 
       .row-selection-top,
       .col-selection-top,
-      .result-selection-top {
+      .result-selection-top,
+      .stat-selection-top {
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -712,7 +715,8 @@
 
       .row-selection-count,
       .col-selection-count,
-      .result-selection-count {
+      .result-selection-count,
+      .stat-selection-count {
         flex: 1;
         font-size: 13px;
         font-weight: 600;
@@ -720,7 +724,8 @@
 
       .row-selection-actions,
       .col-selection-actions,
-      .result-selection-actions {
+      .result-selection-actions,
+      .stat-selection-actions {
         display: flex;
         gap: 6px;
       }
@@ -730,13 +735,15 @@
         flex: 1;
       }
 
-      .result-selection-actions button {
+      .result-selection-actions button,
+      .stat-selection-actions button {
         flex: 0 0 calc((100% - 12px) / 3);
       }
 
       .row-selection-bar button,
       .col-selection-bar button,
-      .result-selection-bar button {
+      .result-selection-bar button,
+      .stat-selection-bar button {
         border: 0;
         border-radius: 6px;
         padding: 6px 8px;
@@ -749,14 +756,16 @@
 
       .row-selection-bar button.is-confirmed,
       .col-selection-bar button.is-confirmed,
-      .result-selection-bar button.is-confirmed {
+      .result-selection-bar button.is-confirmed,
+      .stat-selection-bar button.is-confirmed {
         background: #cfe3f7;
         color: #1c4b7a;
       }
 
       .row-selection-bar .row-action-done,
       .col-selection-bar .col-action-done,
-      .result-selection-bar .result-action-done {
+      .result-selection-bar .result-action-done,
+      .stat-selection-bar .stat-action-done {
         flex: 0 0 auto;
         padding: 6px 10px;
         background: rgba(255, 255, 255, 0.25);
@@ -832,6 +841,12 @@
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+        cursor: pointer;
+        touch-action: none;
+      }
+
+      .stat-cell output.is-selected {
+        background: rgba(93, 141, 213, 0.18);
       }
 
       .keypad {
@@ -1003,7 +1018,7 @@
     <header class="nav">
       <button class="arrow" aria-label="Previous sheet">◀</button>
       <div class="title-block">
-        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">New Sheet</span><span class="version-tag">v0.2.15</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/1</button></div>
+        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">New Sheet</span><span class="version-tag">v0.2.16</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/1</button></div>
         <div class="sheet-menu" hidden role="menu" aria-label="Sheet selector"></div>
       </div>
       <button class="arrow" aria-label="Next sheet">▶</button>
@@ -1058,9 +1073,19 @@
       </div>
     </div>
 
+    <div class="stat-selection-bar" hidden>
+      <div class="stat-selection-top">
+        <span class="stat-selection-count"></span>
+        <button type="button" class="stat-action-done" aria-label="Clear stat selection">✕</button>
+      </div>
+      <div class="stat-selection-actions">
+        <button type="button" class="stat-action-copy">Copy</button>
+      </div>
+    </div>
+
     <section class="settings-panel" aria-label="App info and settings" hidden>
       <h2>MiniSheet</h2>
-      <p class="settings-version">Version <span class="version-tag-settings">v0.2.15</span></p>
+      <p class="settings-version">Version <span class="version-tag-settings">v0.2.16</span></p>
       <p>MiniSheet is a formula-driven mini spreadsheet for quick calculations.</p>
       <p>Type a math problem, like 42+25, into the formula line and tap Result for an answer. Or create a formula like A+B/C and enter numbers in the grid to get multiple results for different sets of values.</p>
       <p>For the best experience, click the share button and add to your homescreen.</p>
@@ -1347,7 +1372,7 @@
         const getInputContext = () => isNumberEntryContext() ? 'number' : (isFormulaEntryContext() ? 'formula' : 'default');
         const isKeyEnabled = (key) => {
           if (key === undoKey) return currentUndoStack().length > 0;
-          if (selectedResultIndices.size > 0) return key === minimizeKey;
+          if (selectedResultIndices.size > 0 || selectedStatIndices.size > 0) return key === minimizeKey;
           if (selectedRowIndices.size > 0 || selectedColKeys.size > 0) return key?.dataset.key === 'backspace' || key === minimizeKey;
           if (key === shiftKey) return true;
           const label = getKeyLabel(key);
@@ -1360,7 +1385,7 @@
         const getMinimizeKeyLabel = () => {
           const isMinimized = !!keypad?.classList.contains('minimized');
           if (isMinimized) return MAXIMIZE_KEY_LABEL;
-          if (selectedRowIndices.size > 0 || selectedColKeys.size > 0 || selectedResultIndices.size > 0 || isFormulaEntryContext() || keypadShiftActive) {
+          if (selectedRowIndices.size > 0 || selectedColKeys.size > 0 || selectedResultIndices.size > 0 || selectedStatIndices.size > 0 || isFormulaEntryContext() || keypadShiftActive) {
             return MINIMIZE_KEY_LABEL;
           }
           return NUMPAD_SWITCH_LABEL;
@@ -1875,6 +1900,7 @@
                 clearRowSelection();
                 clearColSelection();
                 clearResultSelection();
+                clearStatSelection();
                 blurActiveTarget();
                 persistFromDom();
                 state.settingsView = false;
@@ -2006,6 +2032,7 @@
           clearRowSelection();
           clearColSelection();
           clearResultSelection();
+          clearStatSelection();
           persistFromDom();
           const oldIndex = state.currentSheetIndex;
           const oldLength = state.sheets.length;
@@ -2651,7 +2678,7 @@ diameter,height,value3,value4,Result
           if (!isKeyEnabled(key)) return;
           if (key === minimizeKey) {
             const currentlyMinimized = !!keypad?.classList.contains('minimized');
-            if (!currentlyMinimized && !selectedRowIndices.size && !selectedColKeys.size && !selectedResultIndices.size && !isFormulaEntryContext() && !keypadShiftActive) {
+            if (!currentlyMinimized && !selectedRowIndices.size && !selectedColKeys.size && !selectedResultIndices.size && !selectedStatIndices.size && !isFormulaEntryContext() && !keypadShiftActive) {
               state.numpadActive = !state.numpadActive;
               updateKeyAvailability();
               return;
@@ -2907,6 +2934,7 @@ diameter,height,value3,value4,Result
           if (rowIndex === -1) return;
           clearRowSelection();
           clearColSelection();
+          clearStatSelection();
           if (activeTarget) blurActiveTarget();
           if (event.cancelable) event.preventDefault();
           resultDragActive = true;
@@ -2946,6 +2974,113 @@ diameter,height,value3,value4,Result
           event.preventDefault();
           event.clipboardData?.setData('text/plain', getSelectedResultsText());
           flashButtonFeedback(resultCopyBtn, 'Copied');
+        });
+
+        const statOutputs = statCells.map((cell) => cell.querySelector('output')).filter(Boolean);
+
+        const statSelectionBar = document.querySelector('.stat-selection-bar');
+        const statSelectionCountEl = document.querySelector('.stat-selection-count');
+        const statCopyBtn = document.querySelector('.stat-action-copy');
+        const statDoneBtn = document.querySelector('.stat-action-done');
+        const selectedStatIndices = new Set();
+
+        const updateStatSelectionBar = () => {
+          const count = selectedStatIndices.size;
+          if (statSelectionBar) statSelectionBar.hidden = count === 0;
+          if (statSelectionCountEl) statSelectionCountEl.textContent = count ? `${count} stat${count > 1 ? 's' : ''} selected` : '';
+          updateSelectionBarHeight();
+          updateKeyAvailability();
+        };
+
+        const setStatSelected = (colIndex, selected) => {
+          const output = statOutputs[colIndex];
+          if (!output) return;
+          output.classList.toggle('is-selected', selected);
+          if (selected) selectedStatIndices.add(colIndex);
+          else selectedStatIndices.delete(colIndex);
+        };
+
+        const clearStatSelection = () => {
+          selectedStatIndices.forEach((colIndex) => statOutputs[colIndex]?.classList.remove('is-selected'));
+          selectedStatIndices.clear();
+          updateStatSelectionBar();
+        };
+
+        const paintStatsBetween = (fromIndex, toIndex, value) => {
+          const lo = Math.min(fromIndex, toIndex);
+          const hi = Math.max(fromIndex, toIndex);
+          for (let i = lo; i <= hi; i++) setStatSelected(i, value);
+          updateStatSelectionBar();
+        };
+
+        const getSelectedStatsText = () => {
+          const sortedIndices = [...selectedStatIndices].sort((a, b) => a - b);
+          return sortedIndices.map((i) => statOutputs[i]?.textContent?.trim() || '').join('\n');
+        };
+
+        let statDragActive = false;
+        let statDragPaintValue = false;
+        let statDragStartX = 0;
+        let statDragStartY = 0;
+        let statDragLastIndex = null;
+
+        const paintToStatAtPoint = (clientX, clientY) => {
+          const target = document.elementFromPoint(clientX, clientY);
+          const output = target?.closest('tfoot output');
+          if (!output) return;
+          const colIndex = statOutputs.indexOf(output);
+          if (colIndex === -1 || colIndex === statDragLastIndex) return;
+          paintStatsBetween(statDragLastIndex, colIndex, statDragPaintValue);
+          statDragLastIndex = colIndex;
+        };
+
+        document.querySelector('tfoot')?.addEventListener('pointerdown', (event) => {
+          const output = event.target.closest('output');
+          if (!output) return;
+          const colIndex = statOutputs.indexOf(output);
+          if (colIndex === -1) return;
+          clearRowSelection();
+          clearColSelection();
+          clearResultSelection();
+          if (activeTarget) blurActiveTarget();
+          if (event.cancelable) event.preventDefault();
+          statDragActive = true;
+          statDragStartX = event.clientX;
+          statDragStartY = event.clientY;
+          statDragPaintValue = !selectedStatIndices.has(colIndex);
+          statDragLastIndex = colIndex;
+          setStatSelected(colIndex, statDragPaintValue);
+          updateStatSelectionBar();
+        });
+
+        document.addEventListener('pointermove', (event) => {
+          if (!statDragActive) return;
+          const moved = Math.hypot(event.clientX - statDragStartX, event.clientY - statDragStartY);
+          if (moved > 6) paintToStatAtPoint(event.clientX, event.clientY);
+        });
+
+        const endStatDrag = () => { statDragActive = false; };
+        document.addEventListener('pointerup', endStatDrag);
+        document.addEventListener('pointercancel', endStatDrag);
+
+        statDoneBtn?.addEventListener('click', () => clearStatSelection());
+
+        statCopyBtn?.addEventListener('click', async () => {
+          const text = getSelectedStatsText();
+          try {
+            await navigator.clipboard.writeText(text);
+            flashButtonFeedback(statCopyBtn, 'Copied');
+          } catch {
+            window.prompt('Copy failed automatically. Copy this text manually:', text);
+          }
+        });
+
+        document.addEventListener('copy', (event) => {
+          if (!selectedStatIndices.size) return;
+          if (activeTarget && isInput(activeTarget)) return;
+          event.preventDefault();
+          event.clipboardData?.setData('text/plain', getSelectedStatsText());
+          flashButtonFeedback(statCopyBtn, 'Copied');
         });
 
         const bindEditableBlur = (target) => target.addEventListener('blur', () => {
@@ -3041,6 +3176,7 @@ diameter,height,value3,value4,Result
           const visibleBar = (rowSelectionBar && !rowSelectionBar.hidden) ? rowSelectionBar
             : (colSelectionBar && !colSelectionBar.hidden) ? colSelectionBar
             : (resultSelectionBar && !resultSelectionBar.hidden) ? resultSelectionBar
+            : (statSelectionBar && !statSelectionBar.hidden) ? statSelectionBar
             : null;
           const barHeight = visibleBar ? visibleBar.offsetHeight : 0;
           document.documentElement.style.setProperty('--select-bar-h', `${barHeight}px`);
@@ -3179,6 +3315,7 @@ diameter,height,value3,value4,Result
           if (rowIndex === -1) return;
           clearColSelection();
           clearResultSelection();
+          clearStatSelection();
           if (activeTarget) blurActiveTarget();
           if (event.cancelable) event.preventDefault();
           rowDragActive = true;
@@ -3232,6 +3369,9 @@ diameter,height,value3,value4,Result
           }
           if (selectedResultIndices.size && outsideTapTarget && !outsideTapTarget.closest('.result-cell, .result-selection-bar, .keypad')) {
             clearResultSelection();
+          }
+          if (selectedStatIndices.size && outsideTapTarget && !outsideTapTarget.closest('tfoot output, .stat-selection-bar, .keypad')) {
+            clearStatSelection();
           }
         });
 
@@ -3397,6 +3537,7 @@ diameter,height,value3,value4,Result
           const key = KEY_ORDER[idx];
           clearRowSelection();
           clearResultSelection();
+          clearStatSelection();
           if (activeTarget) blurActiveTarget();
           if (event.cancelable) event.preventDefault();
           colDragActive = true;
