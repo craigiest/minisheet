@@ -480,10 +480,7 @@
       }
 
       .const-top {
-        border-top-left-radius: var(--key-radius);
-        border-top-right-radius: var(--key-radius);
-        border-bottom-left-radius: min(var(--key-radius), 8px);
-        border-bottom-right-radius: min(var(--key-radius), 8px);
+        border-radius: 8px;
         background: var(--key-header-constant-bg);
         color: var(--key-header-constant-color);
         min-height: 34px;
@@ -915,10 +912,7 @@
       .head-pill {
         background: var(--key-header-variable-bg);
         color: var(--key-header-variable-color);
-        border-top-left-radius: var(--key-radius);
-        border-top-right-radius: var(--key-radius);
-        border-bottom-left-radius: min(var(--key-radius), 8px);
-        border-bottom-right-radius: min(var(--key-radius), 8px);
+        border-radius: 8px;
         min-height: 34px;
         display: grid;
         align-content: center;
@@ -941,12 +935,11 @@
       .result-head .head-pill {
         background: var(--key-action-result-bg);
         color: var(--key-action-result-color);
+        border-radius: var(--key-radius);
         min-height: 34px;
         display: flex;
         align-items: center;
         justify-content: center;
-        border-bottom-left-radius: var(--key-radius);
-        border-bottom-right-radius: var(--key-radius);
       }
 
       .result-head .head-pill .name {
