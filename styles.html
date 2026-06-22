@@ -77,6 +77,22 @@
         --key-ctrl-view-color: var(--key-ctrl-color);
         --key-ctrl-destructive-bg: var(--key-ctrl-bg);
         --key-ctrl-destructive-color: var(--key-ctrl-color);
+
+        /* Header pills: editable variable (A-D) and constant (V-Z) labels above the grid */
+        --key-header-variable-bg: #f1f1f3;
+        --key-header-variable-color: var(--text);
+        --key-header-variable-active-bg: var(--active);
+        --key-header-variable-active-color: #fff;
+        --key-header-constant-bg: #f1f1f3;
+        --key-header-constant-color: var(--text);
+        --key-header-constant-active-bg: var(--active);
+        --key-header-constant-active-color: #fff;
+
+        /* Action keys: Enter (numpad) and Result (header trigger) */
+        --key-action-enter-bg: var(--active);
+        --key-action-enter-color: #fff;
+        --key-action-result-bg: var(--active);
+        --key-action-result-color: #fff;
       }
 
       body.keypad-is-minimized {
@@ -111,6 +127,18 @@
         --key-ctrl-view-color: #fff;
         --key-ctrl-destructive-bg: #b43e4c;
         --key-ctrl-destructive-color: #fff;
+        --key-header-variable-bg: #3a3e4d;
+        --key-header-variable-color: #cfe0ff;
+        --key-header-variable-active-bg: #4f7adb;
+        --key-header-variable-active-color: #fff;
+        --key-header-constant-bg: #4d3a4d;
+        --key-header-constant-color: #f0cfff;
+        --key-header-constant-active-bg: #9b5fd9;
+        --key-header-constant-active-color: #fff;
+        --key-action-enter-bg: #3aa15c;
+        --key-action-enter-color: #fff;
+        --key-action-result-bg: #e07b3a;
+        --key-action-result-color: #fff;
       }
 
       body[data-theme="warm"] {
@@ -402,9 +430,9 @@
       }
 
       .const-top {
-        border-radius: 8px;
-        background: #f1f1f3;
-        color: var(--text);
+        border-radius: var(--key-radius);
+        background: var(--key-header-constant-bg);
+        color: var(--key-header-constant-color);
         min-height: 34px;
         display: grid;
         align-content: center;
@@ -792,27 +820,31 @@
       }
 
       .head-pill {
-        background: #f1f1f3;
-        color: var(--text);
-        border-radius: 8px;
+        background: var(--key-header-variable-bg);
+        color: var(--key-header-variable-color);
+        border-radius: var(--key-radius);
         min-height: 34px;
         display: grid;
         align-content: center;
         justify-items: center;
       }
 
-      body.formula-entry-active .col-head:not(.result-head) .head-pill,
+      body.formula-entry-active .col-head:not(.result-head) .head-pill {
+        background: var(--key-header-variable-active-bg);
+        color: var(--key-header-variable-active-color);
+      }
+
       body.formula-entry-active .const-top {
-        background: var(--active);
-        color: #fff;
+        background: var(--key-header-constant-active-bg);
+        color: var(--key-header-constant-active-color);
       }
 
       .head-pill .letter { font-size: 14px; font-weight: 700; }
       .head-pill .name { font-size: 11px; font-weight: 400; }
 
       .result-head .head-pill {
-        background: var(--active);
-        color: #fff;
+        background: var(--key-action-result-bg);
+        color: var(--key-action-result-color);
         min-height: 34px;
         display: flex;
         align-items: center;
@@ -1120,6 +1152,11 @@
       .key.key-ctrl.key-ctrl-destructive {
         background: var(--key-ctrl-destructive-bg);
         color: var(--key-ctrl-destructive-color);
+      }
+
+      .key.key-action-enter {
+        background: var(--key-action-enter-bg);
+        color: var(--key-action-enter-color);
       }
 
       .keys.full-keys .key:nth-last-child(6) {
@@ -1474,7 +1511,7 @@
         <button class="key key-num key-num-digit">7</button><button class="key key-num key-num-digit">8</button><button class="key key-num key-num-digit">9</button><button class="key key-ctrl key-ctrl-destructive" data-key="backspace">⌫</button>
         <button class="key key-num key-num-digit">4</button><button class="key key-num key-num-digit">5</button><button class="key key-num key-num-digit">6</button><button class="key key-op key-op-functional">/</button>
         <button class="key key-num key-num-digit">1</button><button class="key key-num key-num-digit">2</button><button class="key key-num key-num-digit">3</button><button class="key key-op key-op-functional">−</button>
-        <button class="key key-num key-num-digit">0</button><button class="key key-num key-num-digit">.</button><button class="key key-ctrl key-ctrl-view" data-key="np-enter">↩︎</button><button class="key key-ctrl key-ctrl-view" data-key="full-keypad">⇲</button>
+        <button class="key key-num key-num-digit">0</button><button class="key key-num key-num-digit">.</button><button class="key key-action key-action-enter" data-key="np-enter">↩︎</button><button class="key key-ctrl key-ctrl-view" data-key="full-keypad">⇲</button>
       </div>
     </section>
 
