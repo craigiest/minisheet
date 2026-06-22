@@ -39,7 +39,7 @@
 
         /* Theme: app font + button shape/weight */
         --app-font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
-        --key-radius: 8px;
+        --key-radius: 20px;
         --key-radius-corner: 24px;
         --key-border-width: 0px;
         --key-border-color: transparent;
@@ -50,6 +50,8 @@
            overridden independently by a theme declaring the subcategory var. */
         --key-num-bg: var(--active);
         --key-num-color: #fff;
+        --key-num-digit-bg: #e8edf7;
+        --key-num-digit-color: #1a1a1a;
 
         --key-op-bg: var(--active);
         --key-op-color: #fff;
@@ -252,17 +254,6 @@
         --key-header-variable-color: #1a1a1a;
         --key-header-constant-color: #1a1a1a;
         --stat-output-color: #1a1a1a;
-      }
-
-      /* Candy theme: same palette as the default theme, but with pill-shaped
-         keys and a TI-30X-style split — only the digits and decimal point
-         are white-on-dark, every other key (including e/pi) stays white
-         text on the dark active color. */
-      body[data-theme="candy"] {
-        --key-num-digit-bg: #e8edf7;
-        --key-num-digit-color: #1a1a1a;
-        --key-radius: 20px;
-        --key-radius-corner: 24px;
       }
 
       * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -1414,7 +1405,7 @@
     <header class="nav">
       <button class="arrow" aria-label="Previous sheet">&#9664;</button>
       <div class="title-block">
-        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">New Sheet</span><span class="version-tag">v0.3.18</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/1</button></div>
+        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">New Sheet</span><span class="version-tag">v0.3.19</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/1</button></div>
         <div class="sheet-menu" hidden role="menu" aria-label="Sheet selector"></div>
       </div>
       <button class="arrow" aria-label="Next sheet">&#9654;</button>
@@ -1493,7 +1484,7 @@
 
     <section class="settings-panel" aria-label="App info and settings" hidden>
       <h2>MiniSheet</h2>
-      <p class="settings-version">Version <span class="version-tag-settings">v0.3.18</span></p>
+      <p class="settings-version">Version <span class="version-tag-settings">v0.3.19</span></p>
       <p>MiniSheet is a formula-driven mini spreadsheet for quick calculations.</p>
       <p>Type a math problem, like 42+25, into the formula line and tap Result for an answer. Or create a formula like A+B/C and enter numbers in the grid to get multiple results for different sets of values.</p>
       <p>For the best experience, click the share button and add to your homescreen.</p>
