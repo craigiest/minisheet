@@ -43,29 +43,40 @@
         --key-border-width: 0px;
         --key-border-color: transparent;
 
-        /* Theme: per-category key colors (num/op/notation/fn/trig/stat/ctrl) */
+        /* Theme: per-category key colors. Each main category (num/op/fn/ctrl)
+           has two subcategories that default to the main category's colors
+           but can be overridden independently by a theme. */
         --key-num-bg: var(--active);
         --key-num-color: #fff;
+        --key-num-digit-bg: var(--key-num-bg);
+        --key-num-digit-color: var(--key-num-color);
+        --key-num-special-bg: var(--key-num-bg);
+        --key-num-special-color: var(--key-num-color);
+
         --key-op-bg: var(--active);
         --key-op-color: #fff;
-        --key-notation-bg: var(--active);
-        --key-notation-color: #fff;
+        --key-op-functional-bg: var(--key-op-bg);
+        --key-op-functional-color: var(--key-op-color);
+        --key-op-notation-bg: var(--key-op-bg);
+        --key-op-notation-color: var(--key-op-color);
+
         --key-fn-bg: var(--active);
         --key-fn-color: #fff;
         --key-fn-bg-inactive: transparent;
         --key-fn-color-inactive: #f0f3fa;
-        --key-trig-bg: var(--active);
-        --key-trig-color: #fff;
-        --key-trig-bg-inactive: transparent;
-        --key-trig-color-inactive: #f0f3fa;
-        --key-stat-bg: var(--active);
-        --key-stat-color: #fff;
-        --key-stat-bg-inactive: transparent;
-        --key-stat-color-inactive: #f0f3fa;
+        --key-fn-trig-bg: var(--key-fn-bg);
+        --key-fn-trig-color: var(--key-fn-color);
+        --key-fn-stat-bg: var(--key-fn-bg);
+        --key-fn-stat-color: var(--key-fn-color);
+
         --key-ctrl-bg: var(--active);
         --key-ctrl-color: #fff;
         --key-ctrl-bg-inactive: transparent;
         --key-ctrl-color-inactive: #f0f3fa;
+        --key-ctrl-view-bg: var(--key-ctrl-bg);
+        --key-ctrl-view-color: var(--key-ctrl-color);
+        --key-ctrl-destructive-bg: var(--key-ctrl-bg);
+        --key-ctrl-destructive-color: var(--key-ctrl-color);
       }
 
       body.keypad-is-minimized {
@@ -84,20 +95,22 @@
         --active: #4f7adb;
         --active-soft: #6aa8f1;
         --keypad-bg: #20232e;
-        --key-num-bg: #4f7adb;
-        --key-num-color: #fff;
-        --key-op-bg: #d94f4f;
-        --key-op-color: #fff;
-        --key-notation-bg: #d9a23a;
-        --key-notation-color: #1a1300;
-        --key-fn-bg: #3aa15c;
-        --key-fn-color: #fff;
-        --key-trig-bg: #3aa1a1;
-        --key-trig-color: #fff;
-        --key-stat-bg: #9b5fd9;
-        --key-stat-color: #fff;
-        --key-ctrl-bg: #5c6275;
-        --key-ctrl-color: #fff;
+        --key-num-digit-bg: #4f7adb;
+        --key-num-digit-color: #fff;
+        --key-num-special-bg: #25336b;
+        --key-num-special-color: #fff;
+        --key-op-functional-bg: #d94f4f;
+        --key-op-functional-color: #fff;
+        --key-op-notation-bg: #d9a23a;
+        --key-op-notation-color: #1a1300;
+        --key-fn-trig-bg: #3aa1a1;
+        --key-fn-trig-color: #fff;
+        --key-fn-stat-bg: #9b5fd9;
+        --key-fn-stat-color: #fff;
+        --key-ctrl-view-bg: #5c6275;
+        --key-ctrl-view-color: #fff;
+        --key-ctrl-destructive-bg: #b43e4c;
+        --key-ctrl-destructive-color: #fff;
       }
 
       body[data-theme="warm"] {
@@ -379,8 +392,8 @@
       .key-active {
         border: 1px solid rgba(255, 255, 255, 0.2);
         border-radius: var(--key-radius);
-        background: var(--key-ctrl-bg);
-        color: var(--key-ctrl-color);
+        background: var(--key-ctrl-destructive-bg);
+        color: var(--key-ctrl-destructive-color);
         display: grid;
         place-items: center;
         width: 42px;
@@ -1069,14 +1082,24 @@
         outline: none;
       }
 
-      .key.key-op {
-        background: var(--key-op-bg);
-        color: var(--key-op-color);
+      .key.key-num.key-num-digit {
+        background: var(--key-num-digit-bg);
+        color: var(--key-num-digit-color);
       }
 
-      .key.key-notation {
-        background: var(--key-notation-bg);
-        color: var(--key-notation-color);
+      .key.key-num.key-num-special {
+        background: var(--key-num-special-bg);
+        color: var(--key-num-special-color);
+      }
+
+      .key.key-op.key-op-functional {
+        background: var(--key-op-functional-bg);
+        color: var(--key-op-functional-color);
+      }
+
+      .key.key-op.key-op-notation {
+        background: var(--key-op-notation-bg);
+        color: var(--key-op-notation-color);
       }
 
       .key.key-fn {
@@ -1084,19 +1107,19 @@
         color: var(--key-fn-color);
       }
 
-      .key.key-trig {
-        background: var(--key-trig-bg);
-        color: var(--key-trig-color);
-      }
-
-      .key.key-stat {
-        background: var(--key-stat-bg);
-        color: var(--key-stat-color);
-      }
-
       .key.key-ctrl {
         background: var(--key-ctrl-bg);
         color: var(--key-ctrl-color);
+      }
+
+      .key.key-ctrl.key-ctrl-view {
+        background: var(--key-ctrl-view-bg);
+        color: var(--key-ctrl-view-color);
+      }
+
+      .key.key-ctrl.key-ctrl-destructive {
+        background: var(--key-ctrl-destructive-bg);
+        color: var(--key-ctrl-destructive-color);
       }
 
       .keys.full-keys .key:nth-last-child(6) {
@@ -1131,24 +1154,24 @@
         border: 1px solid transparent;
       }
 
-      .key.light.key-fn:not(.is-inactive) {
-        background: var(--key-fn-bg);
-        color: var(--key-fn-color);
+      .key.light.key-fn.key-fn-trig:not(.is-inactive) {
+        background: var(--key-fn-trig-bg);
+        color: var(--key-fn-trig-color);
       }
 
-      .key.light.key-trig:not(.is-inactive) {
-        background: var(--key-trig-bg);
-        color: var(--key-trig-color);
+      .key.light.key-fn.key-fn-stat:not(.is-inactive) {
+        background: var(--key-fn-stat-bg);
+        color: var(--key-fn-stat-color);
       }
 
-      .key.light.key-stat:not(.is-inactive) {
-        background: var(--key-stat-bg);
-        color: var(--key-stat-color);
+      .key.light.key-ctrl.key-ctrl-view:not(.is-inactive) {
+        background: var(--key-ctrl-view-bg);
+        color: var(--key-ctrl-view-color);
       }
 
-      .key.light.key-ctrl:not(.is-inactive) {
-        background: var(--key-ctrl-bg);
-        color: var(--key-ctrl-color);
+      .key.light.key-ctrl.key-ctrl-destructive:not(.is-inactive) {
+        background: var(--key-ctrl-destructive-bg);
+        color: var(--key-ctrl-destructive-color);
       }
 
       .key.is-active {
@@ -1243,7 +1266,7 @@
     </header>
 
     <section class="constants-strip" aria-label="Constants strip">
-      <div class="clear-cell"><button class="key-active" aria-label="Clear">C</button></div>
+      <div class="clear-cell"><button class="key-active key-ctrl-destructive" aria-label="Clear">C</button></div>
       <div class="const-cell"><div class="const-top"><div class="letter">V</div><div class="name">const1</div></div><input inputmode="none" value="" /></div>
       <div class="const-cell"><div class="const-top"><div class="letter">W</div><div class="name">const2</div></div><input inputmode="none" value="" /></div>
       <div class="const-cell"><div class="const-top"><div class="letter">X</div><div class="name">const3</div></div><input inputmode="none" value="" /></div>
@@ -1440,18 +1463,18 @@
 
     <section class="keypad" aria-label="Bottom keypad">
       <div class="keys full-keys">
-        <button class="key key-undo key-ctrl" data-key="undo">⤺</button><button class="key key-ctrl" data-key="minimize">⤓</button><button class="key key-op">√</button><button class="key key-num" data-shift-slot="e"><em>e</em></button><button class="key key-num" data-shift-slot="pi">π</button><button class="key key-ctrl" data-key="backspace">⌫</button>
-        <button class="key light key-fn">LOG</button><button class="key light key-op">!</button><button class="key key-op">^</button><button class="key key-notation">(</button><button class="key key-notation">)</button><button class="key key-op">/</button>
-        <button class="key light key-trig" data-shift-slot="sin">SIN</button><button class="key light key-stat" data-shift-slot="sum">SUM</button><button class="key key-num">7</button><button class="key key-num">8</button><button class="key key-num">9</button><button class="key key-op">*</button>
-        <button class="key light key-trig" data-shift-slot="cos">COS</button><button class="key light key-stat" data-shift-slot="mean">MEAN</button><button class="key key-num">4</button><button class="key key-num">5</button><button class="key key-num">6</button><button class="key key-op">−</button>
-        <button class="key light key-trig" data-shift-slot="tan">TAN</button><button class="key light key-stat" data-shift-slot="max">MAX</button><button class="key key-num">1</button><button class="key key-num">2</button><button class="key key-num">3</button><button class="key key-op">+</button>
-        <button class="key light key-ctrl" data-key="shift">⇧</button><button class="key light key-stat" data-shift-slot="min">MIN</button><button class="key key-num">0</button><button class="key key-num">.</button><button class="key key-notation">,</button><button class="key key-notation">:</button>
+        <button class="key key-undo key-ctrl key-ctrl-view" data-key="undo">⤺</button><button class="key key-ctrl key-ctrl-view" data-key="minimize">⤓</button><button class="key key-op key-op-functional">√</button><button class="key key-num key-num-special" data-shift-slot="e"><em>e</em></button><button class="key key-num key-num-special" data-shift-slot="pi">π</button><button class="key key-ctrl key-ctrl-destructive" data-key="backspace">⌫</button>
+        <button class="key light key-fn key-fn-trig">LOG</button><button class="key light key-op key-op-functional">!</button><button class="key key-op key-op-functional">^</button><button class="key key-op key-op-notation">(</button><button class="key key-op key-op-notation">)</button><button class="key key-op key-op-functional">/</button>
+        <button class="key light key-fn key-fn-trig" data-shift-slot="sin">SIN</button><button class="key light key-fn key-fn-stat" data-shift-slot="sum">SUM</button><button class="key key-num key-num-digit">7</button><button class="key key-num key-num-digit">8</button><button class="key key-num key-num-digit">9</button><button class="key key-op key-op-functional">*</button>
+        <button class="key light key-fn key-fn-trig" data-shift-slot="cos">COS</button><button class="key light key-fn key-fn-stat" data-shift-slot="mean">MEAN</button><button class="key key-num key-num-digit">4</button><button class="key key-num key-num-digit">5</button><button class="key key-num key-num-digit">6</button><button class="key key-op key-op-functional">−</button>
+        <button class="key light key-fn key-fn-trig" data-shift-slot="tan">TAN</button><button class="key light key-fn key-fn-stat" data-shift-slot="max">MAX</button><button class="key key-num key-num-digit">1</button><button class="key key-num key-num-digit">2</button><button class="key key-num key-num-digit">3</button><button class="key key-op key-op-functional">+</button>
+        <button class="key light key-ctrl key-ctrl-view" data-key="shift">⇧</button><button class="key light key-fn key-fn-stat" data-shift-slot="min">MIN</button><button class="key key-num key-num-digit">0</button><button class="key key-num key-num-digit">.</button><button class="key key-op key-op-notation">,</button><button class="key key-op key-op-notation">:</button>
       </div>
       <div class="keys numpad-keys" hidden>
-        <button class="key key-num">7</button><button class="key key-num">8</button><button class="key key-num">9</button><button class="key key-ctrl" data-key="backspace">⌫</button>
-        <button class="key key-num">4</button><button class="key key-num">5</button><button class="key key-num">6</button><button class="key key-op">/</button>
-        <button class="key key-num">1</button><button class="key key-num">2</button><button class="key key-num">3</button><button class="key key-op">−</button>
-        <button class="key key-num">0</button><button class="key key-num">.</button><button class="key key-ctrl" data-key="np-enter">↩︎</button><button class="key key-ctrl" data-key="full-keypad">⇲</button>
+        <button class="key key-num key-num-digit">7</button><button class="key key-num key-num-digit">8</button><button class="key key-num key-num-digit">9</button><button class="key key-ctrl key-ctrl-destructive" data-key="backspace">⌫</button>
+        <button class="key key-num key-num-digit">4</button><button class="key key-num key-num-digit">5</button><button class="key key-num key-num-digit">6</button><button class="key key-op key-op-functional">/</button>
+        <button class="key key-num key-num-digit">1</button><button class="key key-num key-num-digit">2</button><button class="key key-num key-num-digit">3</button><button class="key key-op key-op-functional">−</button>
+        <button class="key key-num key-num-digit">0</button><button class="key key-num key-num-digit">.</button><button class="key key-ctrl key-ctrl-view" data-key="np-enter">↩︎</button><button class="key key-ctrl key-ctrl-view" data-key="full-keypad">⇲</button>
       </div>
     </section>
 
