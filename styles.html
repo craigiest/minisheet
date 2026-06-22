@@ -65,11 +65,9 @@
         --key-ctrl-color-inactive: #f0f3fa;
 
         /* Header pills: editable variable (A-D) and constant (V-Z) labels above the grid */
-        --key-header-variable-bg: #dadadf;
         --key-header-variable-color: var(--text);
         --key-header-variable-active-bg: var(--active);
         --key-header-variable-active-color: #fff;
-        --key-header-constant-bg: #dadadf;
         --key-header-constant-color: var(--text);
         --key-header-constant-active-bg: var(--active);
         --key-header-constant-active-color: #fff;
@@ -99,6 +97,11 @@
          be picked up by an ancestor's already-resolved value. */
       body {
         --entry-color: var(--text);
+
+        /* Idle variable/constant pills blend into the keypad chrome
+           behind them, instead of standing out as a separate surface. */
+        --key-header-variable-bg: var(--keypad-bg);
+        --key-header-constant-bg: var(--keypad-bg);
 
         /* Selection highlight, derived from the theme's active color so it
            never clashes with a theme's hue. */
