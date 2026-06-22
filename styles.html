@@ -21,6 +21,7 @@
         --panel: #f3f3f5;
         --line: #d5d5da;
         --text: #1d2029;
+        --text-muted: #8a94a8;
         --active: #305596;
         --active-soft: #6aa8f1;
         --nav-h: 34px;
@@ -133,6 +134,7 @@
         --panel: #1d1f27;
         --line: #2c2f3a;
         --text: #e8e9ee;
+        --text-muted: #8b93a8;
         --active: #4f7adb;
         --active-soft: #6aa8f1;
         --keypad-bg: #20232e;
@@ -173,6 +175,7 @@
         --panel: #ece4cf;
         --line: #b9ac8a;
         --text: #28241d;
+        --text-muted: #8a7a5c;
         --active: #e23f2c;
         --active-soft: #ef7a64;
         --keypad-bg: #2b2823;
@@ -217,6 +220,7 @@
         --panel: #ffffff;
         --line: #cfcfcf;
         --text: #1a1a1a;
+        --text-muted: #767676;
         --active: #1a1a1a;
         --active-soft: #4a4a4a;
         --keypad-bg: #ffffff;
@@ -240,6 +244,7 @@
         --panel: #fff7fb;
         --line: #f3cfe4;
         --text: #3a1f33;
+        --text-muted: #a878a0;
         --active: #d6488a;
         --active-soft: #ef85bb;
         --keypad-bg: #6e3a82;
@@ -360,7 +365,7 @@
       }
 
       .sheet-index:active {
-        background: rgba(48, 85, 150, 0.12);
+        background: var(--select-bg-soft);
       }
 
       .sheet-menu {
@@ -387,6 +392,7 @@
         border: 0;
         border-radius: 8px;
         background: transparent;
+        color: var(--text);
         text-align: left;
         font-size: 13px;
         padding: 6px 8px;
@@ -407,7 +413,7 @@
         border: 0;
         border-radius: 8px;
         background: transparent;
-        color: var(--text-muted, #8a94a8);
+        color: var(--text-muted);
         font-size: 14px;
         line-height: 1;
         padding: 6px 8px;
@@ -415,16 +421,16 @@
       }
 
       .sheet-duplicate-btn:active {
-        background: rgba(48, 85, 150, 0.2);
+        background: var(--select-bg-soft);
       }
 
       .sheet-option.is-current {
-        background: rgba(48, 85, 150, 0.14);
+        background: var(--select-bg-soft);
         font-weight: 700;
       }
 
       .sheet-option:active {
-        background: rgba(48, 85, 150, 0.2);
+        background: var(--select-bg-soft);
       }
 
       .sheet-title {
@@ -655,14 +661,14 @@
         -webkit-appearance: none;
         border: 0;
         border-radius: 8px;
-        background: #305596;
+        background: var(--active);
         color: #fff;
         font-size: 15px;
         padding: 10px 16px;
       }
 
       .settings-btn:active {
-        background: #24407a;
+        background: color-mix(in srgb, var(--active) 80%, black);
       }
 
       .theme-picker {
@@ -780,12 +786,18 @@
         min-width: 0;
       }
 
-      .import-position-select {
+      .import-position-select,
+      .examples-position-select {
         flex: 1;
         min-width: 0;
         max-width: 100%;
         font-size: 14px;
         padding: 6px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: var(--panel);
+        color: var(--text);
+        font-family: var(--app-font);
       }
 
       .import-picker-actions {
@@ -1389,12 +1401,12 @@
   </head>
   <body>
     <header class="nav">
-      <button class="arrow" aria-label="Previous sheet">‹</button>
+      <button class="arrow" aria-label="Previous sheet">&#8592;</button>
       <div class="title-block">
         <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">New Sheet</span><span class="version-tag">v0.3.0</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/1</button></div>
         <div class="sheet-menu" hidden role="menu" aria-label="Sheet selector"></div>
       </div>
-      <button class="arrow" aria-label="Next sheet">›</button>
+      <button class="arrow" aria-label="Next sheet">&#8594;</button>
     </header>
 
     <section class="constants-strip" aria-label="Constants strip">
