@@ -21,6 +21,7 @@
         --panel: #f3f3f5;
         --line: #d5d5da;
         --text: #1d2029;
+        --text-muted: #8a94a8;
         --active: #305596;
         --active-soft: #6aa8f1;
         --nav-h: 34px;
@@ -35,10 +36,233 @@
         --keypad-active-h: calc(var(--keypad-h) + var(--keypad-safe-bottom));
         --keypad-bg: #7082a7;
         --select-bar-h: 0px;
+
+        /* Theme: app font + button shape/weight */
+        --app-font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+        --key-radius: 8px;
+        --key-radius-corner: 24px;
+        --key-border-width: 0px;
+        --key-border-color: transparent;
+
+        /* Theme: per-category key colors. Each main category (num/op/fn/ctrl)
+           has two subcategories that fall back to the main category's colors
+           (via var(--sub, var(--main))) at the point of use, but can be
+           overridden independently by a theme declaring the subcategory var. */
+        --key-num-bg: var(--active);
+        --key-num-color: #fff;
+
+        --key-op-bg: var(--active);
+        --key-op-color: #fff;
+
+        --key-fn-bg: var(--active);
+        --key-fn-color: #fff;
+        --key-fn-bg-inactive: transparent;
+        --key-fn-color-inactive: #f0f3fa;
+
+        --key-ctrl-bg: var(--active);
+        --key-ctrl-color: #fff;
+        --key-ctrl-bg-inactive: transparent;
+        --key-ctrl-color-inactive: #f0f3fa;
+
+        /* Header pills: editable variable (A-D) and constant (V-Z) labels above the grid */
+        --key-header-variable-color: #fff;
+        --key-header-variable-active-bg: var(--active);
+        --key-header-variable-active-color: #fff;
+        --key-header-constant-color: #fff;
+        --key-header-constant-active-bg: var(--active);
+        --key-header-constant-active-color: #fff;
+
+        /* Action keys: Enter (numpad) and Result (header trigger) */
+        --key-action-enter-bg: var(--active);
+        --key-action-enter-color: #fff;
+        --key-action-result-bg: var(--active);
+        --key-action-result-color: #fff;
+
+        /* Grid structure: the non-editable sticky chrome (row numbers, header
+           padding behind pills) — themeable instead of a fixed light grey. */
+        --grid-structure-bg: #f1f1f3;
+
+        /* Text entry fields: formula bar, constant inputs, grid cell inputs —
+           all share one look so editing always reads consistently. */
+        --entry-bg: #f0f0f2;
+        --entry-border: #c7c7ce;
+        --entry-placeholder: #a7acb7;
+
+        /* Light/dimmed key glyph color (key.light fallback, focus ring) and
+           the dimmed text used for is-inactive number/op keys. */
+        --key-light-color: #f0f3fa;
+        --key-inactive-text-color: #d8deea;
+
+        /* Text color for solid var(--active)-colored surfaces (settings'
+           primary action button, etc). Every theme's --active is dark/
+           saturated enough for white text, so this isn't overridden per-theme. */
+        --active-text-color: #fff;
+      }
+
+      /* These custom properties are declared on `body` (not `:root`) because
+         they derive from other theme variables via var()/color-mix(). A
+         derived variable resolves using the cascaded value of its inputs on
+         the SAME element — declaring it on :root would freeze it to the
+         default theme, since theme overrides apply to `body` and wouldn't
+         be picked up by an ancestor's already-resolved value. */
+      body {
+        --entry-color: var(--text);
+
+        /* Idle variable/constant pills blend into the keypad chrome
+           behind them, instead of standing out as a separate surface. */
+        --key-header-variable-bg: var(--keypad-bg);
+        --key-header-constant-bg: var(--keypad-bg);
+
+        /* Selection highlight, derived from the theme's active color so it
+           never clashes with a theme's hue. */
+        --select-bg-strong: color-mix(in srgb, var(--active) 35%, transparent);
+        --select-bg-soft: color-mix(in srgb, var(--active) 18%, transparent);
+
+        /* Row/column/result/stat/const selection action bar: styled like the
+           view controls so copy/paste actions match the rest of the keypad. */
+        --select-bar-bg: var(--key-ctrl-view-bg, var(--key-ctrl-bg));
+        --select-bar-color: var(--key-ctrl-view-color, var(--key-ctrl-color));
+        --select-bar-btn-bg: var(--panel);
+        --select-bar-btn-color: var(--select-bar-bg);
+        --select-bar-btn-confirmed-bg: var(--active-soft);
+        --select-bar-btn-confirmed-color: var(--bg);
+
+        /* Stat row dropdown + its computed output */
+        --stat-select-bg: var(--key-fn-stat-bg, var(--key-fn-bg));
+        --stat-select-color: var(--key-fn-stat-color, var(--key-fn-color));
+        --stat-output-color: #fff;
       }
 
       body.keypad-is-minimized {
         --keypad-active-h: calc(var(--keypad-min-h) + var(--keypad-safe-bottom));
+      }
+
+      /* ---- Style presets, selectable from Settings (sheet 0) ---- */
+
+      /* Diagnostic theme: every key category gets its own hue so the
+         num/op/notation/fn/trig/stat/ctrl classification can be eyeballed. */
+      body[data-theme="diagnostic"] {
+        --bg: #14151a;
+        --panel: #1d1f27;
+        --line: #2c2f3a;
+        --text: #e8e9ee;
+        --text-muted: #8b93a8;
+        --active: #4f7adb;
+        --active-soft: #6aa8f1;
+        --keypad-bg: #20232e;
+        --key-num-digit-bg: #4f7adb;
+        --key-num-digit-color: #fff;
+        --key-num-special-bg: #25336b;
+        --key-num-special-color: #fff;
+        --key-op-functional-bg: #d94f4f;
+        --key-op-functional-color: #fff;
+        --key-op-notation-bg: #d9a23a;
+        --key-op-notation-color: #1a1300;
+        --key-fn-trig-bg: #3aa1a1;
+        --key-fn-trig-color: #fff;
+        --key-fn-stat-bg: #9b5fd9;
+        --key-fn-stat-color: #fff;
+        --key-ctrl-view-bg: #5c6275;
+        --key-ctrl-view-color: #fff;
+        --key-ctrl-view-emphasis-color: #ffe45e;
+        --key-ctrl-destructive-bg: #b43e4c;
+        --key-ctrl-destructive-color: #fff;
+        --key-header-variable-bg: #3a3e4d;
+        --key-header-variable-color: #cfe0ff;
+        --key-header-variable-active-bg: #4f7adb;
+        --key-header-variable-active-color: #fff;
+        --key-header-constant-bg: #4d3a4d;
+        --key-header-constant-color: #f0cfff;
+        --key-header-constant-active-bg: #9b5fd9;
+        --key-header-constant-active-color: #fff;
+        --key-action-enter-bg: #3aa15c;
+        --key-action-enter-color: #fff;
+        --key-action-result-bg: #e07b3a;
+        --key-action-result-color: #fff;
+      }
+
+      body[data-theme="warm"] {
+        /* TI-2500 vintage calculator: cream body, dark bezel, white keys, red LED, orange "=" */
+        --bg: #e3dbc6;
+        --panel: #ece4cf;
+        --line: #b9ac8a;
+        --text: #28241d;
+        --text-muted: #8a7a5c;
+        --active: #e23f2c;
+        --active-soft: #ef7a64;
+        --keypad-bg: #2b2823;
+        --key-num-bg: #f7f2e3;
+        --key-num-color: #221f19;
+        --key-op-bg: #d9cba3;
+        --key-op-color: #221f19;
+        --key-fn-bg: #d9cba3;
+        --key-fn-color: #221f19;
+        --key-ctrl-bg: #d9cba3;
+        --key-ctrl-color: #221f19;
+        --key-ctrl-destructive-color: #c4351f;
+        --key-header-variable-bg: #f7f2e3;
+        --key-header-variable-color: #221f19;
+        --key-header-variable-active-bg: #e0792a;
+        --key-header-variable-active-color: #fff;
+        --key-header-constant-bg: #f7f2e3;
+        --key-header-constant-color: #221f19;
+        --key-header-constant-active-bg: #e0792a;
+        --key-header-constant-active-color: #fff;
+        --key-action-enter-bg: #e0792a;
+        --key-action-enter-color: #fff;
+        --key-action-result-bg: #e0792a;
+        --key-action-result-color: #fff;
+        --app-font: "Helvetica Neue", Arial, sans-serif;
+        --key-radius: 6px;
+        --key-radius-corner: 10px;
+        --key-border-width: 1px;
+        --key-border-color: #c9bd9e;
+        /* Replace the light theme's near-white structural grey with the
+           cream/beige palette, and give text-entry fields an LED-style
+           black display with red digits. */
+        --grid-structure-bg: var(--panel);
+        --entry-bg: #1c1813;
+        --entry-color: #e8392c;
+        --entry-border: #100d0a;
+        --entry-placeholder: #7a4a3f;
+      }
+
+      body[data-theme="mono"] {
+        --bg: #f4f4f4;
+        --panel: #ffffff;
+        --line: #cfcfcf;
+        --text: #1a1a1a;
+        --text-muted: #767676;
+        --active: #1a1a1a;
+        --active-soft: #4a4a4a;
+        --keypad-bg: #ffffff;
+        --key-num-bg: #ffffff;
+        --key-num-color: #1a1a1a;
+        --key-op-bg: #1a1a1a;
+        --key-op-color: #fff;
+        --key-fn-bg: #d8d8d8;
+        --key-fn-color: #1a1a1a;
+        --key-ctrl-bg: #4a4a4a;
+        --key-ctrl-color: #fff;
+        --app-font: "Courier New", monospace;
+        --key-radius: 2px;
+        --key-radius-corner: 2px;
+        --key-border-width: 1px;
+        --key-border-color: #1a1a1a;
+        --key-header-variable-color: #1a1a1a;
+        --key-header-constant-color: #1a1a1a;
+        --stat-output-color: #1a1a1a;
+      }
+
+      /* Candy theme: same palette as the default theme, but with pill-shaped
+         keys and a TI-30X-style split — only the digits and decimal point
+         are white-on-dark, every other key (including e/pi) stays white
+         text on the dark active color. */
+      body[data-theme="candy"] {
+        --key-num-digit-bg: #e8edf7;
+        --key-num-digit-color: #1a1a1a;
+        --key-radius: 20px;
+        --key-radius-corner: 24px;
       }
 
       * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -48,7 +272,7 @@
         height: 100%;
         margin: 0;
         overflow: hidden;
-        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+        font-family: var(--app-font);
         background: var(--bg);
         color: var(--text);
       }
@@ -105,7 +329,10 @@
         height: 30px;
         border: 0;
         background: transparent;
-        font-size: 18px;
+        color: var(--text);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+        font-size: 20px;
+        font-weight: 700;
         position: relative;
         z-index: 3;
       }
@@ -144,7 +371,7 @@
       }
 
       .sheet-index:active {
-        background: rgba(48, 85, 150, 0.12);
+        background: var(--select-bg-soft);
       }
 
       .sheet-menu {
@@ -171,6 +398,7 @@
         border: 0;
         border-radius: 8px;
         background: transparent;
+        color: var(--text);
         text-align: left;
         font-size: 13px;
         padding: 6px 8px;
@@ -191,7 +419,7 @@
         border: 0;
         border-radius: 8px;
         background: transparent;
-        color: var(--text-muted, #8a94a8);
+        color: var(--text-muted);
         font-size: 14px;
         line-height: 1;
         padding: 6px 8px;
@@ -199,16 +427,16 @@
       }
 
       .sheet-duplicate-btn:active {
-        background: rgba(48, 85, 150, 0.2);
+        background: var(--select-bg-soft);
       }
 
       .sheet-option.is-current {
-        background: rgba(48, 85, 150, 0.14);
+        background: var(--select-bg-soft);
         font-weight: 700;
       }
 
       .sheet-option:active {
-        background: rgba(48, 85, 150, 0.2);
+        background: var(--select-bg-soft);
       }
 
       .sheet-title {
@@ -216,6 +444,7 @@
         pointer-events: auto;
         line-height: 1.1;
         color: var(--text);
+        caret-color: var(--text);
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -233,8 +462,7 @@
         left: 0;
         right: 0;
         height: var(--const-h);
-        background: var(--panel);
-        border-bottom: 1px solid var(--line);
+        background: var(--keypad-bg);
         display: grid;
         grid-template-columns: 52px repeat(5, minmax(0, 1fr));
         z-index: 50;
@@ -242,7 +470,6 @@
 
       .clear-cell,
       .const-cell {
-        border-right: 1px solid var(--line);
         padding: 4px;
         display: grid;
         gap: 2px;
@@ -255,9 +482,9 @@
 
       .key-active {
         border: 1px solid rgba(255, 255, 255, 0.2);
-        border-radius: 8px;
-        background: var(--active);
-        color: #fff;
+        border-radius: var(--key-radius);
+        background: var(--key-ctrl-destructive-bg, var(--key-ctrl-bg));
+        color: var(--key-ctrl-destructive-color, var(--key-ctrl-color));
         display: grid;
         place-items: center;
         width: 42px;
@@ -267,8 +494,8 @@
 
       .const-top {
         border-radius: 8px;
-        background: #f1f1f3;
-        color: var(--text);
+        background: var(--key-header-constant-bg);
+        color: var(--key-header-constant-color);
         min-height: 34px;
         display: grid;
         align-content: center;
@@ -289,20 +516,23 @@
       }
 
       .const-top.const-selected {
-        background: rgba(93, 141, 213, 0.35);
+        background: var(--select-bg-strong);
         color: var(--text);
       }
 
       .const-cell input.const-selected-cell {
-        background: rgba(93, 141, 213, 0.18);
+        background: var(--select-bg-soft);
       }
 
       .const-cell input {
         width: 100%;
         height: 30px;
-        border: 1px solid #c7c7ce;
+        border: 1px solid var(--entry-border);
         border-radius: 7px;
-        background: #efefef;
+        background: var(--entry-bg);
+        color: var(--entry-color);
+        caret-color: var(--entry-color);
+        font-family: var(--app-font);
         font-size: 14px;
         padding: 2px 6px;
       }
@@ -313,8 +543,7 @@
         left: 0;
         right: 0;
         height: var(--formula-h);
-        background: var(--panel);
-        border-bottom: 1px solid var(--line);
+        background: var(--keypad-bg);
         display: grid;
         grid-template-columns: 30px 1fr auto;
         align-items: center;
@@ -333,16 +562,19 @@
         width: 100%;
         min-width: 0;
         height: 42px;
-        border: 2px solid #c7c7ce;
+        border: 0;
         border-radius: 10px;
         box-shadow: none;
-        background: #f0f0f2;
+        background: var(--entry-bg);
+        color: var(--entry-color);
+        caret-color: var(--entry-color);
+        font-family: var(--app-font);
         font-size: 14px;
         padding: 6px 10px;
       }
 
       .formula-input::placeholder {
-        color: #a7acb7;
+        color: var(--entry-placeholder);
         font-style: italic;
       }
 
@@ -352,8 +584,20 @@
       }
 
       .toggle {
+        appearance: none;
+        -webkit-appearance: none;
         font-size: 12px;
+        font-family: var(--app-font);
         white-space: nowrap;
+        border: var(--key-border-width) solid var(--key-border-color);
+        border-radius: var(--key-radius);
+        padding: 6px 10px;
+        background: var(--key-ctrl-view-bg, var(--key-ctrl-bg));
+        color: var(--key-ctrl-view-color, var(--key-ctrl-color));
+      }
+
+      .toggle strong {
+        color: var(--key-ctrl-view-emphasis-color, var(--key-ctrl-color));
       }
 
       .grid-wrap {
@@ -366,7 +610,7 @@
         overflow-y: auto;
         overflow-x: hidden;
         -webkit-overflow-scrolling: touch;
-        background: #f7f7f8;
+        background: var(--bg);
         z-index: 20;
       }
 
@@ -379,7 +623,7 @@
         overflow-y: auto;
         overflow-x: hidden;
         -webkit-overflow-scrolling: touch;
-        background: #fff;
+        background: var(--panel);
         z-index: 25;
         padding: 20px;
         padding-bottom: calc(20px + env(safe-area-inset-bottom));
@@ -398,7 +642,7 @@
       }
 
       .settings-version {
-        color: #8a94a8;
+        color: var(--text-muted);
         font-size: 13px;
         margin: 0 0 16px;
       }
@@ -420,28 +664,74 @@
         -webkit-appearance: none;
         border: 0;
         border-radius: 8px;
-        background: #305596;
-        color: #fff;
+        background: var(--active);
+        color: var(--active-text-color);
         font-size: 15px;
         padding: 10px 16px;
       }
 
       .settings-btn:active {
-        background: #24407a;
+        background: color-mix(in srgb, var(--active) 80%, black);
+      }
+
+      .theme-picker {
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
+        margin-top: 8px;
+      }
+
+      .theme-option {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .theme-option-label {
+        font-size: 11px;
+        color: var(--text);
+      }
+
+      .theme-swatch {
+        appearance: none;
+        -webkit-appearance: none;
+        width: 44px;
+        height: 44px;
+        border-radius: 10px;
+        border: 2px solid transparent;
+        background: linear-gradient(135deg, var(--swatch-a) 50%, var(--swatch-b) 50%);
+        padding: 0;
+        cursor: pointer;
+      }
+
+      .theme-swatch[data-theme-choice="default"] { --swatch-a: #ececef; --swatch-b: #305596; }
+      .theme-swatch[data-theme-choice="diagnostic"] { --swatch-a: #14151a; --swatch-b: #d94f4f; }
+      .theme-swatch[data-theme-choice="warm"] { --swatch-a: #fbf3e8; --swatch-b: #d9722c; }
+      .theme-swatch[data-theme-choice="mono"] { --swatch-a: #f4f4f4; --swatch-b: #1a1a1a; }
+      .theme-swatch[data-theme-choice="candy"] { --swatch-a: #ffffff; --swatch-b: #305596; }
+
+      .theme-swatch[aria-checked="true"] {
+        border-color: var(--text);
+      }
+
+      .theme-swatch[aria-checked="true"] + .theme-option-label {
+        font-weight: 700;
       }
 
       .settings-btn-danger {
-        background: #b3261e;
+        background: var(--key-ctrl-destructive-bg, var(--key-ctrl-bg));
+        color: var(--key-ctrl-destructive-color, var(--key-ctrl-color));
       }
 
       .settings-btn-danger:active {
-        background: #8c1d17;
+        background: color-mix(in srgb, var(--key-ctrl-destructive-bg, var(--key-ctrl-bg)) 80%, black);
       }
 
       .settings-hint {
         margin-top: 8px;
         font-size: 12px;
-        color: #8a94a8;
+        color: var(--text-muted);
       }
 
       .export-sheet-list {
@@ -468,16 +758,16 @@
       }
 
       .settings-btn-secondary {
-        background: #eef1f6;
+        background: var(--panel);
         color: var(--text);
       }
 
       .settings-btn-secondary:active {
-        background: #dde2eb;
+        background: color-mix(in srgb, var(--panel) 85%, black);
       }
 
       .import-error {
-        color: #b3261e;
+        color: var(--key-ctrl-destructive-bg, var(--key-ctrl-bg));
       }
 
       .import-picker {
@@ -500,12 +790,18 @@
         min-width: 0;
       }
 
-      .import-position-select {
+      .import-position-select,
+      .examples-position-select {
         flex: 1;
         min-width: 0;
         max-width: 100%;
         font-size: 14px;
         padding: 6px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: var(--panel);
+        color: var(--text);
+        font-family: var(--app-font);
       }
 
       .import-picker-actions {
@@ -543,13 +839,15 @@
 
       th,
       td {
-        border-right: 1px solid var(--line);
-        border-bottom: 1px solid var(--line);
-        background: #f1f1f3;
+        background: var(--grid-structure-bg);
       }
 
-      th:last-child,
-      td:last-child {
+      tbody td {
+        border-right: 1px solid var(--line);
+        border-bottom: 1px solid var(--line);
+      }
+
+      tbody td:last-child {
         border-right: 0;
       }
 
@@ -575,7 +873,7 @@
       .num {
         position: sticky;
         left: 0;
-        background: #f1f1f3;
+        background: var(--grid-structure-bg);
         font-size: 15px;
       }
 
@@ -584,6 +882,7 @@
         z-index: 10;
         text-align: center;
         cursor: pointer;
+        background: var(--keypad-bg);
       }
 
       .num {
@@ -595,12 +894,12 @@
       }
 
       tr.row-selected td.num {
-        background: rgba(93, 141, 213, 0.35);
+        background: var(--select-bg-strong);
         color: var(--text);
       }
 
       tr.row-selected td.editable-cell {
-        background: rgba(93, 141, 213, 0.18);
+        background: var(--select-bg-soft);
       }
 
       .col-head:not(.result-head) .head-pill .letter {
@@ -608,12 +907,12 @@
       }
 
       th.col-selected .head-pill {
-        background: rgba(93, 141, 213, 0.35);
+        background: var(--select-bg-strong);
         color: var(--text);
       }
 
       td.col-selected-cell {
-        background: rgba(93, 141, 213, 0.18);
+        background: var(--select-bg-soft);
       }
 
       .num-head {
@@ -623,12 +922,12 @@
 
       .col-head {
         padding: 4px;
-        background: #ececef;
+        background: var(--keypad-bg);
       }
 
       .head-pill {
-        background: #f1f1f3;
-        color: var(--text);
+        background: var(--key-header-variable-bg);
+        color: var(--key-header-variable-color);
         border-radius: 8px;
         min-height: 34px;
         display: grid;
@@ -636,18 +935,23 @@
         justify-items: center;
       }
 
-      body.formula-entry-active .col-head:not(.result-head) .head-pill,
+      body.formula-entry-active .col-head:not(.result-head) .head-pill {
+        background: var(--key-header-variable-active-bg);
+        color: var(--key-header-variable-active-color);
+      }
+
       body.formula-entry-active .const-top {
-        background: var(--active);
-        color: #fff;
+        background: var(--key-header-constant-active-bg);
+        color: var(--key-header-constant-active-color);
       }
 
       .head-pill .letter { font-size: 14px; font-weight: 700; }
       .head-pill .name { font-size: 11px; font-weight: 400; }
 
       .result-head .head-pill {
-        background: var(--active);
-        color: #fff;
+        background: var(--key-action-result-bg);
+        color: var(--key-action-result-color);
+        border-radius: var(--key-radius);
         min-height: 34px;
         display: flex;
         align-items: center;
@@ -676,6 +980,9 @@
       }
 
       .result-cell {
+        background: var(--entry-bg);
+        color: var(--entry-color);
+        font-family: var(--app-font);
         text-align: right;
         padding: 1px 4px 1px 1px;
         cursor: pointer;
@@ -686,7 +993,7 @@
       }
 
       .result-cell.is-selected {
-        background: rgba(93, 141, 213, 0.18);
+        background: var(--select-bg-soft);
       }
 
       .row-selection-bar,
@@ -702,8 +1009,8 @@
         flex-direction: column;
         gap: 6px;
         padding: 8px 10px;
-        background: var(--active);
-        color: #fff;
+        background: var(--select-bar-bg);
+        color: var(--select-bar-color);
         z-index: 30;
         box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.2);
       }
@@ -767,8 +1074,8 @@
         padding: 6px 8px;
         font-weight: 700;
         font-size: 13px;
-        background: #fff;
-        color: var(--active);
+        background: var(--select-bar-btn-bg);
+        color: var(--select-bar-btn-color);
         transition: background-color 0.15s ease;
       }
 
@@ -777,8 +1084,8 @@
       .result-selection-bar button.is-confirmed,
       .stat-selection-bar button.is-confirmed,
       .const-selection-bar button.is-confirmed {
-        background: #cfe3f7;
-        color: #1c4b7a;
+        background: var(--select-bar-btn-confirmed-bg);
+        color: var(--select-bar-btn-confirmed-color);
       }
 
       .row-selection-bar .row-action-done,
@@ -788,8 +1095,8 @@
       .const-selection-bar .const-action-done {
         flex: 0 0 auto;
         padding: 6px 10px;
-        background: rgba(255, 255, 255, 0.25);
-        color: #fff;
+        background: color-mix(in srgb, var(--select-bar-color) 22%, transparent);
+        color: var(--select-bar-color);
       }
 
       .result-head { z-index: 9; }
@@ -798,19 +1105,20 @@
         position: sticky;
         bottom: 0;
         z-index: 10;
-        background: var(--panel);
-        border-top: 2px solid #a4acb8;
+        background: var(--keypad-bg);
+        border-top: 2px solid var(--line);
         padding: 4px;
         height: 56px;
       }
 
       tfoot {
-        box-shadow: inset 0 2px 0 #a4acb8;
+        box-shadow: inset 0 2px 0 var(--line);
       }
 
       tfoot .num {
         font-weight: 700;
         font-size: 18px;
+        background: var(--keypad-bg);
       }
 
       .stat-cell {
@@ -829,10 +1137,12 @@
         max-width: 100%;
         height: 22px;
         line-height: 22px;
-        border: 1px solid #d2d7e2;
+        border: 0;
         border-radius: 6px;
-        background: #f6f8fb;
-        color: #2f5f9f;
+        outline: none;
+        background: var(--stat-select-bg);
+        color: var(--stat-select-color);
+        font-family: var(--app-font);
         font-size: 12px;
         padding: 0 1px;
         text-align: center;
@@ -854,7 +1164,7 @@
         text-align: right;
         border: 0;
         background: transparent;
-        color: #596275;
+        color: var(--stat-output-color);
         font-size: 15px;
         font-weight: 700;
         font-variant-numeric: tabular-nums;
@@ -865,7 +1175,7 @@
       }
 
       .stat-cell output.is-selected {
-        background: rgba(93, 141, 213, 0.18);
+        background: var(--select-bg-soft);
       }
 
       .keypad {
@@ -877,7 +1187,6 @@
         padding: var(--keypad-pad);
         padding-bottom: calc(var(--keypad-pad) + var(--keypad-safe-bottom));
         background: var(--keypad-bg);
-        border-top: 1px solid #5d6f97;
         z-index: 41;
         transition: height 0.2s ease;
       }
@@ -906,31 +1215,77 @@
       .key {
         appearance: none;
         -webkit-appearance: none;
-        border: 0;
-        border-radius: 8px;
-        background: var(--active);
+        border: var(--key-border-width) solid var(--key-border-color);
+        border-radius: var(--key-radius);
+        background: var(--key-num-bg);
         box-shadow: none;
-        color: #fff;
+        color: var(--key-num-color);
         font-size: 18px;
+        font-family: var(--app-font);
         outline: none;
         padding: 0;
         text-align: center;
       }
 
+      .key.key-num.key-num-digit:not(.is-inactive) {
+        background: var(--key-num-digit-bg, var(--key-num-bg));
+        color: var(--key-num-digit-color, var(--key-num-color));
+      }
+
+      .key.key-num.key-num-special:not(.is-inactive) {
+        background: var(--key-num-special-bg, var(--key-num-bg));
+        color: var(--key-num-special-color, var(--key-num-color));
+      }
+
+      .key.key-op.key-op-functional:not(.is-inactive) {
+        background: var(--key-op-functional-bg, var(--key-op-bg));
+        color: var(--key-op-functional-color, var(--key-op-color));
+      }
+
+      .key.key-op.key-op-notation:not(.is-inactive) {
+        background: var(--key-op-notation-bg, var(--key-op-bg));
+        color: var(--key-op-notation-color, var(--key-op-color));
+      }
+
+      .key.key-fn:not(.is-inactive) {
+        background: var(--key-fn-bg);
+        color: var(--key-fn-color);
+      }
+
+      .key.key-ctrl:not(.is-inactive) {
+        background: var(--key-ctrl-bg);
+        color: var(--key-ctrl-color);
+      }
+
+      .key.key-ctrl.key-ctrl-view:not(.is-inactive) {
+        background: var(--key-ctrl-view-bg, var(--key-ctrl-bg));
+        color: var(--key-ctrl-view-color, var(--key-ctrl-color));
+      }
+
+      .key.key-ctrl.key-ctrl-destructive:not(.is-inactive) {
+        background: var(--key-ctrl-destructive-bg, var(--key-ctrl-bg));
+        color: var(--key-ctrl-destructive-color, var(--key-ctrl-color));
+      }
+
+      .key.key-action-enter:not(.is-inactive) {
+        background: var(--key-action-enter-bg);
+        color: var(--key-action-enter-color);
+      }
+
       .keys.full-keys .key:nth-last-child(6) {
-        border-bottom-left-radius: 24px;
+        border-bottom-left-radius: var(--key-radius-corner);
       }
 
       .keys.full-keys .key:last-child {
-        border-bottom-right-radius: 24px;
+        border-bottom-right-radius: var(--key-radius-corner);
       }
 
       .numpad-keys .key:nth-last-child(4) {
-        border-bottom-left-radius: 24px;
+        border-bottom-left-radius: var(--key-radius-corner);
       }
 
       .numpad-keys .key:last-child {
-        border-bottom-right-radius: 24px;
+        border-bottom-right-radius: var(--key-radius-corner);
       }
 
       .key-undo {
@@ -939,43 +1294,58 @@
       }
 
       .key:focus-visible {
-        outline: 2px solid #f0f3fa;
+        outline: 2px solid var(--key-light-color);
         outline-offset: 2px;
       }
 
       .key.light {
         background: transparent;
-        color: #f0f3fa;
+        color: var(--key-light-color);
         border: 1px solid transparent;
       }
 
-      .key.light:not(.is-inactive) {
-        background: var(--active);
-        color: #fff;
+      .key.light.key-fn.key-fn-trig:not(.is-inactive) {
+        background: var(--key-fn-trig-bg, var(--key-fn-bg));
+        color: var(--key-fn-trig-color, var(--key-fn-color));
+      }
+
+      .key.light.key-fn.key-fn-stat:not(.is-inactive) {
+        background: var(--key-fn-stat-bg, var(--key-fn-bg));
+        color: var(--key-fn-stat-color, var(--key-fn-color));
+      }
+
+      .key.light.key-ctrl.key-ctrl-view:not(.is-inactive) {
+        background: var(--key-ctrl-view-bg, var(--key-ctrl-bg));
+        color: var(--key-ctrl-view-color, var(--key-ctrl-color));
+      }
+
+      .key.light.key-ctrl.key-ctrl-destructive:not(.is-inactive) {
+        background: var(--key-ctrl-destructive-bg, var(--key-ctrl-bg));
+        color: var(--key-ctrl-destructive-color, var(--key-ctrl-color));
       }
 
       .key.is-active {
-        background: var(--active);
-        color: #fff;
+        background: var(--key-num-bg);
+        color: var(--key-num-color);
         border-color: transparent;
       }
 
       .key.is-inactive,
       .key.light.is-inactive {
         background: var(--keypad-bg);
-        color: #d8deea;
+        color: var(--key-inactive-text-color);
         border-color: transparent;
       }
 
       .key-active.is-inactive {
         background: var(--panel);
-        color: #8a94a8;
+        color: var(--text-muted);
         border-color: transparent;
       }
 
       .key-active.is-danger {
-        background: #b43e4c;
-        color: #fff;
+        background: var(--key-ctrl-destructive-bg, var(--key-ctrl-bg));
+        color: var(--key-ctrl-destructive-color, var(--key-ctrl-color));
       }
 
       .keypad.minimized {
@@ -1005,6 +1375,7 @@
 
       .editable-cell {
         padding: 0;
+        background: var(--entry-bg);
       }
 
       .cell-input {
@@ -1012,6 +1383,9 @@
         height: 100%;
         border: 0;
         background: transparent;
+        color: var(--entry-color);
+        caret-color: var(--entry-color);
+        font-family: var(--app-font);
         padding: 0 4px;
         text-align: right;
         font-size: 15px;
@@ -1038,16 +1412,16 @@
   </head>
   <body>
     <header class="nav">
-      <button class="arrow" aria-label="Previous sheet">◀</button>
+      <button class="arrow" aria-label="Previous sheet">&#9664;</button>
       <div class="title-block">
-        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">New Sheet</span><span class="version-tag">v0.3.17</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/1</button></div>
+        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">New Sheet</span><span class="version-tag">v0.3.18</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/1</button></div>
         <div class="sheet-menu" hidden role="menu" aria-label="Sheet selector"></div>
       </div>
-      <button class="arrow" aria-label="Next sheet">▶</button>
+      <button class="arrow" aria-label="Next sheet">&#9654;</button>
     </header>
 
     <section class="constants-strip" aria-label="Constants strip">
-      <div class="clear-cell"><button class="key-active" aria-label="Clear">C</button></div>
+      <div class="clear-cell"><button class="key-active key-ctrl-destructive" aria-label="Clear">C</button></div>
       <div class="const-cell"><div class="const-top"><div class="letter">V</div><div class="name">const1</div></div><input inputmode="none" value="" /></div>
       <div class="const-cell"><div class="const-top"><div class="letter">W</div><div class="name">const2</div></div><input inputmode="none" value="" /></div>
       <div class="const-cell"><div class="const-top"><div class="letter">X</div><div class="name">const3</div></div><input inputmode="none" value="" /></div>
@@ -1058,7 +1432,7 @@
     <section class="formula-strip" aria-label="Formula editor strip">
       <div class="fx-eq">=</div>
       <input class="formula-input" value="(B*C)/A" placeholder="Enter formula here" aria-label="Formula editor" />
-      <button class="toggle" type="button" aria-label="Toggle formula labels">A / <strong>Name</strong></button>
+      <button class="toggle key-ctrl key-ctrl-view" type="button" aria-label="Toggle formula labels">A / <strong>Name</strong></button>
     </section>
 
     <div class="row-selection-bar" hidden>
@@ -1119,7 +1493,7 @@
 
     <section class="settings-panel" aria-label="App info and settings" hidden>
       <h2>MiniSheet</h2>
-      <p class="settings-version">Version <span class="version-tag-settings">v0.3.17</span></p>
+      <p class="settings-version">Version <span class="version-tag-settings">v0.3.18</span></p>
       <p>MiniSheet is a formula-driven mini spreadsheet for quick calculations.</p>
       <p>Type a math problem, like 42+25, into the formula line and tap Result for an answer. Or create a formula like A+B/C and enter numbers in the grid to get multiple results for different sets of values.</p>
       <p>For the best experience, click the share button and add to your homescreen.</p>
@@ -1233,18 +1607,18 @@
 
     <section class="keypad" aria-label="Bottom keypad">
       <div class="keys full-keys">
-        <button class="key key-undo" data-key="undo">⤺</button><button class="key" data-key="minimize">⤓</button><button class="key">√</button><button class="key" data-shift-slot="e"><em>e</em></button><button class="key" data-shift-slot="pi">π</button><button class="key" data-key="backspace">⌫</button>
-        <button class="key light">LOG</button><button class="key light">!</button><button class="key">^</button><button class="key">(</button><button class="key">)</button><button class="key">/</button>
-        <button class="key light" data-shift-slot="sin">SIN</button><button class="key light" data-shift-slot="sum">SUM</button><button class="key">7</button><button class="key">8</button><button class="key">9</button><button class="key">*</button>
-        <button class="key light" data-shift-slot="cos">COS</button><button class="key light" data-shift-slot="mean">MEAN</button><button class="key">4</button><button class="key">5</button><button class="key">6</button><button class="key">−</button>
-        <button class="key light" data-shift-slot="tan">TAN</button><button class="key light" data-shift-slot="max">MAX</button><button class="key">1</button><button class="key">2</button><button class="key">3</button><button class="key">+</button>
-        <button class="key light" data-key="shift">⇧</button><button class="key light" data-shift-slot="min">MIN</button><button class="key">0</button><button class="key">.</button><button class="key">,</button><button class="key">:</button>
+        <button class="key key-undo key-ctrl key-ctrl-view" data-key="undo">⤺</button><button class="key key-ctrl key-ctrl-view" data-key="minimize">⤓</button><button class="key key-op key-op-functional">√</button><button class="key key-num key-num-special" data-shift-slot="e"><em>e</em></button><button class="key key-num key-num-special" data-shift-slot="pi">π</button><button class="key key-ctrl key-ctrl-destructive" data-key="backspace">⌫</button>
+        <button class="key light key-fn key-fn-trig">LOG</button><button class="key light key-op key-op-functional">!</button><button class="key key-op key-op-functional">^</button><button class="key key-op key-op-notation">(</button><button class="key key-op key-op-notation">)</button><button class="key key-op key-op-functional">/</button>
+        <button class="key light key-fn key-fn-trig" data-shift-slot="sin">SIN</button><button class="key light key-fn key-fn-stat" data-shift-slot="sum">SUM</button><button class="key key-num key-num-digit">7</button><button class="key key-num key-num-digit">8</button><button class="key key-num key-num-digit">9</button><button class="key key-op key-op-functional">*</button>
+        <button class="key light key-fn key-fn-trig" data-shift-slot="cos">COS</button><button class="key light key-fn key-fn-stat" data-shift-slot="mean">MEAN</button><button class="key key-num key-num-digit">4</button><button class="key key-num key-num-digit">5</button><button class="key key-num key-num-digit">6</button><button class="key key-op key-op-functional">−</button>
+        <button class="key light key-fn key-fn-trig" data-shift-slot="tan">TAN</button><button class="key light key-fn key-fn-stat" data-shift-slot="max">MAX</button><button class="key key-num key-num-digit">1</button><button class="key key-num key-num-digit">2</button><button class="key key-num key-num-digit">3</button><button class="key key-op key-op-functional">+</button>
+        <button class="key light key-ctrl key-ctrl-view" data-key="shift">⇧</button><button class="key light key-fn key-fn-stat" data-shift-slot="min">MIN</button><button class="key key-num key-num-digit">0</button><button class="key key-num key-num-digit">.</button><button class="key key-op key-op-notation">,</button><button class="key key-op key-op-notation">:</button>
       </div>
       <div class="keys numpad-keys" hidden>
-        <button class="key">7</button><button class="key">8</button><button class="key">9</button><button class="key" data-key="backspace">⌫</button>
-        <button class="key">4</button><button class="key">5</button><button class="key">6</button><button class="key">/</button>
-        <button class="key">1</button><button class="key">2</button><button class="key">3</button><button class="key">−</button>
-        <button class="key">0</button><button class="key">.</button><button class="key" data-key="np-enter">↩︎</button><button class="key" data-key="full-keypad">⇲</button>
+        <button class="key key-num key-num-digit">7</button><button class="key key-num key-num-digit">8</button><button class="key key-num key-num-digit">9</button><button class="key key-ctrl key-ctrl-destructive" data-key="backspace">⌫</button>
+        <button class="key key-num key-num-digit">4</button><button class="key key-num key-num-digit">5</button><button class="key key-num key-num-digit">6</button><button class="key key-op key-op-functional">/</button>
+        <button class="key key-num key-num-digit">1</button><button class="key key-num key-num-digit">2</button><button class="key key-num key-num-digit">3</button><button class="key key-op key-op-functional">−</button>
+        <button class="key key-num key-num-digit">0</button><button class="key key-num key-num-digit">.</button><button class="key key-action key-action-enter" data-key="np-enter">↩︎</button><button class="key key-ctrl key-ctrl-view" data-key="full-keypad">⇲</button>
       </div>
     </section>
 
@@ -1323,6 +1697,8 @@
         const examplesPositionSelect = document.querySelector('.examples-position-select');
         const addExamplesBtn = document.getElementById('add-examples-btn');
         const skipSettingsNavCheckbox = document.getElementById('skip-settings-nav-checkbox');
+        const themeSwatches = [...document.querySelectorAll('.theme-swatch')];
+        const VALID_THEMES = themeSwatches.map((btn) => btn.dataset.themeChoice);
         const formulaInput = document.querySelector('.formula-input');
         const constantInputs = [...document.querySelectorAll('.const-cell input')];
         const constTopEls = [...document.querySelectorAll('.const-top')];
@@ -1382,12 +1758,12 @@
           };
         };
 
-        const state = { sheets: [makeSheet(0)], currentSheetIndex: 0, formulaMode: 'name', clearStage: 0, acConfirmPresses: 0, settingsView: false, numpadActive: false, skipSettingsInNav: false };
+        const state = { sheets: [makeSheet(0)], currentSheetIndex: 0, formulaMode: 'name', clearStage: 0, acConfirmPresses: 0, settingsView: false, numpadActive: false, skipSettingsInNav: false, theme: 'default' };
 
         let saveTimer = null;
         const scheduleSave = () => {
           if (saveTimer) clearTimeout(saveTimer);
-          saveTimer = setTimeout(() => asyncStorage.set({ sheets: state.sheets, currentSheetIndex: state.currentSheetIndex, formulaMode: state.formulaMode, skipSettingsInNav: state.skipSettingsInNav }), 250);
+          saveTimer = setTimeout(() => asyncStorage.set({ sheets: state.sheets, currentSheetIndex: state.currentSheetIndex, formulaMode: state.formulaMode, skipSettingsInNav: state.skipSettingsInNav, theme: state.theme }), 250);
         };
 
         dataRows.forEach((row) => {
@@ -3890,6 +4266,7 @@ diameter,height,value3,value4,Result
           } else {
             state.currentSheetIndex = 0;
           }
+          applyTheme(saved?.theme || 'default');
           while (state.sheets.length < 1) state.sheets.push(makeSheet(state.sheets.length));
           clearAllUndoHistory();
           ensureUndoHistoryAlignment();
@@ -3902,6 +4279,23 @@ diameter,height,value3,value4,Result
         skipSettingsNavCheckbox?.addEventListener('change', () => {
           state.skipSettingsInNav = skipSettingsNavCheckbox.checked;
           scheduleSave();
+        });
+
+        function applyTheme(theme) {
+          state.theme = VALID_THEMES.includes(theme) ? theme : 'default';
+          if (state.theme === 'default') {
+            document.body.removeAttribute('data-theme');
+          } else {
+            document.body.setAttribute('data-theme', state.theme);
+          }
+          themeSwatches.forEach((btn) => btn.setAttribute('aria-checked', String(btn.dataset.themeChoice === state.theme)));
+        }
+
+        themeSwatches.forEach((btn) => {
+          btn.addEventListener('click', () => {
+            applyTheme(btn.dataset.themeChoice);
+            scheduleSave();
+          });
         });
 
         forceRefreshBtn?.addEventListener('click', async () => {
