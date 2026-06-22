@@ -482,8 +482,8 @@
       .const-top {
         border-top-left-radius: var(--key-radius);
         border-top-right-radius: var(--key-radius);
-        border-bottom-left-radius: 8px;
-        border-bottom-right-radius: 8px;
+        border-bottom-left-radius: min(var(--key-radius), 8px);
+        border-bottom-right-radius: min(var(--key-radius), 8px);
         background: var(--key-header-constant-bg);
         color: var(--key-header-constant-color);
         min-height: 34px;
@@ -917,8 +917,8 @@
         color: var(--key-header-variable-color);
         border-top-left-radius: var(--key-radius);
         border-top-right-radius: var(--key-radius);
-        border-bottom-left-radius: 8px;
-        border-bottom-right-radius: 8px;
+        border-bottom-left-radius: min(var(--key-radius), 8px);
+        border-bottom-right-radius: min(var(--key-radius), 8px);
         min-height: 34px;
         display: grid;
         align-content: center;
