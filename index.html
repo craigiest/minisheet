@@ -1038,7 +1038,7 @@
     <header class="nav">
       <button class="arrow" aria-label="Previous sheet">◀</button>
       <div class="title-block">
-        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">New Sheet</span><span class="version-tag">v0.2.20</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/1</button></div>
+        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">New Sheet</span><span class="version-tag">v0.2.21</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/1</button></div>
         <div class="sheet-menu" hidden role="menu" aria-label="Sheet selector"></div>
       </div>
       <button class="arrow" aria-label="Next sheet">▶</button>
@@ -1117,7 +1117,7 @@
 
     <section class="settings-panel" aria-label="App info and settings" hidden>
       <h2>MiniSheet</h2>
-      <p class="settings-version">Version <span class="version-tag-settings">v0.2.20</span></p>
+      <p class="settings-version">Version <span class="version-tag-settings">v0.2.21</span></p>
       <p>MiniSheet is a formula-driven mini spreadsheet for quick calculations.</p>
       <p>Type a math problem, like 42+25, into the formula line and tap Result for an answer. Or create a formula like A+B/C and enter numbers in the grid to get multiple results for different sets of values.</p>
       <p>For the best experience, click the share button and add to your homescreen.</p>
@@ -1405,8 +1405,8 @@
         const getInputContext = () => isNumberEntryContext() ? 'number' : (isFormulaEntryContext() ? 'formula' : 'default');
         const isKeyEnabled = (key) => {
           if (key === undoKey) return currentUndoStack().length > 0;
-          if (selectedResultIndices.size > 0 || selectedStatIndices.size > 0) return key === minimizeKey;
-          if (selectedRowIndices.size > 0 || selectedColKeys.size > 0 || selectedConstIndices.size > 0) return key?.dataset.key === 'backspace' || key === minimizeKey;
+          if (isReadOnlySelectionActive()) return key === minimizeKey;
+          if (isEditableSelectionActive()) return key?.dataset.key === 'backspace' || key === minimizeKey;
           if (key === shiftKey) return true;
           const label = getKeyLabel(key);
           if (TEMP_DISABLED_KEY_LABELS.has(label)) return false;
@@ -1418,7 +1418,7 @@
         const getMinimizeKeyLabel = () => {
           const isMinimized = !!keypad?.classList.contains('minimized');
           if (isMinimized) return MAXIMIZE_KEY_LABEL;
-          if (selectedRowIndices.size > 0 || selectedColKeys.size > 0 || selectedResultIndices.size > 0 || selectedStatIndices.size > 0 || selectedConstIndices.size > 0 || isFormulaEntryContext() || keypadShiftActive) {
+          if (anySelectionActive() || isFormulaEntryContext() || keypadShiftActive) {
             return MINIMIZE_KEY_LABEL;
           }
           return NUMPAD_SWITCH_LABEL;
@@ -1930,11 +1930,7 @@
               event.preventDefault();
               event.stopPropagation();
               if (idx !== state.currentSheetIndex || state.settingsView) {
-                clearRowSelection();
-                clearColSelection();
-                clearResultSelection();
-                clearStatSelection();
-                clearConstSelection();
+                clearAllSelections();
                 blurActiveTarget();
                 persistFromDom();
                 state.settingsView = false;
@@ -2063,11 +2059,7 @@
           return true;
         };
         const nav = (dir) => {
-          clearRowSelection();
-          clearColSelection();
-          clearResultSelection();
-          clearStatSelection();
-          clearConstSelection();
+          clearAllSelections();
           persistFromDom();
           const oldIndex = state.currentSheetIndex;
           const oldLength = state.sheets.length;
@@ -2713,7 +2705,7 @@ diameter,height,value3,value4,Result
           if (!isKeyEnabled(key)) return;
           if (key === minimizeKey) {
             const currentlyMinimized = !!keypad?.classList.contains('minimized');
-            if (!currentlyMinimized && !selectedRowIndices.size && !selectedColKeys.size && !selectedResultIndices.size && !selectedStatIndices.size && !selectedConstIndices.size && !isFormulaEntryContext() && !keypadShiftActive) {
+            if (!currentlyMinimized && !anySelectionActive() && !isFormulaEntryContext() && !keypadShiftActive) {
               state.numpadActive = !state.numpadActive;
               updateKeyAvailability();
               return;
@@ -2968,10 +2960,7 @@ diameter,height,value3,value4,Result
           if (!cell) return;
           const rowIndex = resultCells.indexOf(cell);
           if (rowIndex === -1) return;
-          clearRowSelection();
-          clearColSelection();
-          clearStatSelection();
-          clearConstSelection();
+          clearOtherSelections(selectedResultIndices);
           if (activeTarget) blurActiveTarget();
           if (event.cancelable) event.preventDefault();
           resultDragActive = true;
@@ -3076,10 +3065,7 @@ diameter,height,value3,value4,Result
           if (!output) return;
           const colIndex = statOutputs.indexOf(output);
           if (colIndex === -1) return;
-          clearRowSelection();
-          clearColSelection();
-          clearResultSelection();
-          clearConstSelection();
+          clearOtherSelections(selectedStatIndices);
           if (activeTarget) blurActiveTarget();
           if (event.cancelable) event.preventDefault();
           statDragActive = true;
@@ -3352,10 +3338,7 @@ diameter,height,value3,value4,Result
           if (!numCell) return;
           const rowIndex = dataRows.indexOf(numCell.closest('tr'));
           if (rowIndex === -1) return;
-          clearColSelection();
-          clearResultSelection();
-          clearStatSelection();
-          clearConstSelection();
+          clearOtherSelections(selectedRowIndices);
           if (activeTarget) blurActiveTarget();
           if (event.cancelable) event.preventDefault();
           rowDragActive = true;
@@ -3401,29 +3384,15 @@ diameter,height,value3,value4,Result
         document.addEventListener('pointerup', (event) => {
           const moved = Math.hypot(event.clientX - outsideTapStartX, event.clientY - outsideTapStartY);
           if (moved > 6) return;
-          if (selectedRowIndices.size && outsideTapTarget && !outsideTapTarget.closest('.num, .row-selection-bar, .keypad')) {
-            clearRowSelection();
-          }
-          if (selectedColKeys.size && outsideTapTarget && !outsideTapTarget.closest('.letter, .col-selection-bar, .keypad')) {
-            clearColSelection();
-          }
-          if (selectedResultIndices.size && outsideTapTarget && !outsideTapTarget.closest('.result-cell, .result-selection-bar, .keypad')) {
-            clearResultSelection();
-          }
-          if (selectedStatIndices.size && outsideTapTarget && !outsideTapTarget.closest('tfoot output, .stat-selection-bar, .keypad')) {
-            clearStatSelection();
-          }
-          if (selectedConstIndices.size && outsideTapTarget && !outsideTapTarget.closest('.const-top .letter, .const-selection-bar, .keypad')) {
-            clearConstSelection();
-          }
+          selectionTypes.forEach((t) => {
+            if (t.indices.size && outsideTapTarget && !outsideTapTarget.closest(t.outsideSelector)) {
+              t.clear();
+            }
+          });
         });
 
         const deselectAll = () => {
-          clearRowSelection();
-          clearColSelection();
-          clearResultSelection();
-          clearStatSelection();
-          clearConstSelection();
+          clearAllSelections();
           if (activeTarget) blurActiveTarget();
         };
 
@@ -3597,10 +3566,7 @@ diameter,height,value3,value4,Result
           const idx = colHeadThs.indexOf(th);
           if (idx === -1) return;
           const key = KEY_ORDER[idx];
-          clearRowSelection();
-          clearResultSelection();
-          clearStatSelection();
-          clearConstSelection();
+          clearOtherSelections(selectedColKeys);
           if (activeTarget) blurActiveTarget();
           if (event.cancelable) event.preventDefault();
           colDragActive = true;
@@ -3706,6 +3672,19 @@ diameter,height,value3,value4,Result
           updateConstSelectionBar();
         };
 
+        const selectionTypes = [
+          { indices: selectedRowIndices, clear: clearRowSelection, readOnly: false, outsideSelector: '.num, .row-selection-bar, .keypad' },
+          { indices: selectedColKeys, clear: clearColSelection, readOnly: false, outsideSelector: '.letter, .col-selection-bar, .keypad' },
+          { indices: selectedResultIndices, clear: clearResultSelection, readOnly: true, outsideSelector: '.result-cell, .result-selection-bar, .keypad' },
+          { indices: selectedStatIndices, clear: clearStatSelection, readOnly: true, outsideSelector: 'tfoot output, .stat-selection-bar, .keypad' },
+          { indices: selectedConstIndices, clear: clearConstSelection, readOnly: false, outsideSelector: '.const-top .letter, .const-selection-bar, .keypad' },
+        ];
+        const anySelectionActive = () => selectionTypes.some((t) => t.indices.size > 0);
+        const isReadOnlySelectionActive = () => selectionTypes.some((t) => t.readOnly && t.indices.size > 0);
+        const isEditableSelectionActive = () => selectionTypes.some((t) => !t.readOnly && t.indices.size > 0);
+        const clearAllSelections = () => selectionTypes.forEach((t) => t.clear());
+        const clearOtherSelections = (keepIndices) => selectionTypes.forEach((t) => { if (t.indices !== keepIndices) t.clear(); });
+
         const paintConstsBetween = (fromIdx, toIdx, value) => {
           if (fromIdx === -1 || toIdx === -1) return;
           const lo = Math.min(fromIdx, toIdx);
@@ -3765,10 +3744,7 @@ diameter,height,value3,value4,Result
           const cell = letterEl.closest('.const-cell');
           const idx = constCells.indexOf(cell);
           if (idx === -1) return;
-          clearRowSelection();
-          clearColSelection();
-          clearResultSelection();
-          clearStatSelection();
+          clearOtherSelections(selectedConstIndices);
           if (activeTarget) blurActiveTarget();
           if (event.cancelable) event.preventDefault();
           constDragActive = true;
