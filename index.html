@@ -556,7 +556,7 @@
 
       thead th,
       tfoot td,
-      tbody td:not(.editable-cell):not(.result-cell) {
+      tbody td:not(.editable-cell) {
         user-select: none;
         -webkit-user-select: none;
       }
@@ -667,10 +667,8 @@
       .result-cell {
         text-align: right;
         padding-right: 8px;
-        user-select: text;
-        -webkit-user-select: text;
-        -webkit-touch-callout: default;
-        touch-action: manipulation;
+        cursor: pointer;
+        touch-action: none;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -682,7 +680,8 @@
       }
 
       .row-selection-bar,
-      .col-selection-bar {
+      .col-selection-bar,
+      .result-selection-bar {
         position: fixed;
         left: 0;
         right: 0;
@@ -698,7 +697,8 @@
       }
 
       .row-selection-bar[hidden],
-      .col-selection-bar[hidden] {
+      .col-selection-bar[hidden],
+      .result-selection-bar[hidden] {
         display: none;
       }
 
@@ -729,7 +729,8 @@
       }
 
       .row-selection-bar button,
-      .col-selection-bar button {
+      .col-selection-bar button,
+      .result-selection-bar button {
         border: 0;
         border-radius: 6px;
         padding: 6px 8px;
@@ -741,13 +742,15 @@
       }
 
       .row-selection-bar button.is-confirmed,
-      .col-selection-bar button.is-confirmed {
+      .col-selection-bar button.is-confirmed,
+      .result-selection-bar button.is-confirmed {
         background: #cfe3f7;
         color: #1c4b7a;
       }
 
       .row-selection-bar .row-action-done,
-      .col-selection-bar .col-action-done {
+      .col-selection-bar .col-action-done,
+      .result-selection-bar .result-action-done {
         flex: 0 0 auto;
         padding: 6px 10px;
         background: rgba(255, 255, 255, 0.25);
@@ -994,7 +997,7 @@
     <header class="nav">
       <button class="arrow" aria-label="Previous sheet">◀</button>
       <div class="title-block">
-        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">New Sheet</span><span class="version-tag">v0.2.12</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/1</button></div>
+        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">New Sheet</span><span class="version-tag">v0.2.13</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/1</button></div>
         <div class="sheet-menu" hidden role="menu" aria-label="Sheet selector"></div>
       </div>
       <button class="arrow" aria-label="Next sheet">▶</button>
@@ -1039,9 +1042,19 @@
       </div>
     </div>
 
+    <div class="result-selection-bar" hidden>
+      <div class="result-selection-top">
+        <span class="result-selection-count"></span>
+        <button type="button" class="result-action-done" aria-label="Clear result selection">✕</button>
+      </div>
+      <div class="result-selection-actions">
+        <button type="button" class="result-action-copy">Copy</button>
+      </div>
+    </div>
+
     <section class="settings-panel" aria-label="App info and settings" hidden>
       <h2>MiniSheet</h2>
-      <p class="settings-version">Version <span class="version-tag-settings">v0.2.12</span></p>
+      <p class="settings-version">Version <span class="version-tag-settings">v0.2.13</span></p>
       <p>MiniSheet is a formula-driven mini spreadsheet for quick calculations.</p>
       <p>Type a math problem, like 42+25, into the formula line and tap Result for an answer. Or create a formula like A+B/C and enter numbers in the grid to get multiple results for different sets of values.</p>
       <p>For the best experience, click the share button and add to your homescreen.</p>
@@ -1328,6 +1341,7 @@
         const getInputContext = () => isNumberEntryContext() ? 'number' : (isFormulaEntryContext() ? 'formula' : 'default');
         const isKeyEnabled = (key) => {
           if (key === undoKey) return currentUndoStack().length > 0;
+          if (selectedResultIndices.size > 0) return key === minimizeKey;
           if (selectedRowIndices.size > 0 || selectedColKeys.size > 0) return key?.dataset.key === 'backspace' || key === minimizeKey;
           if (key === shiftKey) return true;
           const label = getKeyLabel(key);
@@ -1340,7 +1354,7 @@
         const getMinimizeKeyLabel = () => {
           const isMinimized = !!keypad?.classList.contains('minimized');
           if (isMinimized) return MAXIMIZE_KEY_LABEL;
-          if (selectedRowIndices.size > 0 || selectedColKeys.size > 0 || isFormulaEntryContext() || keypadShiftActive) {
+          if (selectedRowIndices.size > 0 || selectedColKeys.size > 0 || selectedResultIndices.size > 0 || isFormulaEntryContext() || keypadShiftActive) {
             return MINIMIZE_KEY_LABEL;
           }
           return NUMPAD_SWITCH_LABEL;
@@ -1854,6 +1868,7 @@
               if (idx !== state.currentSheetIndex || state.settingsView) {
                 clearRowSelection();
                 clearColSelection();
+                clearResultSelection();
                 blurActiveTarget();
                 persistFromDom();
                 state.settingsView = false;
@@ -1984,6 +1999,7 @@
         const nav = (dir) => {
           clearRowSelection();
           clearColSelection();
+          clearResultSelection();
           persistFromDom();
           const oldIndex = state.currentSheetIndex;
           const oldLength = state.sheets.length;
@@ -2822,94 +2838,108 @@ diameter,height,value3,value4,Result
           resultHeaderTrigger.addEventListener('keydown', (event) => { if (!['Enter', ' '].includes(event.key)) return; event.preventDefault(); runResultAction(); });
         }
 
-        const rangeIntersectsNode = (range, node) => {
-          if (!range || !node) return false;
-          const nodeRange = document.createRange();
-          nodeRange.selectNodeContents(node);
-          return range.compareBoundaryPoints(Range.END_TO_START, nodeRange) < 0 && range.compareBoundaryPoints(Range.START_TO_END, nodeRange) > 0;
+        const resultSelectionBar = document.querySelector('.result-selection-bar');
+        const resultSelectionCountEl = document.querySelector('.result-selection-count');
+        const resultCopyBtn = document.querySelector('.result-action-copy');
+        const resultDoneBtn = document.querySelector('.result-action-done');
+        const selectedResultIndices = new Set();
+
+        const updateResultSelectionBar = () => {
+          const count = selectedResultIndices.size;
+          if (resultSelectionBar) resultSelectionBar.hidden = count === 0;
+          if (resultSelectionCountEl) resultSelectionCountEl.textContent = count ? `${count} result${count > 1 ? 's' : ''} selected` : '';
+          updateSelectionBarHeight();
+          updateKeyAvailability();
         };
 
-        const selectNodeContents = (node) => {
-          if (!node) return;
-          const selection = window.getSelection();
-          if (!selection) return;
-          const range = document.createRange();
-          range.selectNodeContents(node);
-          selection.removeAllRanges();
-          selection.addRange(range);
+        const setResultSelected = (rowIndex, selected) => {
+          const cell = resultCells[rowIndex];
+          if (!cell) return;
+          cell.classList.toggle('is-selected', selected);
+          if (selected) selectedResultIndices.add(rowIndex);
+          else selectedResultIndices.delete(rowIndex);
         };
 
-        const getSelectedResultCells = () => {
-          const selection = window.getSelection();
-          if (!selection || selection.rangeCount === 0) return [];
-          const range = selection.getRangeAt(0);
-          return resultCells.filter((cell) => rangeIntersectsNode(range, cell));
+        const clearResultSelection = () => {
+          selectedResultIndices.forEach((rowIndex) => resultCells[rowIndex]?.classList.remove('is-selected'));
+          selectedResultIndices.clear();
+          updateResultSelectionBar();
         };
 
-        const syncResultSelectionVisualState = () => {
-          const selectedSet = new Set(getSelectedResultCells());
-          resultCells.forEach((cell) => cell.classList.toggle('is-selected', selectedSet.has(cell)));
+        const paintResultsBetween = (fromIndex, toIndex, value) => {
+          const lo = Math.min(fromIndex, toIndex);
+          const hi = Math.max(fromIndex, toIndex);
+          for (let i = lo; i <= hi; i++) setResultSelected(i, value);
+          updateResultSelectionBar();
         };
 
-        document.addEventListener('selectionchange', syncResultSelectionVisualState);
+        const getSelectedResultsText = () => {
+          const sortedIndices = [...selectedResultIndices].sort((a, b) => a - b);
+          return sortedIndices.map((i) => resultCells[i]?.textContent?.trim() || '').join('\n');
+        };
 
-        resultCells.forEach((cell) => {
-          let tapStartX = 0;
-          let tapStartY = 0;
-          let tapStartAt = 0;
-          let tapCandidate = false;
+        let resultDragActive = false;
+        let resultDragPaintValue = false;
+        let resultDragStartX = 0;
+        let resultDragStartY = 0;
+        let resultDragLastIndex = null;
 
-          const commitSingleCellSelection = () => {
-            const selectedResultCells = getSelectedResultCells();
-            if (selectedResultCells.length > 1) return;
-            selectNodeContents(cell);
-            syncResultSelectionVisualState();
-          };
+        const paintToResultAtPoint = (clientX, clientY) => {
+          const target = document.elementFromPoint(clientX, clientY);
+          const cell = target?.closest('.result-cell');
+          if (!cell) return;
+          const rowIndex = resultCells.indexOf(cell);
+          if (rowIndex === -1 || rowIndex === resultDragLastIndex) return;
+          paintResultsBetween(resultDragLastIndex, rowIndex, resultDragPaintValue);
+          resultDragLastIndex = rowIndex;
+        };
 
-          cell.addEventListener('pointerdown', (event) => {
-            if (activeTarget) blurActiveTarget();
-            tapStartX = event.clientX;
-            tapStartY = event.clientY;
-            tapStartAt = Date.now();
-            tapCandidate = true;
-            if (event.pointerType !== 'mouse' && event.cancelable) event.preventDefault();
-          });
+        document.querySelector('tbody')?.addEventListener('pointerdown', (event) => {
+          const cell = event.target.closest('.result-cell');
+          if (!cell) return;
+          const rowIndex = resultCells.indexOf(cell);
+          if (rowIndex === -1) return;
+          clearRowSelection();
+          clearColSelection();
+          if (activeTarget) blurActiveTarget();
+          if (event.cancelable) event.preventDefault();
+          resultDragActive = true;
+          resultDragStartX = event.clientX;
+          resultDragStartY = event.clientY;
+          resultDragPaintValue = !selectedResultIndices.has(rowIndex);
+          resultDragLastIndex = rowIndex;
+          setResultSelected(rowIndex, resultDragPaintValue);
+          updateResultSelectionBar();
+        });
 
-          cell.addEventListener('pointermove', (event) => {
-            if (!tapCandidate) return;
-            const moved = Math.hypot(event.clientX - tapStartX, event.clientY - tapStartY);
-            if (moved > 8) tapCandidate = false;
-          });
+        document.addEventListener('pointermove', (event) => {
+          if (!resultDragActive) return;
+          const moved = Math.hypot(event.clientX - resultDragStartX, event.clientY - resultDragStartY);
+          if (moved > 6) paintToResultAtPoint(event.clientX, event.clientY);
+        });
 
-          cell.addEventListener('pointerup', (event) => {
-            const wasTap = tapCandidate && (Date.now() - tapStartAt) < 350;
-            tapCandidate = false;
-            if (!wasTap) return;
-            if (event.cancelable) event.preventDefault();
-            requestAnimationFrame(() => {
-              commitSingleCellSelection();
-              requestAnimationFrame(() => { commitSingleCellSelection(); syncResultSelectionVisualState(); });
-            });
-          });
+        const endResultDrag = () => { resultDragActive = false; };
+        document.addEventListener('pointerup', endResultDrag);
+        document.addEventListener('pointercancel', endResultDrag);
 
-          cell.addEventListener('click', (event) => {
-            if (event.cancelable) event.preventDefault();
-            commitSingleCellSelection();
-          });
+        resultDoneBtn?.addEventListener('click', () => clearResultSelection());
 
-          cell.addEventListener('dblclick', (event) => {
-            if (event.cancelable) event.preventDefault();
-          });
+        resultCopyBtn?.addEventListener('click', async () => {
+          const text = getSelectedResultsText();
+          try {
+            await navigator.clipboard.writeText(text);
+            flashButtonFeedback(resultCopyBtn, 'Copied');
+          } catch {
+            window.prompt('Copy failed automatically. Copy this text manually:', text);
+          }
         });
 
         document.addEventListener('copy', (event) => {
-          const selection = window.getSelection();
-          if (!selection || selection.rangeCount === 0 || selection.isCollapsed) return;
-          const range = selection.getRangeAt(0);
-          const selectedResultCells = resultCells.filter((cell) => rangeIntersectsNode(range, cell));
-          if (!selectedResultCells.length) return;
+          if (!selectedResultIndices.size) return;
+          if (activeTarget && isInput(activeTarget)) return;
           event.preventDefault();
-          event.clipboardData?.setData('text/plain', selectedResultCells.map((cell) => cell.textContent?.trim() || '').join('\n'));
+          event.clipboardData?.setData('text/plain', getSelectedResultsText());
+          flashButtonFeedback(resultCopyBtn, 'Copied');
         });
 
         const bindEditableBlur = (target) => target.addEventListener('blur', () => {
@@ -3004,6 +3034,7 @@ diameter,height,value3,value4,Result
         const updateSelectionBarHeight = () => {
           const visibleBar = (rowSelectionBar && !rowSelectionBar.hidden) ? rowSelectionBar
             : (colSelectionBar && !colSelectionBar.hidden) ? colSelectionBar
+            : (resultSelectionBar && !resultSelectionBar.hidden) ? resultSelectionBar
             : null;
           const barHeight = visibleBar ? visibleBar.offsetHeight : 0;
           document.documentElement.style.setProperty('--select-bar-h', `${barHeight}px`);
@@ -3141,6 +3172,7 @@ diameter,height,value3,value4,Result
           const rowIndex = dataRows.indexOf(numCell.closest('tr'));
           if (rowIndex === -1) return;
           clearColSelection();
+          clearResultSelection();
           if (activeTarget) blurActiveTarget();
           if (event.cancelable) event.preventDefault();
           rowDragActive = true;
@@ -3191,6 +3223,9 @@ diameter,height,value3,value4,Result
           }
           if (selectedColKeys.size && outsideTapTarget && !outsideTapTarget.closest('.letter, .col-selection-bar, .keypad')) {
             clearColSelection();
+          }
+          if (selectedResultIndices.size && outsideTapTarget && !outsideTapTarget.closest('.result-cell, .result-selection-bar, .keypad')) {
+            clearResultSelection();
           }
         });
 
@@ -3347,17 +3382,15 @@ diameter,height,value3,value4,Result
         };
 
         gridHeaderRow?.addEventListener('pointerdown', (event) => {
-          console.log('DEBUG colhead pointerdown', activeTarget === formulaInput, event.target.outerHTML);
           if (activeTarget === formulaInput) return;
           const letterEl = event.target.closest('.col-head:not(.result-head) .head-pill .letter');
-          console.log('DEBUG letterEl', !!letterEl);
           if (!letterEl) return;
           const th = letterEl.closest('th');
           const idx = colHeadThs.indexOf(th);
-          console.log('DEBUG idx', idx);
           if (idx === -1) return;
           const key = KEY_ORDER[idx];
           clearRowSelection();
+          clearResultSelection();
           if (activeTarget) blurActiveTarget();
           if (event.cancelable) event.preventDefault();
           colDragActive = true;
