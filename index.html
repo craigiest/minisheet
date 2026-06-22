@@ -682,10 +682,6 @@
         touch-action: none;
         overflow: hidden;
         white-space: nowrap;
-      }
-
-      .result-cell .tnum,
-      .stat-cell output .tnum {
         font-variant-numeric: tabular-nums;
       }
 
@@ -861,6 +857,7 @@
         color: #596275;
         font-size: 15px;
         font-weight: 700;
+        font-variant-numeric: tabular-nums;
         overflow: hidden;
         white-space: nowrap;
         cursor: pointer;
@@ -1018,6 +1015,7 @@
         padding: 0 8px;
         text-align: right;
         font-size: 15px;
+        font-variant-numeric: tabular-nums;
         user-select: text;
         -webkit-user-select: text;
       }
@@ -1042,7 +1040,7 @@
     <header class="nav">
       <button class="arrow" aria-label="Previous sheet">◀</button>
       <div class="title-block">
-        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">New Sheet</span><span class="version-tag">v0.3.9</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/1</button></div>
+        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">New Sheet</span><span class="version-tag">v0.3.10</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/1</button></div>
         <div class="sheet-menu" hidden role="menu" aria-label="Sheet selector"></div>
       </div>
       <button class="arrow" aria-label="Next sheet">▶</button>
@@ -1121,7 +1119,7 @@
 
     <section class="settings-panel" aria-label="App info and settings" hidden>
       <h2>MiniSheet</h2>
-      <p class="settings-version">Version <span class="version-tag-settings">v0.3.9</span></p>
+      <p class="settings-version">Version <span class="version-tag-settings">v0.3.10</span></p>
       <p>MiniSheet is a formula-driven mini spreadsheet for quick calculations.</p>
       <p>Type a math problem, like 42+25, into the formula line and tap Result for an answer. Or create a formula like A+B/C and enter numbers in the grid to get multiple results for different sets of values.</p>
       <p>For the best experience, click the share button and add to your homescreen.</p>
@@ -1876,16 +1874,14 @@
         const geoMean = (values) => Math.pow(values.reduce((a, b) => a * b, 1), 1 / values.length);
         const applyStat = (values, statName) => !values.length ? '—' : (statName === 'Sum' ? formatNumber(values.reduce((a, b) => a + b, 0)) : (statName === 'Mean' || statName === 'Avg') ? formatNumber(values.reduce((a, b) => a + b, 0) / values.length) : statName === 'Min' ? formatNumber(Math.min(...values)) : statName === 'Max' ? formatNumber(Math.max(...values)) : statName === 'Median' ? formatNumber(median(values)) : statName === 'Mode' ? formatNumber(mode(values)) : statName === 'GeoMn' ? formatNumber(geoMean(values)) : statName === 'Count' ? String(values.length) : '—');
 
-        const wrapTabularDigits = (text) => text.replace(/[0-9]/g, (digit) => `<span class="tnum">${digit}</span>`);
-
         const setEllipsizedText = (el, fullText) => {
           el.dataset.fullValue = fullText;
-          el.innerHTML = wrapTabularDigits(fullText);
+          el.textContent = fullText;
           if (el.scrollWidth <= el.clientWidth + 0.5) return;
           let text = fullText;
           while (text.length > 1) {
             text = text.slice(0, -1);
-            el.innerHTML = wrapTabularDigits(`${text}…`);
+            el.textContent = `${text}…`;
             if (el.scrollWidth <= el.clientWidth + 0.5) return;
           }
         };
