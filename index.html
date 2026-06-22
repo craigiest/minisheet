@@ -1040,7 +1040,7 @@
     <header class="nav">
       <button class="arrow" aria-label="Previous sheet">◀</button>
       <div class="title-block">
-        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">New Sheet</span><span class="version-tag">v0.3.16</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/1</button></div>
+        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">New Sheet</span><span class="version-tag">v0.3.17</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/1</button></div>
         <div class="sheet-menu" hidden role="menu" aria-label="Sheet selector"></div>
       </div>
       <button class="arrow" aria-label="Next sheet">▶</button>
@@ -1119,7 +1119,7 @@
 
     <section class="settings-panel" aria-label="App info and settings" hidden>
       <h2>MiniSheet</h2>
-      <p class="settings-version">Version <span class="version-tag-settings">v0.3.16</span></p>
+      <p class="settings-version">Version <span class="version-tag-settings">v0.3.17</span></p>
       <p>MiniSheet is a formula-driven mini spreadsheet for quick calculations.</p>
       <p>Type a math problem, like 42+25, into the formula line and tap Result for an answer. Or create a formula like A+B/C and enter numbers in the grid to get multiple results for different sets of values.</p>
       <p>For the best experience, click the share button and add to your homescreen.</p>
@@ -1331,7 +1331,7 @@
         const statCells = [...document.querySelectorAll('tfoot .stat-cell')];
         const headerPills = [...document.querySelectorAll('thead .head-pill')];
         const getKeyLabel = (key) => key?.textContent.trim() || '';
-        const NUMBER_ENTRY_KEY_LABELS = new Set(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '−', '/', '^', '√', '(', ')', 'e', 'π', 'c', 'g', UNDO_KEY_LABEL, '⌫', '=', MINIMIZE_KEY_LABEL, MAXIMIZE_KEY_LABEL, NUMPAD_SWITCH_LABEL, FULL_KEYPAD_LABEL, NUMPAD_ENTER_LABEL]);
+        const NUMBER_ENTRY_KEY_LABELS = new Set(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '−', '/', '^', '√', 'e', 'π', 'c', 'g', UNDO_KEY_LABEL, '⌫', '=', MINIMIZE_KEY_LABEL, MAXIMIZE_KEY_LABEL, NUMPAD_SWITCH_LABEL, FULL_KEYPAD_LABEL, NUMPAD_ENTER_LABEL]);
         const FORMULA_ENTRY_KEY_LABELS = new Set(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '−', '+', '*', '/', '^', '!', '(', ')', ',', ':', '√', 'LOG', 'SUM', 'MEAN', 'MAX', 'MIN', 'COUNT', 'CNT', 'MDN', 'MODE', 'GMN', 'SIN', 'COS', 'TAN', 'ASIN', 'ACOS', 'ATAN', 'e', 'π', 'c', 'g', '⌫', UNDO_KEY_LABEL, MINIMIZE_KEY_LABEL, MAXIMIZE_KEY_LABEL]);
         const TEMP_DISABLED_KEY_LABELS = new Set([]);
 
@@ -2768,7 +2768,8 @@ diameter,height,value3,value4,Result
           if (key === rightKey) return moveCursor(1);
           if (key === resultKey) { runResultAction(); return; }
           if (label === '√') {
-            insertRootCall();
+            if (isNumberEntryContext()) insertIntoTarget('√');
+            else insertRootCall();
           } else if (activeTarget === formulaInput && ['LOG', 'SUM', 'MEAN', 'MAX', 'MIN', 'COUNT', 'CNT', 'MDN', 'MODE', 'GMN', 'SIN', 'COS', 'TAN', 'ASIN', 'ACOS', 'ATAN'].includes(label)) {
             insertFunctionCall(label);
           } else {
