@@ -120,7 +120,6 @@
         /* Stat row dropdown + its computed output */
         --stat-select-bg: var(--key-fn-stat-bg, var(--key-fn-bg));
         --stat-select-color: var(--key-fn-stat-color, var(--key-fn-color));
-        --stat-select-border: var(--line);
         --stat-output-color: var(--text);
       }
 
@@ -1124,8 +1123,9 @@
         max-width: 100%;
         height: 22px;
         line-height: 22px;
-        border: 1px solid var(--stat-select-border);
+        border: 0;
         border-radius: 6px;
+        outline: none;
         background: var(--stat-select-bg);
         color: var(--stat-select-color);
         font-family: var(--app-font);
