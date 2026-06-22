@@ -240,13 +240,14 @@
       }
 
       /* Candy theme: same palette as the default theme, but with pill-shaped
-         keys and a TI-30X-style number/operator split — white numbers with
-         dark text, operators a lighter tint of the active color. */
+         keys and a TI-30X-style split — only the digits and decimal point
+         are white-on-dark, every other key (including e/pi) stays white
+         text on the dark active color. */
       body[data-theme="candy"] {
         --key-num-bg: #ffffff;
         --key-num-color: #1a1a1a;
-        --key-op-bg: color-mix(in srgb, var(--active) 55%, white);
-        --key-op-color: #fff;
+        --key-num-special-bg: var(--active);
+        --key-num-special-color: #fff;
         --key-radius: 20px;
         --key-radius-corner: 24px;
       }
@@ -698,7 +699,7 @@
       .theme-swatch[data-theme-choice="diagnostic"] { --swatch-a: #14151a; --swatch-b: #d94f4f; }
       .theme-swatch[data-theme-choice="warm"] { --swatch-a: #fbf3e8; --swatch-b: #d9722c; }
       .theme-swatch[data-theme-choice="mono"] { --swatch-a: #f4f4f4; --swatch-b: #1a1a1a; }
-      .theme-swatch[data-theme-choice="candy"] { --swatch-a: #ffffff; --swatch-b: #6a8fcb; }
+      .theme-swatch[data-theme-choice="candy"] { --swatch-a: #ffffff; --swatch-b: #305596; }
 
       .theme-swatch[aria-checked="true"] {
         border-color: var(--text);
