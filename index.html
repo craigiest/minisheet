@@ -280,11 +280,21 @@
         font-size: 12px;
         line-height: 1;
         font-weight: 700;
+        cursor: pointer;
       }
 
       .const-top .name {
         font-size: 11px;
         font-weight: 400;
+      }
+
+      .const-top.const-selected {
+        background: var(--active);
+        color: #fff;
+      }
+
+      .const-cell input.const-selected-cell {
+        background: rgba(93, 141, 213, 0.18);
       }
 
       .const-cell input {
@@ -681,7 +691,8 @@
       .row-selection-bar,
       .col-selection-bar,
       .result-selection-bar,
-      .stat-selection-bar {
+      .stat-selection-bar,
+      .const-selection-bar {
         position: fixed;
         left: 0;
         right: 0;
@@ -699,14 +710,16 @@
       .row-selection-bar[hidden],
       .col-selection-bar[hidden],
       .result-selection-bar[hidden],
-      .stat-selection-bar[hidden] {
+      .stat-selection-bar[hidden],
+      .const-selection-bar[hidden] {
         display: none;
       }
 
       .row-selection-top,
       .col-selection-top,
       .result-selection-top,
-      .stat-selection-top {
+      .stat-selection-top,
+      .const-selection-top {
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -716,7 +729,8 @@
       .row-selection-count,
       .col-selection-count,
       .result-selection-count,
-      .stat-selection-count {
+      .stat-selection-count,
+      .const-selection-count {
         flex: 1;
         font-size: 13px;
         font-weight: 600;
@@ -725,13 +739,15 @@
       .row-selection-actions,
       .col-selection-actions,
       .result-selection-actions,
-      .stat-selection-actions {
+      .stat-selection-actions,
+      .const-selection-actions {
         display: flex;
         gap: 6px;
       }
 
       .row-selection-actions button,
-      .col-selection-actions button {
+      .col-selection-actions button,
+      .const-selection-actions button {
         flex: 1;
       }
 
@@ -743,7 +759,8 @@
       .row-selection-bar button,
       .col-selection-bar button,
       .result-selection-bar button,
-      .stat-selection-bar button {
+      .stat-selection-bar button,
+      .const-selection-bar button {
         border: 0;
         border-radius: 6px;
         padding: 6px 8px;
@@ -757,7 +774,8 @@
       .row-selection-bar button.is-confirmed,
       .col-selection-bar button.is-confirmed,
       .result-selection-bar button.is-confirmed,
-      .stat-selection-bar button.is-confirmed {
+      .stat-selection-bar button.is-confirmed,
+      .const-selection-bar button.is-confirmed {
         background: #cfe3f7;
         color: #1c4b7a;
       }
@@ -765,7 +783,8 @@
       .row-selection-bar .row-action-done,
       .col-selection-bar .col-action-done,
       .result-selection-bar .result-action-done,
-      .stat-selection-bar .stat-action-done {
+      .stat-selection-bar .stat-action-done,
+      .const-selection-bar .const-action-done {
         flex: 0 0 auto;
         padding: 6px 10px;
         background: rgba(255, 255, 255, 0.25);
@@ -1018,7 +1037,7 @@
     <header class="nav">
       <button class="arrow" aria-label="Previous sheet">◀</button>
       <div class="title-block">
-        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">New Sheet</span><span class="version-tag">v0.2.16</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/1</button></div>
+        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">New Sheet</span><span class="version-tag">v0.2.17</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/1</button></div>
         <div class="sheet-menu" hidden role="menu" aria-label="Sheet selector"></div>
       </div>
       <button class="arrow" aria-label="Next sheet">▶</button>
@@ -1083,9 +1102,21 @@
       </div>
     </div>
 
+    <div class="const-selection-bar" hidden>
+      <div class="const-selection-top">
+        <span class="const-selection-count"></span>
+        <button type="button" class="const-action-done" aria-label="Clear constant selection">✕</button>
+      </div>
+      <div class="const-selection-actions">
+        <button type="button" class="const-action-copy">Copy</button>
+        <button type="button" class="const-action-cut">Cut</button>
+        <button type="button" class="const-action-paste">Paste</button>
+      </div>
+    </div>
+
     <section class="settings-panel" aria-label="App info and settings" hidden>
       <h2>MiniSheet</h2>
-      <p class="settings-version">Version <span class="version-tag-settings">v0.2.16</span></p>
+      <p class="settings-version">Version <span class="version-tag-settings">v0.2.17</span></p>
       <p>MiniSheet is a formula-driven mini spreadsheet for quick calculations.</p>
       <p>Type a math problem, like 42+25, into the formula line and tap Result for an answer. Or create a formula like A+B/C and enter numbers in the grid to get multiple results for different sets of values.</p>
       <p>For the best experience, click the share button and add to your homescreen.</p>
@@ -1292,6 +1323,7 @@
         const formulaInput = document.querySelector('.formula-input');
         const constantInputs = [...document.querySelectorAll('.const-cell input')];
         const constTopEls = [...document.querySelectorAll('.const-top')];
+        const constCells = [...document.querySelectorAll('.const-cell')];
         const dataRows = [...document.querySelectorAll('tbody tr')];
         const statCells = [...document.querySelectorAll('tfoot .stat-cell')];
         const headerPills = [...document.querySelectorAll('thead .head-pill')];
@@ -1373,7 +1405,7 @@
         const isKeyEnabled = (key) => {
           if (key === undoKey) return currentUndoStack().length > 0;
           if (selectedResultIndices.size > 0 || selectedStatIndices.size > 0) return key === minimizeKey;
-          if (selectedRowIndices.size > 0 || selectedColKeys.size > 0) return key?.dataset.key === 'backspace' || key === minimizeKey;
+          if (selectedRowIndices.size > 0 || selectedColKeys.size > 0 || selectedConstIndices.size > 0) return key?.dataset.key === 'backspace' || key === minimizeKey;
           if (key === shiftKey) return true;
           const label = getKeyLabel(key);
           if (TEMP_DISABLED_KEY_LABELS.has(label)) return false;
@@ -1385,7 +1417,7 @@
         const getMinimizeKeyLabel = () => {
           const isMinimized = !!keypad?.classList.contains('minimized');
           if (isMinimized) return MAXIMIZE_KEY_LABEL;
-          if (selectedRowIndices.size > 0 || selectedColKeys.size > 0 || selectedResultIndices.size > 0 || selectedStatIndices.size > 0 || isFormulaEntryContext() || keypadShiftActive) {
+          if (selectedRowIndices.size > 0 || selectedColKeys.size > 0 || selectedResultIndices.size > 0 || selectedStatIndices.size > 0 || selectedConstIndices.size > 0 || isFormulaEntryContext() || keypadShiftActive) {
             return MINIMIZE_KEY_LABEL;
           }
           return NUMPAD_SWITCH_LABEL;
@@ -1901,6 +1933,7 @@
                 clearColSelection();
                 clearResultSelection();
                 clearStatSelection();
+                clearConstSelection();
                 blurActiveTarget();
                 persistFromDom();
                 state.settingsView = false;
@@ -2033,6 +2066,7 @@
           clearColSelection();
           clearResultSelection();
           clearStatSelection();
+          clearConstSelection();
           persistFromDom();
           const oldIndex = state.currentSheetIndex;
           const oldLength = state.sheets.length;
@@ -2678,7 +2712,7 @@ diameter,height,value3,value4,Result
           if (!isKeyEnabled(key)) return;
           if (key === minimizeKey) {
             const currentlyMinimized = !!keypad?.classList.contains('minimized');
-            if (!currentlyMinimized && !selectedRowIndices.size && !selectedColKeys.size && !selectedResultIndices.size && !selectedStatIndices.size && !isFormulaEntryContext() && !keypadShiftActive) {
+            if (!currentlyMinimized && !selectedRowIndices.size && !selectedColKeys.size && !selectedResultIndices.size && !selectedStatIndices.size && !selectedConstIndices.size && !isFormulaEntryContext() && !keypadShiftActive) {
               state.numpadActive = !state.numpadActive;
               updateKeyAvailability();
               return;
@@ -2721,6 +2755,7 @@ diameter,height,value3,value4,Result
           if (key?.dataset.key === 'backspace') {
             if (selectedRowIndices.size > 0) return clearSelectedRowsValues();
             if (selectedColKeys.size > 0) return clearSelectedColsValues();
+            if (selectedConstIndices.size > 0) return clearSelectedConstsValues();
             return deleteBackward();
           }
           if (key === leftKey) return moveCursor(-1);
@@ -2935,6 +2970,7 @@ diameter,height,value3,value4,Result
           clearRowSelection();
           clearColSelection();
           clearStatSelection();
+          clearConstSelection();
           if (activeTarget) blurActiveTarget();
           if (event.cancelable) event.preventDefault();
           resultDragActive = true;
@@ -3042,6 +3078,7 @@ diameter,height,value3,value4,Result
           clearRowSelection();
           clearColSelection();
           clearResultSelection();
+          clearConstSelection();
           if (activeTarget) blurActiveTarget();
           if (event.cancelable) event.preventDefault();
           statDragActive = true;
@@ -3177,6 +3214,7 @@ diameter,height,value3,value4,Result
             : (colSelectionBar && !colSelectionBar.hidden) ? colSelectionBar
             : (resultSelectionBar && !resultSelectionBar.hidden) ? resultSelectionBar
             : (statSelectionBar && !statSelectionBar.hidden) ? statSelectionBar
+            : (constSelectionBar && !constSelectionBar.hidden) ? constSelectionBar
             : null;
           const barHeight = visibleBar ? visibleBar.offsetHeight : 0;
           document.documentElement.style.setProperty('--select-bar-h', `${barHeight}px`);
@@ -3316,6 +3354,7 @@ diameter,height,value3,value4,Result
           clearColSelection();
           clearResultSelection();
           clearStatSelection();
+          clearConstSelection();
           if (activeTarget) blurActiveTarget();
           if (event.cancelable) event.preventDefault();
           rowDragActive = true;
@@ -3372,6 +3411,9 @@ diameter,height,value3,value4,Result
           }
           if (selectedStatIndices.size && outsideTapTarget && !outsideTapTarget.closest('tfoot output, .stat-selection-bar, .keypad')) {
             clearStatSelection();
+          }
+          if (selectedConstIndices.size && outsideTapTarget && !outsideTapTarget.closest('.const-top .letter, .const-selection-bar, .keypad')) {
+            clearConstSelection();
           }
         });
 
@@ -3538,6 +3580,7 @@ diameter,height,value3,value4,Result
           clearRowSelection();
           clearResultSelection();
           clearStatSelection();
+          clearConstSelection();
           if (activeTarget) blurActiveTarget();
           if (event.cancelable) event.preventDefault();
           colDragActive = true;
@@ -3610,6 +3653,174 @@ diameter,height,value3,value4,Result
           if (!text) return;
           event.preventDefault();
           applyTextToSelectedCols(text);
+        });
+
+        const selectedConstIndices = new Set();
+
+        const constSelectionBar = document.querySelector('.const-selection-bar');
+        const constSelectionCountEl = document.querySelector('.const-selection-count');
+        const constCopyBtn = document.querySelector('.const-action-copy');
+        const constCutBtn = document.querySelector('.const-action-cut');
+        const constPasteBtn = document.querySelector('.const-action-paste');
+        const constDoneBtn = document.querySelector('.const-action-done');
+
+        const updateConstSelectionBar = () => {
+          const count = selectedConstIndices.size;
+          if (constSelectionBar) constSelectionBar.hidden = count === 0;
+          if (constSelectionCountEl) constSelectionCountEl.textContent = count ? `${count} constant${count > 1 ? 's' : ''} selected` : '';
+          updateSelectionBarHeight();
+          updateKeyAvailability();
+        };
+
+        const setConstSelected = (idx, selected) => {
+          if (idx < 0 || idx >= CONST_ORDER.length) return;
+          constTopEls[idx]?.classList.toggle('const-selected', selected);
+          constantInputs[idx]?.classList.toggle('const-selected-cell', selected);
+          if (selected) selectedConstIndices.add(idx);
+          else selectedConstIndices.delete(idx);
+        };
+
+        const clearConstSelection = () => {
+          selectedConstIndices.forEach((idx) => setConstSelected(idx, false));
+          selectedConstIndices.clear();
+          updateConstSelectionBar();
+        };
+
+        const paintConstsBetween = (fromIdx, toIdx, value) => {
+          if (fromIdx === -1 || toIdx === -1) return;
+          const lo = Math.min(fromIdx, toIdx);
+          const hi = Math.max(fromIdx, toIdx);
+          for (let i = lo; i <= hi; i++) setConstSelected(i, value);
+          updateConstSelectionBar();
+        };
+
+        const getSelectedConstsText = () => {
+          const sortedIndices = [...selectedConstIndices].sort((a, b) => a - b);
+          return sortedIndices.map((i) => constantInputs[i]?.value || '').join('\n');
+        };
+
+        const applyTextToSelectedConsts = (text) => {
+          const sortedIndices = [...selectedConstIndices].sort((a, b) => a - b);
+          if (!sortedIndices.length) return;
+          const values = text.replace(/\r\n/g, '\n').split('\n').filter((line) => line !== '');
+          if (!values.length) return;
+          captureUndoSnapshot();
+          sortedIndices.forEach((idx, i) => {
+            if (values[i] === undefined) return;
+            constantInputs[idx].value = values[i].trim();
+          });
+          computeAllRows();
+          updateKeyAvailability();
+        };
+
+        const clearSelectedConstsValues = () => {
+          if (!selectedConstIndices.size) return;
+          captureUndoSnapshot();
+          selectedConstIndices.forEach((idx) => { constantInputs[idx].value = ''; });
+          computeAllRows();
+          updateKeyAvailability();
+        };
+
+        let constDragActive = false;
+        let constDragPaintValue = false;
+        let constDragStartX = 0;
+        let constDragStartY = 0;
+        let constDragLastIndex = null;
+
+        const paintToConstAtPoint = (clientX, clientY) => {
+          const target = document.elementFromPoint(clientX, clientY);
+          const letterEl = target?.closest('.const-top .letter');
+          if (!letterEl) return;
+          const cell = letterEl.closest('.const-cell');
+          const idx = constCells.indexOf(cell);
+          if (idx === -1 || idx === constDragLastIndex) return;
+          paintConstsBetween(constDragLastIndex, idx, constDragPaintValue);
+          constDragLastIndex = idx;
+        };
+
+        constantsStrip?.addEventListener('pointerdown', (event) => {
+          if (activeTarget === formulaInput) return;
+          const letterEl = event.target.closest('.const-top .letter');
+          if (!letterEl) return;
+          const cell = letterEl.closest('.const-cell');
+          const idx = constCells.indexOf(cell);
+          if (idx === -1) return;
+          clearRowSelection();
+          clearColSelection();
+          clearResultSelection();
+          clearStatSelection();
+          if (activeTarget) blurActiveTarget();
+          if (event.cancelable) event.preventDefault();
+          constDragActive = true;
+          constDragStartX = event.clientX;
+          constDragStartY = event.clientY;
+          constDragPaintValue = !selectedConstIndices.has(idx);
+          constDragLastIndex = idx;
+          setConstSelected(idx, constDragPaintValue);
+          updateConstSelectionBar();
+        });
+
+        document.addEventListener('pointermove', (event) => {
+          if (!constDragActive) return;
+          const moved = Math.hypot(event.clientX - constDragStartX, event.clientY - constDragStartY);
+          if (moved > 6) paintToConstAtPoint(event.clientX, event.clientY);
+        });
+
+        const endConstDrag = () => { constDragActive = false; };
+        document.addEventListener('pointerup', endConstDrag);
+        document.addEventListener('pointercancel', endConstDrag);
+
+        constDoneBtn?.addEventListener('click', () => clearConstSelection());
+
+        constCopyBtn?.addEventListener('click', async () => {
+          const text = getSelectedConstsText();
+          try {
+            await navigator.clipboard.writeText(text);
+            flashButtonFeedback(constCopyBtn, 'Copied');
+          } catch {
+            window.prompt('Copy failed automatically. Copy this text manually:', text);
+          }
+        });
+
+        constCutBtn?.addEventListener('click', async () => {
+          const text = getSelectedConstsText();
+          let copied = true;
+          try {
+            await navigator.clipboard.writeText(text);
+          } catch {
+            copied = false;
+            window.prompt('Copy failed automatically. Copy this text manually:', text);
+          }
+          clearSelectedConstsValues();
+          if (copied) flashButtonFeedback(constCutBtn, 'Cut');
+        });
+
+        constPasteBtn?.addEventListener('click', async () => {
+          let text = '';
+          try {
+            text = await navigator.clipboard.readText();
+          } catch {
+            text = window.prompt('Paste blocked by browser. Paste your values here:') || '';
+          }
+          if (!text) return;
+          applyTextToSelectedConsts(text);
+        });
+
+        document.addEventListener('copy', (event) => {
+          if (!selectedConstIndices.size) return;
+          if (activeTarget && isInput(activeTarget)) return;
+          event.preventDefault();
+          event.clipboardData?.setData('text/plain', getSelectedConstsText());
+          flashButtonFeedback(constCopyBtn, 'Copied');
+        });
+
+        document.addEventListener('paste', (event) => {
+          if (!selectedConstIndices.size) return;
+          if (activeTarget && isInput(activeTarget)) return;
+          const text = event.clipboardData?.getData('text/plain');
+          if (!text) return;
+          event.preventDefault();
+          applyTextToSelectedConsts(text);
         });
 
         const rowIsBlankForSizing = (row) => KEY_ORDER.every((k) => !String(row[k] || '').trim());
