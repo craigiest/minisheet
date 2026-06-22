@@ -87,6 +87,16 @@
         --entry-bg: #f0f0f2;
         --entry-border: #c7c7ce;
         --entry-placeholder: #a7acb7;
+
+        /* Light/dimmed key glyph color (key.light fallback, focus ring) and
+           the dimmed text used for is-inactive number/op keys. */
+        --key-light-color: #f0f3fa;
+        --key-inactive-text-color: #d8deea;
+
+        /* Text color for solid var(--active)-colored surfaces (settings'
+           primary action button, etc). Every theme's --active is dark/
+           saturated enough for white text, so this isn't overridden per-theme. */
+        --active-text-color: #fff;
       }
 
       /* These custom properties are declared on `body` (not `:root`) because
@@ -632,7 +642,7 @@
       }
 
       .settings-version {
-        color: #8a94a8;
+        color: var(--text-muted);
         font-size: 13px;
         margin: 0 0 16px;
       }
@@ -655,7 +665,7 @@
         border: 0;
         border-radius: 8px;
         background: var(--active);
-        color: #fff;
+        color: var(--active-text-color);
         font-size: 15px;
         padding: 10px 16px;
       }
@@ -710,17 +720,18 @@
       }
 
       .settings-btn-danger {
-        background: #b3261e;
+        background: var(--key-ctrl-destructive-bg, var(--key-ctrl-bg));
+        color: var(--key-ctrl-destructive-color, var(--key-ctrl-color));
       }
 
       .settings-btn-danger:active {
-        background: #8c1d17;
+        background: color-mix(in srgb, var(--key-ctrl-destructive-bg, var(--key-ctrl-bg)) 80%, black);
       }
 
       .settings-hint {
         margin-top: 8px;
         font-size: 12px;
-        color: #8a94a8;
+        color: var(--text-muted);
       }
 
       .export-sheet-list {
@@ -747,16 +758,16 @@
       }
 
       .settings-btn-secondary {
-        background: #eef1f6;
+        background: var(--panel);
         color: var(--text);
       }
 
       .settings-btn-secondary:active {
-        background: #dde2eb;
+        background: color-mix(in srgb, var(--panel) 85%, black);
       }
 
       .import-error {
-        color: #b3261e;
+        color: var(--key-ctrl-destructive-bg, var(--key-ctrl-bg));
       }
 
       .import-picker {
@@ -1283,13 +1294,13 @@
       }
 
       .key:focus-visible {
-        outline: 2px solid #f0f3fa;
+        outline: 2px solid var(--key-light-color);
         outline-offset: 2px;
       }
 
       .key.light {
         background: transparent;
-        color: #f0f3fa;
+        color: var(--key-light-color);
         border: 1px solid transparent;
       }
 
@@ -1322,19 +1333,19 @@
       .key.is-inactive,
       .key.light.is-inactive {
         background: var(--keypad-bg);
-        color: #d8deea;
+        color: var(--key-inactive-text-color);
         border-color: transparent;
       }
 
       .key-active.is-inactive {
         background: var(--panel);
-        color: #8a94a8;
+        color: var(--text-muted);
         border-color: transparent;
       }
 
       .key-active.is-danger {
-        background: #b43e4c;
-        color: #fff;
+        background: var(--key-ctrl-destructive-bg, var(--key-ctrl-bg));
+        color: var(--key-ctrl-destructive-color, var(--key-ctrl-color));
       }
 
       .keypad.minimized {
