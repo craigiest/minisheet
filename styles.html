@@ -65,10 +65,10 @@
         --key-ctrl-color-inactive: #f0f3fa;
 
         /* Header pills: editable variable (A-D) and constant (V-Z) labels above the grid */
-        --key-header-variable-color: var(--text);
+        --key-header-variable-color: #fff;
         --key-header-variable-active-bg: var(--active);
         --key-header-variable-active-color: #fff;
-        --key-header-constant-color: var(--text);
+        --key-header-constant-color: #fff;
         --key-header-constant-active-bg: var(--active);
         --key-header-constant-active-color: #fff;
 
@@ -120,7 +120,7 @@
         /* Stat row dropdown + its computed output */
         --stat-select-bg: var(--key-fn-stat-bg, var(--key-fn-bg));
         --stat-select-color: var(--key-fn-stat-color, var(--key-fn-color));
-        --stat-output-color: var(--text);
+        --stat-output-color: #fff;
       }
 
       body.keypad-is-minimized {
@@ -239,6 +239,9 @@
         --key-radius-corner: 2px;
         --key-border-width: 1px;
         --key-border-color: #1a1a1a;
+        --key-header-variable-color: #1a1a1a;
+        --key-header-constant-color: #1a1a1a;
+        --stat-output-color: #1a1a1a;
       }
 
       /* Candy theme: same palette as the default theme, but with pill-shaped
@@ -1173,7 +1176,6 @@
         padding: var(--keypad-pad);
         padding-bottom: calc(var(--keypad-pad) + var(--keypad-safe-bottom));
         background: var(--keypad-bg);
-        border-top: 1px solid #5d6f97;
         z-index: 41;
         transition: height 0.2s ease;
       }
