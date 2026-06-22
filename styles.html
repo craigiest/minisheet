@@ -44,40 +44,24 @@
         --key-border-color: transparent;
 
         /* Theme: per-category key colors. Each main category (num/op/fn/ctrl)
-           has two subcategories that default to the main category's colors
-           but can be overridden independently by a theme. */
+           has two subcategories that fall back to the main category's colors
+           (via var(--sub, var(--main))) at the point of use, but can be
+           overridden independently by a theme declaring the subcategory var. */
         --key-num-bg: var(--active);
         --key-num-color: #fff;
-        --key-num-digit-bg: var(--key-num-bg);
-        --key-num-digit-color: var(--key-num-color);
-        --key-num-special-bg: var(--key-num-bg);
-        --key-num-special-color: var(--key-num-color);
 
         --key-op-bg: var(--active);
         --key-op-color: #fff;
-        --key-op-functional-bg: var(--key-op-bg);
-        --key-op-functional-color: var(--key-op-color);
-        --key-op-notation-bg: var(--key-op-bg);
-        --key-op-notation-color: var(--key-op-color);
 
         --key-fn-bg: var(--active);
         --key-fn-color: #fff;
         --key-fn-bg-inactive: transparent;
         --key-fn-color-inactive: #f0f3fa;
-        --key-fn-trig-bg: var(--key-fn-bg);
-        --key-fn-trig-color: var(--key-fn-color);
-        --key-fn-stat-bg: var(--key-fn-bg);
-        --key-fn-stat-color: var(--key-fn-color);
 
         --key-ctrl-bg: var(--active);
         --key-ctrl-color: #fff;
         --key-ctrl-bg-inactive: transparent;
         --key-ctrl-color-inactive: #f0f3fa;
-        --key-ctrl-view-bg: var(--key-ctrl-bg);
-        --key-ctrl-view-color: var(--key-ctrl-color);
-        --key-ctrl-view-emphasis-color: var(--key-ctrl-view-color);
-        --key-ctrl-destructive-bg: var(--key-ctrl-bg);
-        --key-ctrl-destructive-color: var(--key-ctrl-color);
 
         /* Header pills: editable variable (A-D) and constant (V-Z) labels above the grid */
         --key-header-variable-bg: #f1f1f3;
@@ -434,8 +418,8 @@
       .key-active {
         border: 1px solid rgba(255, 255, 255, 0.2);
         border-radius: var(--key-radius);
-        background: var(--key-ctrl-destructive-bg);
-        color: var(--key-ctrl-destructive-color);
+        background: var(--key-ctrl-destructive-bg, var(--key-ctrl-bg));
+        color: var(--key-ctrl-destructive-color, var(--key-ctrl-color));
         display: grid;
         place-items: center;
         width: 42px;
@@ -538,12 +522,12 @@
         border: var(--key-border-width) solid var(--key-border-color);
         border-radius: var(--key-radius);
         padding: 6px 10px;
-        background: var(--key-ctrl-view-bg);
-        color: var(--key-ctrl-view-color);
+        background: var(--key-ctrl-view-bg, var(--key-ctrl-bg));
+        color: var(--key-ctrl-view-color, var(--key-ctrl-color));
       }
 
       .toggle strong {
-        color: var(--key-ctrl-view-emphasis-color);
+        color: var(--key-ctrl-view-emphasis-color, var(--key-ctrl-color));
       }
 
       .grid-wrap {
@@ -1157,23 +1141,23 @@
       }
 
       .key.key-num.key-num-digit {
-        background: var(--key-num-digit-bg);
-        color: var(--key-num-digit-color);
+        background: var(--key-num-digit-bg, var(--key-num-bg));
+        color: var(--key-num-digit-color, var(--key-num-color));
       }
 
       .key.key-num.key-num-special {
-        background: var(--key-num-special-bg);
-        color: var(--key-num-special-color);
+        background: var(--key-num-special-bg, var(--key-num-bg));
+        color: var(--key-num-special-color, var(--key-num-color));
       }
 
       .key.key-op.key-op-functional {
-        background: var(--key-op-functional-bg);
-        color: var(--key-op-functional-color);
+        background: var(--key-op-functional-bg, var(--key-op-bg));
+        color: var(--key-op-functional-color, var(--key-op-color));
       }
 
       .key.key-op.key-op-notation {
-        background: var(--key-op-notation-bg);
-        color: var(--key-op-notation-color);
+        background: var(--key-op-notation-bg, var(--key-op-bg));
+        color: var(--key-op-notation-color, var(--key-op-color));
       }
 
       .key.key-fn {
@@ -1187,13 +1171,13 @@
       }
 
       .key.key-ctrl.key-ctrl-view {
-        background: var(--key-ctrl-view-bg);
-        color: var(--key-ctrl-view-color);
+        background: var(--key-ctrl-view-bg, var(--key-ctrl-bg));
+        color: var(--key-ctrl-view-color, var(--key-ctrl-color));
       }
 
       .key.key-ctrl.key-ctrl-destructive {
-        background: var(--key-ctrl-destructive-bg);
-        color: var(--key-ctrl-destructive-color);
+        background: var(--key-ctrl-destructive-bg, var(--key-ctrl-bg));
+        color: var(--key-ctrl-destructive-color, var(--key-ctrl-color));
       }
 
       .key.key-action-enter {
@@ -1234,23 +1218,23 @@
       }
 
       .key.light.key-fn.key-fn-trig:not(.is-inactive) {
-        background: var(--key-fn-trig-bg);
-        color: var(--key-fn-trig-color);
+        background: var(--key-fn-trig-bg, var(--key-fn-bg));
+        color: var(--key-fn-trig-color, var(--key-fn-color));
       }
 
       .key.light.key-fn.key-fn-stat:not(.is-inactive) {
-        background: var(--key-fn-stat-bg);
-        color: var(--key-fn-stat-color);
+        background: var(--key-fn-stat-bg, var(--key-fn-bg));
+        color: var(--key-fn-stat-color, var(--key-fn-color));
       }
 
       .key.light.key-ctrl.key-ctrl-view:not(.is-inactive) {
-        background: var(--key-ctrl-view-bg);
-        color: var(--key-ctrl-view-color);
+        background: var(--key-ctrl-view-bg, var(--key-ctrl-bg));
+        color: var(--key-ctrl-view-color, var(--key-ctrl-color));
       }
 
       .key.light.key-ctrl.key-ctrl-destructive:not(.is-inactive) {
-        background: var(--key-ctrl-destructive-bg);
-        color: var(--key-ctrl-destructive-color);
+        background: var(--key-ctrl-destructive-bg, var(--key-ctrl-bg));
+        color: var(--key-ctrl-destructive-color, var(--key-ctrl-color));
       }
 
       .key.is-active {
