@@ -75,6 +75,7 @@
         --key-ctrl-color-inactive: #f0f3fa;
         --key-ctrl-view-bg: var(--key-ctrl-bg);
         --key-ctrl-view-color: var(--key-ctrl-color);
+        --key-ctrl-view-emphasis-color: var(--key-ctrl-view-color);
         --key-ctrl-destructive-bg: var(--key-ctrl-bg);
         --key-ctrl-destructive-color: var(--key-ctrl-color);
 
@@ -125,6 +126,7 @@
         --key-fn-stat-color: #fff;
         --key-ctrl-view-bg: #5c6275;
         --key-ctrl-view-color: #fff;
+        --key-ctrl-view-emphasis-color: #ffe45e;
         --key-ctrl-destructive-bg: #b43e4c;
         --key-ctrl-destructive-color: #fff;
         --key-header-variable-bg: #3a3e4d;
@@ -516,8 +518,20 @@
       }
 
       .toggle {
+        appearance: none;
+        -webkit-appearance: none;
         font-size: 12px;
+        font-family: var(--app-font);
         white-space: nowrap;
+        border: var(--key-border-width) solid var(--key-border-color);
+        border-radius: var(--key-radius);
+        padding: 6px 10px;
+        background: var(--key-ctrl-view-bg);
+        color: var(--key-ctrl-view-color);
+      }
+
+      .toggle strong {
+        color: var(--key-ctrl-view-emphasis-color);
       }
 
       .grid-wrap {
@@ -1314,7 +1328,7 @@
     <section class="formula-strip" aria-label="Formula editor strip">
       <div class="fx-eq">=</div>
       <input class="formula-input" value="(B*C)/A" placeholder="Enter formula here" aria-label="Formula editor" />
-      <button class="toggle" type="button" aria-label="Toggle formula labels">A / <strong>Name</strong></button>
+      <button class="toggle key-ctrl key-ctrl-view" type="button" aria-label="Toggle formula labels">A / <strong>Name</strong></button>
     </section>
 
     <div class="row-selection-bar" hidden>
