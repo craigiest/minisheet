@@ -447,7 +447,7 @@
         left: 0;
         right: 0;
         height: var(--const-h);
-        background: var(--panel);
+        background: var(--keypad-bg);
         border-bottom: 1px solid var(--line);
         display: grid;
         grid-template-columns: 52px repeat(5, minmax(0, 1fr));
@@ -530,7 +530,7 @@
         left: 0;
         right: 0;
         height: var(--formula-h);
-        background: var(--panel);
+        background: var(--keypad-bg);
         border-bottom: 1px solid var(--line);
         display: grid;
         grid-template-columns: 30px 1fr auto;
@@ -867,6 +867,7 @@
         z-index: 10;
         text-align: center;
         cursor: pointer;
+        background: var(--keypad-bg);
       }
 
       .num {
@@ -906,7 +907,7 @@
 
       .col-head {
         padding: 4px;
-        background: var(--grid-structure-bg);
+        background: var(--keypad-bg);
       }
 
       .head-pill {
@@ -1089,7 +1090,7 @@
         position: sticky;
         bottom: 0;
         z-index: 10;
-        background: var(--panel);
+        background: var(--keypad-bg);
         border-top: 2px solid var(--line);
         padding: 4px;
         height: 56px;
@@ -1102,6 +1103,7 @@
       tfoot .num {
         font-weight: 700;
         font-size: 18px;
+        background: var(--keypad-bg);
       }
 
       .stat-cell {
