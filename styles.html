@@ -138,13 +138,13 @@
         --keypad-bg: #2b2823;
         --key-num-bg: #f7f2e3;
         --key-num-color: #221f19;
-        --key-op-bg: #f7f2e3;
+        --key-op-bg: #d9cba3;
         --key-op-color: #221f19;
-        --key-fn-bg: #45403a;
-        --key-fn-color: #e9e2d0;
-        --key-ctrl-bg: #2b2823;
-        --key-ctrl-color: #cfc6ad;
-        --key-ctrl-destructive-color: #e23f2c;
+        --key-fn-bg: #d9cba3;
+        --key-fn-color: #221f19;
+        --key-ctrl-bg: #d9cba3;
+        --key-ctrl-color: #221f19;
+        --key-ctrl-destructive-color: #c4351f;
         --key-header-variable-bg: #f7f2e3;
         --key-header-variable-color: #221f19;
         --key-header-variable-active-bg: #e0792a;
@@ -162,6 +162,48 @@
         --key-radius-corner: 10px;
         --key-border-width: 1px;
         --key-border-color: #c9bd9e;
+      }
+
+      /* Warm theme: replace hardcoded white/near-white surfaces with the
+         cream/beige palette, and turn text-entry areas into an LED-style
+         black display with red digits. */
+      body[data-theme="warm"] .grid-wrap {
+        background: var(--bg);
+      }
+
+      body[data-theme="warm"] .settings-panel {
+        background: var(--panel);
+      }
+
+      body[data-theme="warm"] .num-head,
+      body[data-theme="warm"] .num {
+        background: var(--panel);
+      }
+
+      body[data-theme="warm"] .row-selection-bar button,
+      body[data-theme="warm"] .col-selection-bar button,
+      body[data-theme="warm"] .result-selection-bar button,
+      body[data-theme="warm"] .stat-selection-bar button,
+      body[data-theme="warm"] .const-selection-bar button {
+        background: var(--panel);
+      }
+
+      body[data-theme="warm"] .formula-input {
+        background: #1c1813;
+        color: #e8392c;
+        border-color: #100d0a;
+      }
+
+      body[data-theme="warm"] .formula-input::placeholder {
+        color: #7a4a3f;
+      }
+
+      body[data-theme="warm"] .editable-cell {
+        background: #1c1813;
+      }
+
+      body[data-theme="warm"] .cell-input {
+        color: #e8392c;
       }
 
       body[data-theme="mono"] {
