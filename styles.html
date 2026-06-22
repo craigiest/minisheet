@@ -65,11 +65,11 @@
         --key-ctrl-color-inactive: #f0f3fa;
 
         /* Header pills: editable variable (A-D) and constant (V-Z) labels above the grid */
-        --key-header-variable-bg: #f1f1f3;
+        --key-header-variable-bg: #dadadf;
         --key-header-variable-color: var(--text);
         --key-header-variable-active-bg: var(--active);
         --key-header-variable-active-color: #fff;
-        --key-header-constant-bg: #f1f1f3;
+        --key-header-constant-bg: #dadadf;
         --key-header-constant-color: var(--text);
         --key-header-constant-active-bg: var(--active);
         --key-header-constant-active-color: #fff;
@@ -456,7 +456,6 @@
 
       .clear-cell,
       .const-cell {
-        border-right: 1px solid var(--line);
         padding: 4px;
         display: grid;
         gap: 2px;
@@ -826,14 +825,20 @@
 
       th,
       td {
-        border-right: 1px solid var(--line);
-        border-bottom: 1px solid var(--line);
         background: var(--grid-structure-bg);
       }
 
-      th:last-child,
-      td:last-child {
+      tbody td {
+        border-right: 1px solid var(--line);
+        border-bottom: 1px solid var(--line);
+      }
+
+      tbody td:last-child {
         border-right: 0;
+      }
+
+      thead {
+        box-shadow: inset 0 -2px 0 var(--line);
       }
 
       thead th {
