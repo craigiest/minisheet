@@ -35,10 +35,115 @@
         --keypad-active-h: calc(var(--keypad-h) + var(--keypad-safe-bottom));
         --keypad-bg: #7082a7;
         --select-bar-h: 0px;
+
+        /* Theme: app font + button shape/weight */
+        --app-font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+        --key-radius: 8px;
+        --key-radius-corner: 24px;
+        --key-border-width: 0px;
+        --key-border-color: transparent;
+
+        /* Theme: per-category key colors (num/op/fn/ctrl) */
+        --key-num-bg: var(--active);
+        --key-num-color: #fff;
+        --key-op-bg: var(--active);
+        --key-op-color: #fff;
+        --key-fn-bg: var(--active);
+        --key-fn-color: #fff;
+        --key-fn-bg-inactive: transparent;
+        --key-fn-color-inactive: #f0f3fa;
+        --key-ctrl-bg: var(--active);
+        --key-ctrl-color: #fff;
+        --key-ctrl-bg-inactive: transparent;
+        --key-ctrl-color-inactive: #f0f3fa;
       }
 
       body.keypad-is-minimized {
         --keypad-active-h: calc(var(--keypad-min-h) + var(--keypad-safe-bottom));
+      }
+
+      /* ---- Style presets, selectable from Settings (sheet 0) ---- */
+
+      body[data-theme="dark"] {
+        --bg: #14151a;
+        --panel: #1d1f27;
+        --line: #2c2f3a;
+        --text: #e8e9ee;
+        --active: #4f7adb;
+        --active-soft: #6aa8f1;
+        --keypad-bg: #20232e;
+        --key-num-bg: #2c2f3a;
+        --key-num-color: #e8e9ee;
+        --key-op-bg: #4f7adb;
+        --key-op-color: #fff;
+        --key-fn-bg: #3a3e4d;
+        --key-fn-color: #cfd4e6;
+        --key-ctrl-bg: #20232e;
+        --key-ctrl-color: #aab1c6;
+      }
+
+      body[data-theme="warm"] {
+        --bg: #fbf3e8;
+        --panel: #fff7ec;
+        --line: #e8d8bd;
+        --text: #4a3826;
+        --active: #d9722c;
+        --active-soft: #f0a868;
+        --keypad-bg: #9c6b3f;
+        --key-num-bg: #b9824e;
+        --key-num-color: #fff7ec;
+        --key-op-bg: #d9722c;
+        --key-op-color: #fff;
+        --key-fn-bg: #7a5530;
+        --key-fn-color: #fbe8cf;
+        --key-ctrl-bg: #7a5530;
+        --key-ctrl-color: #fbe8cf;
+        --app-font: Georgia, "Times New Roman", serif;
+        --key-radius: 14px;
+        --key-radius-corner: 28px;
+      }
+
+      body[data-theme="mono"] {
+        --bg: #f4f4f4;
+        --panel: #ffffff;
+        --line: #cfcfcf;
+        --text: #1a1a1a;
+        --active: #1a1a1a;
+        --active-soft: #4a4a4a;
+        --keypad-bg: #ffffff;
+        --key-num-bg: #ffffff;
+        --key-num-color: #1a1a1a;
+        --key-op-bg: #1a1a1a;
+        --key-op-color: #fff;
+        --key-fn-bg: #ffffff;
+        --key-fn-color: #1a1a1a;
+        --key-ctrl-bg: #ffffff;
+        --key-ctrl-color: #1a1a1a;
+        --app-font: "Courier New", monospace;
+        --key-radius: 2px;
+        --key-radius-corner: 2px;
+        --key-border-width: 1px;
+        --key-border-color: #1a1a1a;
+      }
+
+      body[data-theme="candy"] {
+        --bg: #fdf0f7;
+        --panel: #fff7fb;
+        --line: #f3cfe4;
+        --text: #3a1f33;
+        --active: #d6488a;
+        --active-soft: #ef85bb;
+        --keypad-bg: #6e3a82;
+        --key-num-bg: #8a4ca3;
+        --key-num-color: #fff;
+        --key-op-bg: #d6488a;
+        --key-op-color: #fff;
+        --key-fn-bg: #4a2a63;
+        --key-fn-color: #f3d8ea;
+        --key-ctrl-bg: #4a2a63;
+        --key-ctrl-color: #f3d8ea;
+        --key-radius: 20px;
+        --key-radius-corner: 24px;
       }
 
       * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -48,7 +153,7 @@
         height: 100%;
         margin: 0;
         overflow: hidden;
-        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+        font-family: var(--app-font);
         background: var(--bg);
         color: var(--text);
       }
@@ -255,9 +360,9 @@
 
       .key-active {
         border: 1px solid rgba(255, 255, 255, 0.2);
-        border-radius: 8px;
-        background: var(--active);
-        color: #fff;
+        border-radius: var(--key-radius);
+        background: var(--key-ctrl-bg);
+        color: var(--key-ctrl-color);
         display: grid;
         place-items: center;
         width: 42px;
@@ -428,6 +533,35 @@
 
       .settings-btn:active {
         background: #24407a;
+      }
+
+      .theme-picker {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-top: 8px;
+      }
+
+      .theme-swatch {
+        appearance: none;
+        -webkit-appearance: none;
+        width: 44px;
+        height: 44px;
+        border-radius: 10px;
+        border: 2px solid transparent;
+        background: linear-gradient(135deg, var(--swatch-a) 50%, var(--swatch-b) 50%);
+        padding: 0;
+        cursor: pointer;
+      }
+
+      .theme-swatch[data-theme-choice="default"] { --swatch-a: #ececef; --swatch-b: #305596; }
+      .theme-swatch[data-theme-choice="dark"] { --swatch-a: #14151a; --swatch-b: #4f7adb; }
+      .theme-swatch[data-theme-choice="warm"] { --swatch-a: #fbf3e8; --swatch-b: #d9722c; }
+      .theme-swatch[data-theme-choice="mono"] { --swatch-a: #f4f4f4; --swatch-b: #1a1a1a; }
+      .theme-swatch[data-theme-choice="candy"] { --swatch-a: #fdf0f7; --swatch-b: #d6488a; }
+
+      .theme-swatch[aria-checked="true"] {
+        border-color: var(--text);
       }
 
       .settings-btn-danger {
@@ -907,29 +1041,45 @@
       .key {
         appearance: none;
         -webkit-appearance: none;
-        border: 0;
-        border-radius: 8px;
-        background: var(--active);
+        border: var(--key-border-width) solid var(--key-border-color);
+        border-radius: var(--key-radius);
+        background: var(--key-num-bg);
         box-shadow: none;
-        color: #fff;
+        color: var(--key-num-color);
         font-size: 18px;
+        font-family: var(--app-font);
         outline: none;
       }
 
+      .key.key-op {
+        background: var(--key-op-bg);
+        color: var(--key-op-color);
+      }
+
+      .key.key-fn {
+        background: var(--key-fn-bg);
+        color: var(--key-fn-color);
+      }
+
+      .key.key-ctrl {
+        background: var(--key-ctrl-bg);
+        color: var(--key-ctrl-color);
+      }
+
       .keys.full-keys .key:nth-last-child(6) {
-        border-bottom-left-radius: 24px;
+        border-bottom-left-radius: var(--key-radius-corner);
       }
 
       .keys.full-keys .key:last-child {
-        border-bottom-right-radius: 24px;
+        border-bottom-right-radius: var(--key-radius-corner);
       }
 
       .numpad-keys .key:nth-last-child(4) {
-        border-bottom-left-radius: 24px;
+        border-bottom-left-radius: var(--key-radius-corner);
       }
 
       .numpad-keys .key:last-child {
-        border-bottom-right-radius: 24px;
+        border-bottom-right-radius: var(--key-radius-corner);
       }
 
       .key-undo {
@@ -948,14 +1098,19 @@
         border: 1px solid transparent;
       }
 
-      .key.light:not(.is-inactive) {
-        background: var(--active);
-        color: #fff;
+      .key.light.key-fn:not(.is-inactive) {
+        background: var(--key-fn-bg);
+        color: var(--key-fn-color);
+      }
+
+      .key.light.key-ctrl:not(.is-inactive) {
+        background: var(--key-ctrl-bg);
+        color: var(--key-ctrl-color);
       }
 
       .key.is-active {
-        background: var(--active);
-        color: #fff;
+        background: var(--key-num-bg);
+        color: var(--key-num-color);
         border-color: transparent;
       }
 
@@ -1144,6 +1299,17 @@
         </label>
       </div>
       <div class="settings-group">
+        <h3>Style</h3>
+        <p class="settings-hint">Choose a color theme for the app.</p>
+        <div class="theme-picker" role="radiogroup" aria-label="Color theme">
+          <button type="button" class="theme-swatch" data-theme-choice="default" role="radio" aria-checked="false" aria-label="Default theme"></button>
+          <button type="button" class="theme-swatch" data-theme-choice="dark" role="radio" aria-checked="false" aria-label="Dark theme"></button>
+          <button type="button" class="theme-swatch" data-theme-choice="warm" role="radio" aria-checked="false" aria-label="Warm theme"></button>
+          <button type="button" class="theme-swatch" data-theme-choice="mono" role="radio" aria-checked="false" aria-label="Mono theme"></button>
+          <button type="button" class="theme-swatch" data-theme-choice="candy" role="radio" aria-checked="false" aria-label="Candy theme"></button>
+        </div>
+      </div>
+      <div class="settings-group">
         <h3>Import Data</h3>
         <p class="settings-hint">Import sheets from a MiniSheet CSV export.</p>
         <input type="file" accept=".csv,text/csv" id="import-csv-input" hidden />
@@ -1231,18 +1397,18 @@
 
     <section class="keypad" aria-label="Bottom keypad">
       <div class="keys full-keys">
-        <button class="key key-undo" data-key="undo">⤺</button><button class="key" data-key="minimize">⤓</button><button class="key">√</button><button class="key" data-shift-slot="e"><em>e</em></button><button class="key" data-shift-slot="pi">π</button><button class="key" data-key="backspace">⌫</button>
-        <button class="key light">LOG</button><button class="key light">!</button><button class="key">^</button><button class="key">(</button><button class="key">)</button><button class="key">/</button>
-        <button class="key light" data-shift-slot="sin">SIN</button><button class="key light" data-shift-slot="sum">SUM</button><button class="key">7</button><button class="key">8</button><button class="key">9</button><button class="key">*</button>
-        <button class="key light" data-shift-slot="cos">COS</button><button class="key light" data-shift-slot="mean">MEAN</button><button class="key">4</button><button class="key">5</button><button class="key">6</button><button class="key">−</button>
-        <button class="key light" data-shift-slot="tan">TAN</button><button class="key light" data-shift-slot="max">MAX</button><button class="key">1</button><button class="key">2</button><button class="key">3</button><button class="key">+</button>
-        <button class="key light" data-key="shift">⇧</button><button class="key light" data-shift-slot="min">MIN</button><button class="key">0</button><button class="key">.</button><button class="key">,</button><button class="key">:</button>
+        <button class="key key-undo key-ctrl" data-key="undo">⤺</button><button class="key key-ctrl" data-key="minimize">⤓</button><button class="key key-op">√</button><button class="key key-op" data-shift-slot="e"><em>e</em></button><button class="key key-op" data-shift-slot="pi">π</button><button class="key key-ctrl" data-key="backspace">⌫</button>
+        <button class="key light key-fn">LOG</button><button class="key light key-fn">!</button><button class="key key-op">^</button><button class="key key-op">(</button><button class="key key-op">)</button><button class="key key-op">/</button>
+        <button class="key light key-fn" data-shift-slot="sin">SIN</button><button class="key light key-fn" data-shift-slot="sum">SUM</button><button class="key key-num">7</button><button class="key key-num">8</button><button class="key key-num">9</button><button class="key key-op">*</button>
+        <button class="key light key-fn" data-shift-slot="cos">COS</button><button class="key light key-fn" data-shift-slot="mean">MEAN</button><button class="key key-num">4</button><button class="key key-num">5</button><button class="key key-num">6</button><button class="key key-op">−</button>
+        <button class="key light key-fn" data-shift-slot="tan">TAN</button><button class="key light key-fn" data-shift-slot="max">MAX</button><button class="key key-num">1</button><button class="key key-num">2</button><button class="key key-num">3</button><button class="key key-op">+</button>
+        <button class="key light key-ctrl" data-key="shift">⇧</button><button class="key light key-fn" data-shift-slot="min">MIN</button><button class="key key-num">0</button><button class="key key-op">.</button><button class="key key-op">,</button><button class="key key-op">:</button>
       </div>
       <div class="keys numpad-keys" hidden>
-        <button class="key">7</button><button class="key">8</button><button class="key">9</button><button class="key" data-key="backspace">⌫</button>
-        <button class="key">4</button><button class="key">5</button><button class="key">6</button><button class="key">/</button>
-        <button class="key">1</button><button class="key">2</button><button class="key">3</button><button class="key">−</button>
-        <button class="key">0</button><button class="key">.</button><button class="key" data-key="np-enter">↩︎</button><button class="key" data-key="full-keypad">⇲</button>
+        <button class="key key-num">7</button><button class="key key-num">8</button><button class="key key-num">9</button><button class="key key-ctrl" data-key="backspace">⌫</button>
+        <button class="key key-num">4</button><button class="key key-num">5</button><button class="key key-num">6</button><button class="key key-op">/</button>
+        <button class="key key-num">1</button><button class="key key-num">2</button><button class="key key-num">3</button><button class="key key-op">−</button>
+        <button class="key key-num">0</button><button class="key key-op">.</button><button class="key key-ctrl" data-key="np-enter">↩︎</button><button class="key key-ctrl" data-key="full-keypad">⇲</button>
       </div>
     </section>
 
@@ -1321,6 +1487,8 @@
         const examplesPositionSelect = document.querySelector('.examples-position-select');
         const addExamplesBtn = document.getElementById('add-examples-btn');
         const skipSettingsNavCheckbox = document.getElementById('skip-settings-nav-checkbox');
+        const themeSwatches = [...document.querySelectorAll('.theme-swatch')];
+        const VALID_THEMES = themeSwatches.map((btn) => btn.dataset.themeChoice);
         const formulaInput = document.querySelector('.formula-input');
         const constantInputs = [...document.querySelectorAll('.const-cell input')];
         const constTopEls = [...document.querySelectorAll('.const-top')];
@@ -1380,12 +1548,12 @@
           };
         };
 
-        const state = { sheets: [makeSheet(0)], currentSheetIndex: 0, formulaMode: 'name', clearStage: 0, acConfirmPresses: 0, settingsView: false, numpadActive: false, skipSettingsInNav: false };
+        const state = { sheets: [makeSheet(0)], currentSheetIndex: 0, formulaMode: 'name', clearStage: 0, acConfirmPresses: 0, settingsView: false, numpadActive: false, skipSettingsInNav: false, theme: 'default' };
 
         let saveTimer = null;
         const scheduleSave = () => {
           if (saveTimer) clearTimeout(saveTimer);
-          saveTimer = setTimeout(() => asyncStorage.set({ sheets: state.sheets, currentSheetIndex: state.currentSheetIndex, formulaMode: state.formulaMode, skipSettingsInNav: state.skipSettingsInNav }), 250);
+          saveTimer = setTimeout(() => asyncStorage.set({ sheets: state.sheets, currentSheetIndex: state.currentSheetIndex, formulaMode: state.formulaMode, skipSettingsInNav: state.skipSettingsInNav, theme: state.theme }), 250);
         };
 
         dataRows.forEach((row) => {
@@ -3858,6 +4026,7 @@ diameter,height,value3,value4,Result
           } else {
             state.currentSheetIndex = 0;
           }
+          applyTheme(saved?.theme || 'default');
           while (state.sheets.length < 1) state.sheets.push(makeSheet(state.sheets.length));
           clearAllUndoHistory();
           ensureUndoHistoryAlignment();
@@ -3870,6 +4039,23 @@ diameter,height,value3,value4,Result
         skipSettingsNavCheckbox?.addEventListener('change', () => {
           state.skipSettingsInNav = skipSettingsNavCheckbox.checked;
           scheduleSave();
+        });
+
+        function applyTheme(theme) {
+          state.theme = VALID_THEMES.includes(theme) ? theme : 'default';
+          if (state.theme === 'default') {
+            document.body.removeAttribute('data-theme');
+          } else {
+            document.body.setAttribute('data-theme', state.theme);
+          }
+          themeSwatches.forEach((btn) => btn.setAttribute('aria-checked', String(btn.dataset.themeChoice === state.theme)));
+        }
+
+        themeSwatches.forEach((btn) => {
+          btn.addEventListener('click', () => {
+            applyTheme(btn.dataset.themeChoice);
+            scheduleSave();
+          });
         });
 
         forceRefreshBtn?.addEventListener('click', async () => {
