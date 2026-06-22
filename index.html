@@ -273,6 +273,20 @@
         padding-bottom: env(safe-area-inset-bottom);
       }
 
+      /* Fills the safe-area notch/status-bar strip with the same blue as
+         the title bar below it, so there's no mismatched seam above .nav. */
+      body::before {
+        content: "";
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: env(safe-area-inset-top);
+        background: var(--active);
+        z-index: 61;
+        pointer-events: none;
+      }
+
       button,
       input,
       select {
@@ -304,8 +318,8 @@
         left: 0;
         right: 0;
         height: var(--nav-h);
-        background: var(--panel);
-        border-bottom: 1px solid var(--line);
+        background: var(--active);
+        border-bottom: 0;
         display: grid;
         grid-template-columns: 34px minmax(0,1fr) 34px;
         gap: 6px;
@@ -320,7 +334,7 @@
         height: 30px;
         border: 0;
         background: transparent;
-        color: var(--text);
+        color: var(--active-text-color, #fff);
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
         font-size: 20px;
         font-weight: 700;
@@ -348,7 +362,7 @@
       .sheet-index {
         border: 0;
         background: transparent;
-        color: var(--text);
+        color: var(--active-text-color, #fff);
         font-family: inherit;
         -webkit-appearance: none;
         appearance: none;
@@ -362,7 +376,7 @@
       }
 
       .sheet-index:active {
-        background: var(--select-bg-soft);
+        background: color-mix(in srgb, var(--active-text-color, #fff) 25%, transparent);
       }
 
       .sheet-menu {
@@ -434,8 +448,8 @@
         font-size: 16px;
         pointer-events: auto;
         line-height: 1.1;
-        color: var(--text);
-        caret-color: var(--text);
+        color: var(--active-text-color, #fff);
+        caret-color: var(--active-text-color, #fff);
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -1405,7 +1419,7 @@
     <header class="nav">
       <button class="arrow" aria-label="Previous sheet">&#9664;</button>
       <div class="title-block">
-        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">New Sheet</span><span class="version-tag">v0.3.20</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/1</button></div>
+        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">New Sheet</span><span class="version-tag">v0.3.21</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/1</button></div>
         <div class="sheet-menu" hidden role="menu" aria-label="Sheet selector"></div>
       </div>
       <button class="arrow" aria-label="Next sheet">&#9654;</button>
@@ -1484,7 +1498,7 @@
 
     <section class="settings-panel" aria-label="App info and settings" hidden>
       <h2>MiniSheet</h2>
-      <p class="settings-version">Version <span class="version-tag-settings">v0.3.20</span></p>
+      <p class="settings-version">Version <span class="version-tag-settings">v0.3.21</span></p>
       <p>MiniSheet is a formula-driven mini spreadsheet for quick calculations.</p>
       <p>Type a math problem, like 42+25, into the formula line and tap Result for an answer. Or create a formula like A+B/C and enter numbers in the grid to get multiple results for different sets of values.</p>
       <p>For the best experience, click the share button and add to your homescreen.</p>
