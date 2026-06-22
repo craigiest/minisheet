@@ -65,11 +65,9 @@
         --key-ctrl-color-inactive: #f0f3fa;
 
         /* Header pills: editable variable (A-D) and constant (V-Z) labels above the grid */
-        --key-header-variable-bg: #dadadf;
         --key-header-variable-color: var(--text);
         --key-header-variable-active-bg: var(--active);
         --key-header-variable-active-color: #fff;
-        --key-header-constant-bg: #dadadf;
         --key-header-constant-color: var(--text);
         --key-header-constant-active-bg: var(--active);
         --key-header-constant-active-color: #fff;
@@ -100,6 +98,11 @@
       body {
         --entry-color: var(--text);
 
+        /* Idle variable/constant pills blend into the keypad chrome
+           behind them, instead of standing out as a separate surface. */
+        --key-header-variable-bg: var(--keypad-bg);
+        --key-header-constant-bg: var(--keypad-bg);
+
         /* Selection highlight, derived from the theme's active color so it
            never clashes with a theme's hue. */
         --select-bg-strong: color-mix(in srgb, var(--active) 35%, transparent);
@@ -117,7 +120,6 @@
         /* Stat row dropdown + its computed output */
         --stat-select-bg: var(--key-fn-stat-bg, var(--key-fn-bg));
         --stat-select-color: var(--key-fn-stat-color, var(--key-fn-color));
-        --stat-select-border: var(--line);
         --stat-output-color: var(--text);
       }
 
@@ -448,7 +450,6 @@
         right: 0;
         height: var(--const-h);
         background: var(--keypad-bg);
-        border-bottom: 1px solid var(--line);
         display: grid;
         grid-template-columns: 52px repeat(5, minmax(0, 1fr));
         z-index: 50;
@@ -530,7 +531,6 @@
         right: 0;
         height: var(--formula-h);
         background: var(--keypad-bg);
-        border-bottom: 1px solid var(--line);
         display: grid;
         grid-template-columns: 30px 1fr auto;
         align-items: center;
@@ -837,10 +837,6 @@
         border-right: 0;
       }
 
-      thead {
-        box-shadow: inset 0 -2px 0 var(--line);
-      }
-
       thead th {
         position: sticky;
         top: 0;
@@ -1127,8 +1123,9 @@
         max-width: 100%;
         height: 22px;
         line-height: 22px;
-        border: 1px solid var(--stat-select-border);
+        border: 0;
         border-radius: 6px;
+        outline: none;
         background: var(--stat-select-bg);
         color: var(--stat-select-color);
         font-family: var(--app-font);
