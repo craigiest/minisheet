@@ -583,6 +583,7 @@
         top: 0;
         z-index: 10;
         text-align: center;
+        cursor: pointer;
       }
 
       .num {
@@ -1037,7 +1038,7 @@
     <header class="nav">
       <button class="arrow" aria-label="Previous sheet">◀</button>
       <div class="title-block">
-        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">New Sheet</span><span class="version-tag">v0.2.19</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/1</button></div>
+        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">New Sheet</span><span class="version-tag">v0.2.20</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/1</button></div>
         <div class="sheet-menu" hidden role="menu" aria-label="Sheet selector"></div>
       </div>
       <button class="arrow" aria-label="Next sheet">▶</button>
@@ -1116,7 +1117,7 @@
 
     <section class="settings-panel" aria-label="App info and settings" hidden>
       <h2>MiniSheet</h2>
-      <p class="settings-version">Version <span class="version-tag-settings">v0.2.19</span></p>
+      <p class="settings-version">Version <span class="version-tag-settings">v0.2.20</span></p>
       <p>MiniSheet is a formula-driven mini spreadsheet for quick calculations.</p>
       <p>Type a math problem, like 42+25, into the formula line and tap Result for an answer. Or create a formula like A+B/C and enter numbers in the grid to get multiple results for different sets of values.</p>
       <p>For the best experience, click the share button and add to your homescreen.</p>
@@ -1185,7 +1186,7 @@
         </colgroup>
         <thead>
           <tr>
-            <th class="num-head">#</th>
+            <th class="num-head" aria-label="Deselect all"></th>
             <th class="col-head"><div class="head-pill"><div class="letter">A</div><div class="name">value1</div></div></th>
             <th class="col-head"><div class="head-pill"><div class="letter">B</div><div class="name">value2</div></div></th>
             <th class="col-head"><div class="head-pill"><div class="letter">C</div><div class="name">value3</div></div></th>
@@ -1217,7 +1218,7 @@
         </tbody>
         <tfoot>
           <tr>
-            <td class="num">#</td>
+            <td class="num" aria-label="Deselect all"></td>
             <td><div class="stat-cell"><select><option>--</option><option>Sum</option><option>Min</option><option>Max</option><option>Mean</option><option>Median</option><option>Mode</option><option>GeoMn</option><option>Count</option></select><output>—</output></div></td>
             <td><div class="stat-cell"><select><option>--</option><option>Sum</option><option>Min</option><option>Max</option><option>Mean</option><option>Median</option><option>Mode</option><option>GeoMn</option><option>Count</option></select><output>—</output></div></td>
             <td><div class="stat-cell"><select><option>--</option><option>Sum</option><option>Min</option><option>Max</option><option>Mean</option><option>Median</option><option>Mode</option><option>GeoMn</option><option>Count</option></select><output>—</output></div></td>
@@ -3415,6 +3416,25 @@ diameter,height,value3,value4,Result
           if (selectedConstIndices.size && outsideTapTarget && !outsideTapTarget.closest('.const-top .letter, .const-selection-bar, .keypad')) {
             clearConstSelection();
           }
+        });
+
+        const deselectAll = () => {
+          clearRowSelection();
+          clearColSelection();
+          clearResultSelection();
+          clearStatSelection();
+          clearConstSelection();
+          if (activeTarget) blurActiveTarget();
+        };
+
+        document.querySelector('thead .num-head')?.addEventListener('pointerdown', (event) => {
+          if (event.cancelable) event.preventDefault();
+          deselectAll();
+        });
+
+        document.querySelector('tfoot td.num')?.addEventListener('pointerdown', (event) => {
+          if (event.cancelable) event.preventDefault();
+          deselectAll();
         });
 
         rowDoneBtn?.addEventListener('click', () => clearRowSelection());
