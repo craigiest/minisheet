@@ -78,6 +78,46 @@
         --key-action-enter-color: #fff;
         --key-action-result-bg: var(--active);
         --key-action-result-color: #fff;
+
+        /* Grid structure: the non-editable sticky chrome (row numbers, header
+           padding behind pills) — themeable instead of a fixed light grey. */
+        --grid-structure-bg: #f1f1f3;
+
+        /* Text entry fields: formula bar, constant inputs, grid cell inputs —
+           all share one look so editing always reads consistently. */
+        --entry-bg: #f0f0f2;
+        --entry-border: #c7c7ce;
+        --entry-placeholder: #a7acb7;
+      }
+
+      /* These custom properties are declared on `body` (not `:root`) because
+         they derive from other theme variables via var()/color-mix(). A
+         derived variable resolves using the cascaded value of its inputs on
+         the SAME element — declaring it on :root would freeze it to the
+         default theme, since theme overrides apply to `body` and wouldn't
+         be picked up by an ancestor's already-resolved value. */
+      body {
+        --entry-color: var(--text);
+
+        /* Selection highlight, derived from the theme's active color so it
+           never clashes with a theme's hue. */
+        --select-bg-strong: color-mix(in srgb, var(--active) 35%, transparent);
+        --select-bg-soft: color-mix(in srgb, var(--active) 18%, transparent);
+
+        /* Row/column/result/stat/const selection action bar: styled like the
+           view controls so copy/paste actions match the rest of the keypad. */
+        --select-bar-bg: var(--key-ctrl-view-bg, var(--key-ctrl-bg));
+        --select-bar-color: var(--key-ctrl-view-color, var(--key-ctrl-color));
+        --select-bar-btn-bg: var(--panel);
+        --select-bar-btn-color: var(--select-bar-bg);
+        --select-bar-btn-confirmed-bg: var(--active-soft);
+        --select-bar-btn-confirmed-color: var(--bg);
+
+        /* Stat row dropdown + its computed output */
+        --stat-select-bg: var(--key-fn-stat-bg, var(--key-fn-bg));
+        --stat-select-color: var(--key-fn-stat-color, var(--key-fn-color));
+        --stat-select-border: var(--line);
+        --stat-output-color: var(--text);
       }
 
       body.keypad-is-minimized {
@@ -162,48 +202,14 @@
         --key-radius-corner: 10px;
         --key-border-width: 1px;
         --key-border-color: #c9bd9e;
-      }
-
-      /* Warm theme: replace hardcoded white/near-white surfaces with the
-         cream/beige palette, and turn text-entry areas into an LED-style
-         black display with red digits. */
-      body[data-theme="warm"] .grid-wrap {
-        background: var(--bg);
-      }
-
-      body[data-theme="warm"] .settings-panel {
-        background: var(--panel);
-      }
-
-      body[data-theme="warm"] .num-head,
-      body[data-theme="warm"] .num {
-        background: var(--panel);
-      }
-
-      body[data-theme="warm"] .row-selection-bar button,
-      body[data-theme="warm"] .col-selection-bar button,
-      body[data-theme="warm"] .result-selection-bar button,
-      body[data-theme="warm"] .stat-selection-bar button,
-      body[data-theme="warm"] .const-selection-bar button {
-        background: var(--panel);
-      }
-
-      body[data-theme="warm"] .formula-input {
-        background: #1c1813;
-        color: #e8392c;
-        border-color: #100d0a;
-      }
-
-      body[data-theme="warm"] .formula-input::placeholder {
-        color: #7a4a3f;
-      }
-
-      body[data-theme="warm"] .editable-cell {
-        background: #1c1813;
-      }
-
-      body[data-theme="warm"] .cell-input {
-        color: #e8392c;
+        /* Replace the light theme's near-white structural grey with the
+           cream/beige palette, and give text-entry fields an LED-style
+           black display with red digits. */
+        --grid-structure-bg: var(--panel);
+        --entry-bg: #1c1813;
+        --entry-color: #e8392c;
+        --entry-border: #100d0a;
+        --entry-placeholder: #7a4a3f;
       }
 
       body[data-theme="mono"] {
@@ -497,20 +503,22 @@
       }
 
       .const-top.const-selected {
-        background: rgba(93, 141, 213, 0.35);
+        background: var(--select-bg-strong);
         color: var(--text);
       }
 
       .const-cell input.const-selected-cell {
-        background: rgba(93, 141, 213, 0.18);
+        background: var(--select-bg-soft);
       }
 
       .const-cell input {
         width: 100%;
         height: 30px;
-        border: 1px solid #c7c7ce;
+        border: 1px solid var(--entry-border);
         border-radius: 7px;
-        background: #efefef;
+        background: var(--entry-bg);
+        color: var(--entry-color);
+        font-family: var(--app-font);
         font-size: 14px;
         padding: 2px 6px;
       }
@@ -541,16 +549,18 @@
         width: 100%;
         min-width: 0;
         height: 42px;
-        border: 2px solid #c7c7ce;
+        border: 2px solid var(--entry-border);
         border-radius: 10px;
         box-shadow: none;
-        background: #f0f0f2;
+        background: var(--entry-bg);
+        color: var(--entry-color);
+        font-family: var(--app-font);
         font-size: 14px;
         padding: 6px 10px;
       }
 
       .formula-input::placeholder {
-        color: #a7acb7;
+        color: var(--entry-placeholder);
         font-style: italic;
       }
 
@@ -586,7 +596,7 @@
         overflow-y: auto;
         overflow-x: hidden;
         -webkit-overflow-scrolling: touch;
-        background: #f7f7f8;
+        background: var(--bg);
         z-index: 20;
       }
 
@@ -599,7 +609,7 @@
         overflow-y: auto;
         overflow-x: hidden;
         -webkit-overflow-scrolling: touch;
-        background: #fff;
+        background: var(--panel);
         z-index: 25;
         padding: 20px;
         padding-bottom: calc(20px + env(safe-area-inset-bottom));
@@ -810,7 +820,7 @@
       td {
         border-right: 1px solid var(--line);
         border-bottom: 1px solid var(--line);
-        background: #f1f1f3;
+        background: var(--grid-structure-bg);
       }
 
       th:last-child,
@@ -840,7 +850,7 @@
       .num {
         position: sticky;
         left: 0;
-        background: #f1f1f3;
+        background: var(--grid-structure-bg);
         font-size: 15px;
       }
 
@@ -860,12 +870,12 @@
       }
 
       tr.row-selected td.num {
-        background: rgba(93, 141, 213, 0.35);
+        background: var(--select-bg-strong);
         color: var(--text);
       }
 
       tr.row-selected td.editable-cell {
-        background: rgba(93, 141, 213, 0.18);
+        background: var(--select-bg-soft);
       }
 
       .col-head:not(.result-head) .head-pill .letter {
@@ -873,12 +883,12 @@
       }
 
       th.col-selected .head-pill {
-        background: rgba(93, 141, 213, 0.35);
+        background: var(--select-bg-strong);
         color: var(--text);
       }
 
       td.col-selected-cell {
-        background: rgba(93, 141, 213, 0.18);
+        background: var(--select-bg-soft);
       }
 
       .num-head {
@@ -888,7 +898,7 @@
 
       .col-head {
         padding: 4px;
-        background: #ececef;
+        background: var(--grid-structure-bg);
       }
 
       .head-pill {
@@ -955,7 +965,7 @@
       }
 
       .result-cell.is-selected {
-        background: rgba(93, 141, 213, 0.18);
+        background: var(--select-bg-soft);
       }
 
       .row-selection-bar,
@@ -971,8 +981,8 @@
         flex-direction: column;
         gap: 6px;
         padding: 8px 10px;
-        background: var(--active);
-        color: #fff;
+        background: var(--select-bar-bg);
+        color: var(--select-bar-color);
         z-index: 30;
         box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.2);
       }
@@ -1036,8 +1046,8 @@
         padding: 6px 8px;
         font-weight: 700;
         font-size: 13px;
-        background: #fff;
-        color: var(--active);
+        background: var(--select-bar-btn-bg);
+        color: var(--select-bar-btn-color);
         transition: background-color 0.15s ease;
       }
 
@@ -1046,8 +1056,8 @@
       .result-selection-bar button.is-confirmed,
       .stat-selection-bar button.is-confirmed,
       .const-selection-bar button.is-confirmed {
-        background: #cfe3f7;
-        color: #1c4b7a;
+        background: var(--select-bar-btn-confirmed-bg);
+        color: var(--select-bar-btn-confirmed-color);
       }
 
       .row-selection-bar .row-action-done,
@@ -1057,8 +1067,8 @@
       .const-selection-bar .const-action-done {
         flex: 0 0 auto;
         padding: 6px 10px;
-        background: rgba(255, 255, 255, 0.25);
-        color: #fff;
+        background: color-mix(in srgb, var(--select-bar-color) 22%, transparent);
+        color: var(--select-bar-color);
       }
 
       .result-head { z-index: 9; }
@@ -1068,13 +1078,13 @@
         bottom: 0;
         z-index: 10;
         background: var(--panel);
-        border-top: 2px solid #a4acb8;
+        border-top: 2px solid var(--line);
         padding: 4px;
         height: 56px;
       }
 
       tfoot {
-        box-shadow: inset 0 2px 0 #a4acb8;
+        box-shadow: inset 0 2px 0 var(--line);
       }
 
       tfoot .num {
@@ -1098,10 +1108,11 @@
         max-width: 100%;
         height: 22px;
         line-height: 22px;
-        border: 1px solid #d2d7e2;
+        border: 1px solid var(--stat-select-border);
         border-radius: 6px;
-        background: #f6f8fb;
-        color: #2f5f9f;
+        background: var(--stat-select-bg);
+        color: var(--stat-select-color);
+        font-family: var(--app-font);
         font-size: 12px;
         padding: 0 4px;
         text-align: center;
@@ -1124,7 +1135,7 @@
         text-align: right;
         border: 0;
         background: transparent;
-        color: #596275;
+        color: var(--stat-output-color);
         font-size: 15px;
         font-weight: 700;
         overflow: hidden;
@@ -1135,7 +1146,7 @@
       }
 
       .stat-cell output.is-selected {
-        background: rgba(93, 141, 213, 0.18);
+        background: var(--select-bg-soft);
       }
 
       .keypad {
@@ -1334,6 +1345,7 @@
 
       .editable-cell {
         padding: 0;
+        background: var(--entry-bg);
       }
 
       .cell-input {
@@ -1341,6 +1353,8 @@
         height: 100%;
         border: 0;
         background: transparent;
+        color: var(--entry-color);
+        font-family: var(--app-font);
         padding: 0 8px;
         text-align: right;
         font-size: 15px;
