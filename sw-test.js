@@ -1,4 +1,4 @@
-const CACHE_NAME = 'minisheet-test-v17';
+const CACHE_NAME = 'minisheet-test-v18';
 const ASSETS = [
   'index.html',
   'manifest-test.webmanifest',
@@ -6,6 +6,7 @@ const ASSETS = [
   'icons/icon-512.png',
   'icons/icon-512-maskable.png',
   'icons/apple-touch-icon-180.png',
+  'fonts/RobotoCondensed-Regular.woff2',
 ];
 
 self.addEventListener('install', (event) => {
