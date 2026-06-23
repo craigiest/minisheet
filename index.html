@@ -24,7 +24,7 @@
         --text-muted: #8a94a8;
         --active: #305596;
         --active-soft: #6aa8f1;
-        --nav-h: 34px;
+        --nav-h: 26px;
         --const-h: 74px;
         --formula-h: 56px;
         --keypad-h: 266px;
@@ -324,7 +324,7 @@
         grid-template-columns: 34px minmax(0,1fr) 34px;
         gap: 6px;
         align-items: center;
-        padding: 2px 8px 6px;
+        padding: 1px 8px 3px;
         z-index: 60;
         isolation: isolate;
       }
@@ -469,20 +469,15 @@
         height: var(--const-h);
         background: var(--keypad-bg);
         display: grid;
-        grid-template-columns: 52px repeat(5, minmax(0, 1fr));
+        grid-template-columns: 9% 17% 17% 17% 17% 21%;
         z-index: 50;
       }
 
-      .clear-cell,
       .const-cell {
         padding: 4px;
         display: grid;
         gap: 2px;
         align-content: center;
-      }
-
-      .clear-cell {
-        place-items: center;
       }
 
       .key-active {
@@ -532,7 +527,7 @@
       .const-cell input {
         width: 100%;
         height: 30px;
-        border: 1px solid var(--entry-border);
+        border: 0;
         border-radius: 7px;
         background: var(--entry-bg);
         color: var(--entry-color);
@@ -550,20 +545,16 @@
         height: var(--formula-h);
         background: var(--keypad-bg);
         display: grid;
-        grid-template-columns: 30px 1fr auto;
+        grid-template-columns: 44px 1fr auto;
         align-items: center;
         gap: 6px;
-        padding: 6px 8px;
+        padding: 6px 4px;
         z-index: 49;
       }
 
-      .fx-eq {
-        font-size: 26px;
-        font-weight: 700;
-        text-align: center;
-      }
-
-      .formula-input {
+      .formula-input-shell {
+        display: flex;
+        align-items: center;
         width: 100%;
         min-width: 0;
         height: 42px;
@@ -571,11 +562,30 @@
         border-radius: 10px;
         box-shadow: none;
         background: var(--entry-bg);
+        padding-left: 10px;
+      }
+
+      .fx-prefix {
+        flex: none;
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--entry-color);
+        padding-right: 2px;
+      }
+
+      .formula-input {
+        width: 100%;
+        min-width: 0;
+        flex: 1;
+        height: 100%;
+        border: 0;
+        outline: none;
+        background: transparent;
         color: var(--entry-color);
         caret-color: var(--entry-color);
         font-family: var(--app-font);
         font-size: 14px;
-        padding: 6px 10px;
+        padding: 6px 10px 6px 2px;
       }
 
       .formula-input::placeholder {
@@ -583,8 +593,7 @@
         font-style: italic;
       }
 
-      .formula-input.is-active-target {
-        border-color: var(--active-soft);
+      .formula-input-shell:has(.formula-input.is-active-target) {
         box-shadow: 0 0 0 1px rgba(106, 168, 241, 0.35) inset;
       }
 
@@ -1112,7 +1121,7 @@
         z-index: 10;
         background: var(--keypad-bg);
         border-top: 2px solid var(--line);
-        padding: 4px;
+        padding: 8px 4px 0;
         height: 56px;
       }
 
@@ -1399,7 +1408,7 @@
         -webkit-user-select: text;
       }
 
-      .is-active-target {
+      .is-active-target:not(.formula-input) {
         outline: 2px solid var(--active-soft);
         outline-offset: -2px;
       }
@@ -1419,14 +1428,14 @@
     <header class="nav">
       <button class="arrow" aria-label="Previous sheet">&#9664;</button>
       <div class="title-block">
-        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">New Sheet</span><span class="version-tag">v0.3.21</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/1</button></div>
+        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">New Sheet</span><span class="version-tag">v0.3.22</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/1</button></div>
         <div class="sheet-menu" hidden role="menu" aria-label="Sheet selector"></div>
       </div>
       <button class="arrow" aria-label="Next sheet">&#9654;</button>
     </header>
 
     <section class="constants-strip" aria-label="Constants strip">
-      <div class="clear-cell"><button class="key-active key-ctrl-destructive" aria-label="Clear">C</button></div>
+      <div class="const-gutter" aria-hidden="true"></div>
       <div class="const-cell"><div class="const-top"><div class="letter">V</div><div class="name">const1</div></div><input inputmode="none" value="" /></div>
       <div class="const-cell"><div class="const-top"><div class="letter">W</div><div class="name">const2</div></div><input inputmode="none" value="" /></div>
       <div class="const-cell"><div class="const-top"><div class="letter">X</div><div class="name">const3</div></div><input inputmode="none" value="" /></div>
@@ -1435,8 +1444,11 @@
     </section>
 
     <section class="formula-strip" aria-label="Formula editor strip">
-      <div class="fx-eq">=</div>
-      <input class="formula-input" value="(B*C)/A" placeholder="Enter formula here" aria-label="Formula editor" />
+      <button class="key-active key-ctrl-destructive" aria-label="Clear">C</button>
+      <div class="formula-input-shell">
+        <span class="fx-prefix" aria-hidden="true">=</span>
+        <input class="formula-input" value="(B*C)/A" placeholder="Enter formula here" aria-label="Formula editor" />
+      </div>
       <button class="toggle key-ctrl key-ctrl-view" type="button" aria-label="Toggle formula labels">A / <strong>Name</strong></button>
     </section>
 
@@ -1498,7 +1510,7 @@
 
     <section class="settings-panel" aria-label="App info and settings" hidden>
       <h2>MiniSheet</h2>
-      <p class="settings-version">Version <span class="version-tag-settings">v0.3.21</span></p>
+      <p class="settings-version">Version <span class="version-tag-settings">v0.3.22</span></p>
       <p>MiniSheet is a formula-driven mini spreadsheet for quick calculations.</p>
       <p>Type a math problem, like 42+25, into the formula line and tap Result for an answer. Or create a formula like A+B/C and enter numbers in the grid to get multiple results for different sets of values.</p>
       <p>For the best experience, click the share button and add to your homescreen.</p>
