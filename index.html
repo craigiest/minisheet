@@ -1437,7 +1437,7 @@
     <header class="nav">
       <button class="arrow" aria-label="Previous sheet">&#9664;</button>
       <div class="title-block">
-        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">New Sheet</span><span class="version-tag">v0.4.15</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/1</button></div>
+        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">New Sheet</span><span class="version-tag">v0.4.16</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/1</button></div>
         <div class="sheet-menu" hidden role="menu" aria-label="Sheet selector"></div>
       </div>
       <button class="arrow" aria-label="Next sheet">&#9654;</button>
@@ -1518,7 +1518,7 @@
     </div>
 
     <section class="settings-panel" aria-label="App info and settings" hidden>
-      <p class="settings-version"><strong>MiniSheet</strong> <span class="version-tag-settings">v0.4.15</span> ©2026 Craig Butz</p>
+      <p class="settings-version"><strong>MiniSheet</strong> <span class="version-tag-settings">v0.4.16</span> ©2026 Craig Butz</p>
       <p>MiniSheet is a formula-driven mini spreadsheet for quick calculations. <a href="manual.html">View the complete manual</a>.</p>
       <p>Type a math problem, like 42+25, into the formula line and tap Result for an answer. Or create a formula like A+B/C and enter numbers in the grid to get multiple results for different sets of values.</p>
       <p>For the best experience, click the share button and add to your homescreen.</p>
@@ -2436,7 +2436,7 @@
           updateKeyAvailability();
         };
 
-        const astHasVariableReference = (node) => { if (!node || typeof node !== 'object') return false; if (node.type === 'variable') return true; if (node.type === 'range') return astHasVariableReference(node.start) || astHasVariableReference(node.end); return Object.values(node).some((value) => Array.isArray(value) ? value.some((item) => astHasVariableReference(item)) : astHasVariableReference(value)); };
+        const astHasVariableReference = (node) => { if (!node || typeof node !== 'object') return false; if (node.type === 'variable') return KEY_ORDER.includes(node.name); if (node.type === 'range') return astHasVariableReference(node.start) || astHasVariableReference(node.end); return Object.values(node).some((value) => Array.isArray(value) ? value.some((item) => astHasVariableReference(item)) : astHasVariableReference(value)); };
         const computeAllRows = () => {
           persistFromDom();
           const sheet = state.sheets[state.currentSheetIndex];
