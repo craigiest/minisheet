@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <title>MiniSheet Manual</title>
+    <meta name="theme-color" content="#305596" />
+    <style>
+      :root {
+        --bg: #ececef;
+        --panel: #f3f3f5;
+        --line: #d5d5da;
+        --text: #1d2029;
+        --text-muted: #8a94a8;
+        --active: #305596;
+        --active-text-color: #fff;
+        --nav-h: 36px;
+        --app-font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+        --num-font: var(--app-font);
+      }
+
+      * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+      html,
+      body {
+        margin: 0;
+        font-family: var(--app-font);
+        background: var(--bg);
+        color: var(--text);
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: env(safe-area-inset-top);
+        background: var(--active);
+        z-index: 61;
+        pointer-events: none;
+      }
+
+      .nav {
+        position: sticky;
+        top: env(safe-area-inset-top);
+        left: 0;
+        right: 0;
+        height: var(--nav-h);
+        background: var(--active);
+        color: var(--active-text-color);
+        display: flex;
+        align-items: center;
+        padding: 2px 8px 14px;
+        z-index: 60;
+        font-weight: 700;
+        font-size: 15px;
+      }
+
+      .nav a {
+        color: var(--active-text-color);
+        text-decoration: none;
+        font-size: 20px;
+        font-weight: 700;
+        width: 34px;
+        flex: 0 0 auto;
+      }
+
+      .nav .nav-title {
+        flex: 1 1 auto;
+        text-align: center;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        padding: 0 6px;
+      }
+
+      .nav .nav-spacer {
+        width: 34px;
+        flex: 0 0 auto;
+      }
+
+      .manual {
+        max-width: 640px;
+        margin: 0 auto;
+        padding: 20px;
+        padding-bottom: calc(32px + env(safe-area-inset-bottom));
+        background: var(--panel);
+      }
+
+      h1 {
+        font-size: 20px;
+        margin: 0 0 4px;
+        color: var(--text);
+      }
+
+      .version {
+        color: var(--text-muted);
+        font-size: 13px;
+        margin: 0 0 16px;
+      }
+
+      h2 {
+        font-size: 16px;
+        margin: 0 0 8px;
+        color: var(--text);
+      }
+
+      h3 {
+        font-size: 14px;
+        margin: 16px 0 6px;
+        color: var(--text);
+      }
+
+      p {
+        font-size: 14px;
+        line-height: 1.5;
+        color: var(--text);
+        margin: 0 0 10px;
+      }
+
+      .section {
+        margin-top: 24px;
+        padding-top: 16px;
+        border-top: 1px solid var(--line);
+      }
+
+      .section:first-of-type {
+        margin-top: 16px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 10px;
+        font-size: 13px;
+      }
+
+      table th,
+      table td {
+        text-align: left;
+        vertical-align: top;
+        padding: 6px 8px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      table th {
+        color: var(--text-muted);
+        font-weight: 600;
+      }
+
+      code,
+      .formula {
+        font-family: var(--num-font);
+        background: var(--bg);
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        padding: 1px 5px;
+        font-size: 13px;
+        white-space: nowrap;
+      }
+
+      ul {
+        margin: 0 0 10px;
+        padding-left: 20px;
+        font-size: 14px;
+        line-height: 1.5;
+        color: var(--text);
+      }
+
+      li {
+        margin-bottom: 4px;
+      }
+
+      .hint {
+        margin-top: 8px;
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+
+      .back-link-wrap {
+        margin-top: 28px;
+        padding-top: 16px;
+        border-top: 1px solid var(--line);
+        text-align: center;
+      }
+
+      .back-btn {
+        display: inline-block;
+        appearance: none;
+        border: 0;
+        border-radius: 8px;
+        background: var(--active);
+        color: var(--active-text-color);
+        font-size: 15px;
+        padding: 10px 20px;
+        text-decoration: none;
+      }
+    </style>
+  </head>
+  <body>
+    <nav class="nav">
+      <a href="index.html" aria-label="Back to MiniSheet">‹</a>
+      <span class="nav-title">MiniSheet Manual</span>
+      <span class="nav-spacer"></span>
+    </nav>
+
+    <main class="manual">
+      <h1>MiniSheet</h1>
+      <p class="version">Instruction Manual &middot; v0.4.11</p>
+      <p>A formula-driven mini spreadsheet for quick calculations.</p>
+
+      <div class="section">
+        <h2>Overview</h2>
+        <p>MiniSheet lets you write one formula and apply it down a column of data. Enter values into up to 4 columns (A&ndash;D) and up to 5 named constants (V&ndash;Z), and MiniSheet computes a <strong>Result</strong> for every row automatically.</p>
+        <p><strong>Example:</strong> Gas mileage &mdash; formula <span class="formula">A/B</span>, where A = miles and B = gallons. Each row's Result shows miles-per-gallon for that row's numbers.</p>
+      </div>
+
+      <div class="section">
+        <h2>The Screen, Top to Bottom</h2>
+        <table>
+          <tr><th>Region</th><th>What it does</th></tr>
+          <tr><td>Nav bar</td><td>Sheet title (tap to rename), <code>‹ ›</code> arrows to move between sheets, and an &ldquo;N/M&rdquo; sheet indicator (tap to open the sheet menu).</td></tr>
+          <tr><td>Formula bar</td><td>Shows <code>=</code> plus your formula. <strong>C</strong> clears it. The <strong>A / Name</strong> toggle switches references between letters (<code>A</code>, <code>B</code>, <code>V</code>) and your custom column/constant names.</td></tr>
+          <tr><td>Constants strip</td><td>Five fields, <strong>V W X Y Z</strong>, for fixed values used in every row's calculation (e.g. &pi;, a price per unit, a conversion factor).</td></tr>
+          <tr><td>Column headers</td><td><strong>A B C D</strong> for your data, plus <strong>Result</strong>. Each has an editable name underneath (default <code>value1</code>&hellip;<code>value4</code>).</td></tr>
+          <tr><td>Grid</td><td>Up to 20 numbered rows. Tap a cell to enter a number; the Result column fills in automatically.</td></tr>
+          <tr><td>Stat row</td><td>Pick a summary stat per column &mdash; Sum, Min, Max, Mean, Median, Mode, Geometric Mean, Count.</td></tr>
+          <tr><td>Keypad</td><td>On-screen calculator keys for building formulas and entering numbers.</td></tr>
+        </table>
+      </div>
+
+      <div class="section">
+        <h2>Writing a Formula</h2>
+        <p>1. Tap the formula bar.<br>
+        2. Type using column letters (<code>A</code>, <code>B</code>, <code>C</code>, <code>D</code>) and/or constants (<code>V</code>&ndash;<code>Z</code>), combined with the keypad's operators and functions.<br>
+        3. The same formula is applied to every row, substituting that row's own A/B/C/D values.</p>
+        <ul>
+          <li><span class="formula">A/B</span> &mdash; simple ratio (e.g. mileage)</li>
+          <li><span class="formula">(B*C)/A</span> &mdash; cross-multiplication</li>
+          <li><span class="formula">A/(&pi;*(B/2)^2)</span> &mdash; price per square inch, using &pi; and the diameter</li>
+        </ul>
+        <p>Blank cells are treated as <code>0</code>. Dividing by zero shows an error in the Result cell rather than crashing the sheet.</p>
+        <p>Use the <strong>A / Name</strong> toggle to display your renamed columns (e.g. <code>[Price]</code>) instead of bare letters &mdash; handy once you've renamed columns to something memorable.</p>
+      </div>
+
+      <div class="section">
+        <h2>Keypad Reference</h2>
+        <table>
+          <tr><th>Key(s)</th><th>Function</th></tr>
+          <tr><td><code>0</code>&ndash;<code>9</code>, <code>.</code></td><td>Digits and decimal point</td></tr>
+          <tr><td><code>+</code> <code>&minus;</code> <code>*</code> <code>/</code></td><td>Arithmetic</td></tr>
+          <tr><td><code>^</code></td><td>Exponent: <span class="formula">a^b</span></td></tr>
+          <tr><td><code>!</code></td><td>Factorial: <span class="formula">5!</span></td></tr>
+          <tr><td><code>&radic;</code></td><td>Square root by default: <span class="formula">&radic;(x)</span>. Give it two arguments for an n-th root, degree first: <span class="formula">&radic;(3,8)</span> = 2 (cube root of 8).</td></tr>
+          <tr><td><code>( )</code></td><td>Grouping</td></tr>
+          <tr><td><code>,</code> <code>:</code></td><td>Function argument separator / range (<span class="formula">A:D</span> = A, B, C, D)</td></tr>
+          <tr><td><code>e</code>, <code>&pi;</code></td><td>Euler's number, pi</td></tr>
+          <tr><td><code>LOG</code></td><td>Base-10 by default: <span class="formula">LOG(x)</span>. Give it two arguments for a custom base, base first: <span class="formula">LOG(2,8)</span> = 3 (log base 2 of 8).</td></tr>
+          <tr><td><code>SIN</code> <code>COS</code> <code>TAN</code></td><td>Trig functions, one argument, in degrees</td></tr>
+          <tr><td><code>SUM</code> <code>MEAN</code> <code>MAX</code> <code>MIN</code></td><td>Statistical functions over a range or list of values, e.g. <span class="formula">SUM(A:D)</span>. Argument order doesn't matter.</td></tr>
+          <tr><td><code>&#8679;</code> (Shift)</td><td>Swaps several keys to alternate functions (e.g. <code>SIN</code>&rarr;<code>ASIN</code>, <code>MIN</code>&rarr;<code>GeoMn</code>, <code>MAX</code>&rarr;<code>Mode</code>)</td></tr>
+          <tr><td><code>&#10554;</code></td><td>Undo &mdash; restores the value you were editing before your last change</td></tr>
+          <tr><td><code>&#10515;</code></td><td>Minimize/expand the keypad</td></tr>
+          <tr><td><code>&#9003;</code></td><td>Backspace / delete</td></tr>
+        </table>
+        <p class="hint">LOG and &radic; are the only functions where argument order matters (base/degree comes first). SUM, MEAN, MAX, MIN, COUNT, MEDIAN, MODE, and GeoMn take any number of values in any order; SIN, COS, TAN, ASIN, ACOS, and ATAN each take exactly one value.</p>
+      </div>
+
+      <div class="section">
+        <h2>Entering and Selecting Data</h2>
+        <ul>
+          <li>Tap a cell to type a value; press Enter to confirm and jump to the same column on the next row.</li>
+          <li>Tap a row number, column letter, constant letter, or stat value to select it. Drag across several to multi-select.</li>
+          <li>Once something is selected, a selection bar appears above the keypad with Copy / Cut / Paste (Result and Stat selections are copy-only, since they're calculated, not entered).</li>
+          <li>Standard clipboard shortcuts (Cmd/Ctrl+C, X, V) work for selected data, copied as tab-separated text &mdash; so you can paste in and out of other spreadsheet apps.</li>
+        </ul>
+      </div>
+
+      <div class="section">
+        <h2>Renaming Columns and Constants</h2>
+        <ul>
+          <li>Tap the small name label under any column letter (A&ndash;D) or constant letter (V&ndash;Z) to rename it &mdash; e.g. change <code>value1</code> to <code>Price</code>.</li>
+          <li>Tap the sheet title in the nav bar to rename the whole sheet.</li>
+          <li>Renamed fields show up in formulas when the Name toggle is active.</li>
+        </ul>
+      </div>
+
+      <div class="section">
+        <h2>Working with Multiple Sheets</h2>
+        <ul>
+          <li>Use the <code>‹</code> <code>›</code> arrows in the nav bar to step between sheets.</li>
+          <li>Tap the &ldquo;N/M&rdquo; indicator to open a menu listing all sheets &mdash; tap one to jump to it.</li>
+          <li>Each sheet keeps its own formula, constants, column names, data, and stats &mdash; switching sheets switches all of it at once.</li>
+        </ul>
+      </div>
+
+      <div class="section">
+        <h2>Settings</h2>
+        <p>Open Settings from the nav bar (tap the left arrow on your first sheet, or via the sheet menu).</p>
+        <ul>
+          <li><strong>Examples</strong> &mdash; Add ready-made sample sheets (Gas Mileage, Proportion, Price Comparison, Pizza Price per Square Inch) to see formulas/constants/names in action.</li>
+          <li><strong>Display</strong> &mdash; Toggle a condensed font to fit more decimal digits on screen.</li>
+          <li><strong>Force Code Refresh</strong> &mdash; Reload the latest cached version of the app (MiniSheet works offline and caches itself locally).</li>
+          <li><strong>Navigation</strong> &mdash; Option to skip the Settings page when paging between sheets.</li>
+          <li><strong>Import</strong> &mdash; Load a MiniSheet CSV export; choose which sheets to bring in and where to insert them.</li>
+          <li><strong>Export</strong> &mdash; Pick sheets and download them as a CSV file (title, formula, constants, and data all included).</li>
+          <li><strong>Erase All Sheets</strong> &mdash; Wipes everything back to one blank sheet. This cannot be undone &mdash; use with care.</li>
+          <li><strong>Theme</strong> &mdash; Choose from Default, Diagnostic, Warm, Mono, or Candy visual themes.</li>
+        </ul>
+      </div>
+
+      <div class="section">
+        <h2>Data and Backups</h2>
+        <p>Everything is saved automatically to your browser's local storage &mdash; no account or internet connection required after the first load.</p>
+        <p>Because data lives only in that browser, export to CSV periodically if you want a backup or want to move sheets to another device/browser.</p>
+        <p>For the best experience on mobile, add MiniSheet to your home screen as an installable app.</p>
+      </div>
+
+      <div class="section">
+        <h2>Quick Tips</h2>
+        <ul>
+          <li>Start from an Example sheet in Settings if you're not sure how formulas/constants fit together.</li>
+          <li>Use constants (V&ndash;Z) for anything that doesn't change row to row (a tax rate, &pi;, a conversion factor) &mdash; keep data that does vary in columns A&ndash;D.</li>
+          <li>If a Result shows an error, check for a divide-by-zero or a typo in a column/constant reference.</li>
+          <li>Use the Stat row to get a quick Sum/Mean/Max etc. across a whole column without writing a second formula.</li>
+        </ul>
+      </div>
+
+      <div class="back-link-wrap">
+        <a class="back-btn" href="index.html">&larr; Back to MiniSheet</a>
+      </div>
+    </main>
+  </body>
+</html>
