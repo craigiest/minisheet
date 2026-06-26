@@ -1437,7 +1437,7 @@
     <header class="nav">
       <button class="arrow" aria-label="Previous sheet">&#9664;</button>
       <div class="title-block">
-        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">New Sheet</span><span class="version-tag">v0.4.13</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/1</button></div>
+        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">New Sheet</span><span class="version-tag">v0.4.14</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/1</button></div>
         <div class="sheet-menu" hidden role="menu" aria-label="Sheet selector"></div>
       </div>
       <button class="arrow" aria-label="Next sheet">&#9654;</button>
@@ -1518,7 +1518,7 @@
     </div>
 
     <section class="settings-panel" aria-label="App info and settings" hidden>
-      <p class="settings-version"><strong>MiniSheet</strong> <span class="version-tag-settings">v0.4.13</span> ©2026 Craig Butz</p>
+      <p class="settings-version"><strong>MiniSheet</strong> <span class="version-tag-settings">v0.4.14</span> ©2026 Craig Butz</p>
       <p>MiniSheet is a formula-driven mini spreadsheet for quick calculations. <a href="manual.html">View the complete manual</a>.</p>
       <p>Type a math problem, like 42+25, into the formula line and tap Result for an answer. Or create a formula like A+B/C and enter numbers in the grid to get multiple results for different sets of values.</p>
       <p>For the best experience, click the share button and add to your homescreen.</p>
@@ -1639,7 +1639,7 @@
     <section class="keypad" aria-label="Bottom keypad">
       <div class="keys full-keys">
         <button class="key key-undo key-ctrl key-ctrl-view" data-key="undo">⤺</button><button class="key key-ctrl key-ctrl-view" data-key="minimize">⤓</button><button class="key key-op key-op-functional">√</button><button class="key key-num key-num-special" data-shift-slot="e"><em>e</em></button><button class="key key-num key-num-special" data-shift-slot="pi">π</button><button class="key key-ctrl key-ctrl-destructive" data-key="backspace">⌫</button>
-        <button class="key light key-fn key-fn-trig">LOG</button><button class="key light key-op key-op-functional">!</button><button class="key key-op key-op-functional">^</button><button class="key key-op key-op-notation">(</button><button class="key key-op key-op-notation">)</button><button class="key key-op key-op-functional">/</button>
+        <button class="key light key-fn key-fn-trig" data-shift-slot="log">E</button><button class="key light key-op key-op-functional">!</button><button class="key key-op key-op-functional">^</button><button class="key key-op key-op-notation">(</button><button class="key key-op key-op-notation">)</button><button class="key key-op key-op-functional">/</button>
         <button class="key light key-fn key-fn-trig" data-shift-slot="sin">SIN</button><button class="key light key-fn key-fn-stat" data-shift-slot="sum">SUM</button><button class="key key-num key-num-digit">7</button><button class="key key-num key-num-digit">8</button><button class="key key-num key-num-digit">9</button><button class="key key-op key-op-functional">*</button>
         <button class="key light key-fn key-fn-trig" data-shift-slot="cos">COS</button><button class="key light key-fn key-fn-stat" data-shift-slot="mean">MEAN</button><button class="key key-num key-num-digit">4</button><button class="key key-num key-num-digit">5</button><button class="key key-num key-num-digit">6</button><button class="key key-op key-op-functional">−</button>
         <button class="key light key-fn key-fn-trig" data-shift-slot="tan">TAN</button><button class="key light key-fn key-fn-stat" data-shift-slot="max">MAX</button><button class="key key-num key-num-digit">1</button><button class="key key-num key-num-digit">2</button><button class="key key-num key-num-digit">3</button><button class="key key-op key-op-functional">+</button>
@@ -1739,8 +1739,8 @@
         const statCells = [...document.querySelectorAll('tfoot .stat-cell')];
         const headerPills = [...document.querySelectorAll('thead .head-pill')];
         const getKeyLabel = (key) => key?.textContent.trim() || '';
-        const NUMBER_ENTRY_KEY_LABELS = new Set(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '−', '/', '^', '√', 'e', 'π', 'c', 'g', UNDO_KEY_LABEL, '⌫', '=', MINIMIZE_KEY_LABEL, MAXIMIZE_KEY_LABEL, NUMPAD_SWITCH_LABEL, FULL_KEYPAD_LABEL, NUMPAD_ENTER_LABEL]);
-        const FORMULA_ENTRY_KEY_LABELS = new Set(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '−', '+', '*', '/', '^', '!', '(', ')', ',', ':', '√', 'LOG', 'SUM', 'MEAN', 'MAX', 'MIN', 'COUNT', 'CNT', 'MDN', 'MODE', 'GMN', 'SIN', 'COS', 'TAN', 'ASIN', 'ACOS', 'ATAN', 'e', 'π', 'c', 'g', '⌫', UNDO_KEY_LABEL, MINIMIZE_KEY_LABEL, MAXIMIZE_KEY_LABEL]);
+        const NUMBER_ENTRY_KEY_LABELS = new Set(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '−', '/', '^', '√', 'e', 'E', 'π', 'c', 'g', UNDO_KEY_LABEL, '⌫', '=', MINIMIZE_KEY_LABEL, MAXIMIZE_KEY_LABEL, NUMPAD_SWITCH_LABEL, FULL_KEYPAD_LABEL, NUMPAD_ENTER_LABEL]);
+        const FORMULA_ENTRY_KEY_LABELS = new Set(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '−', '+', '*', '/', '^', '!', '(', ')', ',', ':', '√', 'E', 'LOG', 'SUM', 'MEAN', 'MAX', 'MIN', 'COUNT', 'CNT', 'MDN', 'MODE', 'GMN', 'SIN', 'COS', 'TAN', 'ASIN', 'ACOS', 'ATAN', 'e', 'π', 'c', 'g', '⌫', UNDO_KEY_LABEL, MINIMIZE_KEY_LABEL, MAXIMIZE_KEY_LABEL]);
         const TEMP_DISABLED_KEY_LABELS = new Set([]);
 
         const asyncStorage = {
@@ -1996,7 +1996,8 @@
           sum: { normal: 'SUM', shifted: 'CNT' },
           mean: { normal: 'MEAN', shifted: 'MDN' },
           max: { normal: 'MAX', shifted: 'MODE' },
-          min: { normal: 'MIN', shifted: 'GMN' }
+          min: { normal: 'MIN', shifted: 'GMN' },
+          log: { normal: 'E', shifted: 'LOG' }
         };
         const updateShiftLabels = () => {
           Object.entries(SHIFT_LABELS).forEach(([slot, labels]) => {
