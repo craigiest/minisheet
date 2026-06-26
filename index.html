@@ -1437,7 +1437,7 @@
     <header class="nav">
       <button class="arrow" aria-label="Previous sheet">&#9664;</button>
       <div class="title-block">
-        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">New Sheet</span><span class="version-tag">v0.4.12</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/1</button></div>
+        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">New Sheet</span><span class="version-tag">v0.4.13</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/1</button></div>
         <div class="sheet-menu" hidden role="menu" aria-label="Sheet selector"></div>
       </div>
       <button class="arrow" aria-label="Next sheet">&#9654;</button>
@@ -1518,7 +1518,7 @@
     </div>
 
     <section class="settings-panel" aria-label="App info and settings" hidden>
-      <p class="settings-version"><strong>MiniSheet</strong> <span class="version-tag-settings">v0.4.12</span> ©2026 Craig Butz</p>
+      <p class="settings-version"><strong>MiniSheet</strong> <span class="version-tag-settings">v0.4.13</span> ©2026 Craig Butz</p>
       <p>MiniSheet is a formula-driven mini spreadsheet for quick calculations. <a href="manual.html">View the complete manual</a>.</p>
       <p>Type a math problem, like 42+25, into the formula line and tap Result for an answer. Or create a formula like A+B/C and enter numbers in the grid to get multiple results for different sets of values.</p>
       <p>For the best experience, click the share button and add to your homescreen.</p>
@@ -1790,7 +1790,7 @@
           };
         };
 
-        const state = { sheets: [makeSheet(0)], currentSheetIndex: 0, formulaMode: 'name', clearStage: 0, acConfirmPresses: 0, settingsView: false, numpadActive: false, skipSettingsInNav: false, condensedNumbers: false, theme: 'default' };
+        const state = { sheets: [makeSheet(0)], currentSheetIndex: 0, formulaMode: 'name', clearStage: 0, settingsView: false, numpadActive: false, skipSettingsInNav: false, condensedNumbers: false, theme: 'default' };
 
         let saveTimer = null;
         const scheduleSave = () => {
@@ -1886,7 +1886,6 @@
         };
         const setClearStage = (nextStage) => {
           state.clearStage = Math.max(0, Math.min(CLEAR_STAGE_META.length - 1, nextStage));
-          if (state.clearStage < 3) state.acConfirmPresses = 0;
           syncClearButtonUi();
           updateKeyAvailability();
         };
@@ -1912,8 +1911,7 @@
           const stack = currentUndoStack();
           stack.push({
             sheet: cloneData(state.sheets[state.currentSheetIndex]),
-            clearStage: state.clearStage,
-            acConfirmPresses: state.acConfirmPresses
+            clearStage: state.clearStage
           });
           if (stack.length > MAX_UNDO_HISTORY) stack.splice(0, stack.length - MAX_UNDO_HISTORY);
         };
@@ -1929,7 +1927,6 @@
           blurActiveTarget();
           state.sheets[state.currentSheetIndex] = cloneData(snap.sheet);
           state.clearStage = snap.clearStage;
-          state.acConfirmPresses = snap.acConfirmPresses;
           renderSheet();
           scheduleSave();
           resetClearStage();
@@ -2542,14 +2539,11 @@
             scheduleSave();
             return;
           }
-          if (state.acConfirmPresses === 0) {
-            captureUndoSnapshot();
-            blurActiveTarget();
-            state.sheets[state.currentSheetIndex] = makeSheet(state.currentSheetIndex);
-            renderSheet();
-            scheduleSave();
-          }
-          state.acConfirmPresses += 1;
+          captureUndoSnapshot();
+          blurActiveTarget();
+          state.sheets[state.currentSheetIndex] = makeSheet(state.currentSheetIndex);
+          renderSheet();
+          scheduleSave();
         };
 
         const resetAllSheetsToDefaults = () => {
