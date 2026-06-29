@@ -26,7 +26,7 @@ struct WebView: UIViewRepresentable {
         webView.navigationDelegate = context.coordinator
         hideFormAccessoryBar(on: webView)
 
-        if let indexURL = Bundle.main.url(forResource: "index", withExtension: "html", subdirectory: "WebContent") {
+        if let indexURL = Bundle.main.url(forResource: "full", withExtension: "html", subdirectory: "WebContent") {
             let directoryURL = indexURL.deletingLastPathComponent()
             webView.loadFileURL(indexURL, allowingReadAccessTo: directoryURL)
         }
@@ -38,7 +38,7 @@ struct WebView: UIViewRepresentable {
 
     // The web app's CSV export normally uses a blob: URL + <a download>
     // click (or navigator.share), neither of which is reliable from a
-    // file://-loaded WKWebView. When running in this app, index.html instead
+    // file://-loaded WKWebView. When running in this app, full.html instead
     // posts the CSV content straight to this "exportCsv" message handler,
     // which writes it to a temp file and hands it to a "Save to Files"
     // document picker. The WKDownload plumbing below stays as a fallback
