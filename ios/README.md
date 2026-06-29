@@ -1,6 +1,6 @@
 # MiniSheet iOS App
 
-A minimal native iOS wrapper that loads `index.html` (and its fonts/icons)
+A minimal native iOS wrapper that loads `full.html` (and its fonts/icons)
 directly from the app bundle in a `WKWebView`. No server, no network calls.
 
 ## Opening in Xcode
@@ -16,8 +16,8 @@ directly from the app bundle in a `WKWebView`. No server, no network calls.
 
 - `MiniSheet/MiniSheetApp.swift` — app entry point (SwiftUI).
 - `MiniSheet/ContentView.swift` — wraps a `WKWebView` that loads
-  `WebContent/index.html` via `loadFileURL`.
-- `MiniSheet/WebContent/` — a copy of `index.html`, `fonts/`, `icons/`, and
+  `WebContent/full.html` via `loadFileURL`.
+- `MiniSheet/WebContent/` — a copy of `full.html`, `fonts/`, `icons/`, and
   `manifest.webmanifest` from the repo root. This is what actually ships in
   the app.
 - `MiniSheet/Assets.xcassets/` — app icon (from `icons/icon-1024.png`) and
@@ -26,7 +26,7 @@ directly from the app bundle in a `WKWebView`. No server, no network calls.
 ## Updating the bundled web app
 
 `WebContent/` is a **copy**, not a symlink, so Xcode can bundle it as a
-resource. After editing `index.html` (or `fonts/`/`icons/`) at the repo root,
+resource. After editing `full.html` (or `fonts/`/`icons/`) at the repo root,
 sync the copy and rebuild:
 
 ```sh
@@ -48,4 +48,4 @@ sync the copy and rebuild:
 - The web app tries to register `sw-test.js` as a service worker on load.
   That file isn't bundled, and service workers aren't available under
   `file://` anyway, so this silently no-ops — harmless, but you can remove
-  that script block from `index.html` if you want a cleaner console.
+  that script block from `full.html` if you want a cleaner console.
