@@ -14,7 +14,10 @@ struct WebView: UIViewRepresentable {
     func makeCoordinator() -> Coordinator { Coordinator() }
 
     func makeUIView(context: Context) -> WKWebView {
-        let webView = WKWebView(frame: .zero, configuration: WKWebViewConfiguration())
+        let configuration = WKWebViewConfiguration()
+        configuration.userContentController.add(context.coordinator, name: "exportCsv")
+
+        let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.scrollView.bounces = false
         webView.scrollView.contentInsetAdjustmentBehavior = .never
         webView.isOpaque = false
@@ -33,11 +36,33 @@ struct WebView: UIViewRepresentable {
 
     func updateUIView(_ uiView: WKWebView, context: Context) {}
 
-    // The web app exports CSVs via a blob: URL + <a download> click, which
-    // WKWebView can't save on its own — it has to be handed off natively as
-    // a WKDownload and then shared out via the share sheet (e.g. to Files).
-    final class Coordinator: NSObject, WKNavigationDelegate, WKDownloadDelegate {
+    // The web app's CSV export normally uses a blob: URL + <a download>
+    // click (or navigator.share), neither of which is reliable from a
+    // file://-loaded WKWebView. When running in this app, index.html instead
+    // posts the CSV content straight to this "exportCsv" message handler,
+    // which writes it to a temp file and hands it to the share sheet. The
+    // WKDownload plumbing below stays as a fallback for any other downloads.
+    final class Coordinator: NSObject, WKNavigationDelegate, WKDownloadDelegate, WKScriptMessageHandler {
         private var destinations: [ObjectIdentifier: URL] = [:]
+
+        func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+            guard
+                message.name == "exportCsv",
+                let body = message.body as? [String: Any],
+                let filename = body["filename"] as? String,
+                let content = body["content"] as? String
+            else { return }
+
+            let destination = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
+            try? FileManager.default.removeItem(at: destination)
+
+            do {
+                try content.write(to: destination, atomically: true, encoding: .utf8)
+                Coordinator.presentShareSheet(for: destination)
+            } catch {
+                NSLog("Failed to write exported CSV: \(error)")
+            }
+        }
 
         func webView(
             _ webView: WKWebView,
