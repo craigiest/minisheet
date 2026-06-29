@@ -1437,7 +1437,7 @@
     <header class="nav">
       <button class="arrow" aria-label="Previous sheet">&#9664;</button>
       <div class="title-block">
-        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">New Sheet</span><span class="version-tag">v0.4.22</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/1</button></div>
+        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">New Sheet</span><span class="version-tag">v0.4.23</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/1</button></div>
         <div class="sheet-menu" hidden role="menu" aria-label="Sheet selector"></div>
       </div>
       <button class="arrow" aria-label="Next sheet">&#9654;</button>
@@ -1518,7 +1518,7 @@
     </div>
 
     <section class="settings-panel" aria-label="App info and settings" hidden>
-      <p class="settings-version"><strong>MiniSheet</strong> <span class="version-tag-settings">v0.4.22</span> ©2026 Craig Butz</p>
+      <p class="settings-version"><strong>MiniSheet</strong> <span class="version-tag-settings">v0.4.23</span> ©2026 Craig Butz</p>
       <p>MiniSheet is a formula-driven mini spreadsheet for quick calculations. <a href="manual.html">View the complete manual</a>.</p>
       <p>Type a math problem, like 42+25, into the formula line and tap Result for an answer. Or create a formula like A+B/C and enter numbers in the grid to get multiple results for different sets of values.</p>
       <p>For the best experience, click the share button and add to your homescreen.</p>
@@ -2634,44 +2634,39 @@
 
         const exportSelectedSheetsCsv = () => {
           if (!exportSheetListEl) return;
-          const checkboxes = [...exportSheetListEl.querySelectorAll('input[data-sheet-index]')];
-          const selectedIndices = checkboxes.filter((cb) => cb.checked).map((cb) => Number(cb.dataset.sheetIndex));
-          if (!selectedIndices.length) return;
-          let csv = csvRow(['#MINISHEET', 'v1']);
-          selectedIndices.forEach((idx) => { csv += buildSheetCsv(state.sheets[idx], idx + 1); });
-          const blob = new Blob([csv], { type: 'text/csv' });
-          const url = URL.createObjectURL(blob);
-          const link = document.createElement('a');
-          link.href = url;
-          const pad = (n) => String(n).padStart(2, '0');
-          const now = new Date();
-          const timestamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`;
-          const filename = selectedIndices.length === 1 ? `minisheet-sheet-${selectedIndices[0] + 1}_${timestamp}.csv` : `minisheet-export_${timestamp}.csv`;
+          try {
+            const checkboxes = [...exportSheetListEl.querySelectorAll('input[data-sheet-index]')];
+            const selectedIndices = checkboxes.filter((cb) => cb.checked).map((cb) => Number(cb.dataset.sheetIndex));
+            if (!selectedIndices.length) return;
+            let csv = csvRow(['#MINISHEET', 'v1']);
+            selectedIndices.forEach((idx) => { csv += buildSheetCsv(state.sheets[idx], idx + 1); });
+            const pad = (n) => String(n).padStart(2, '0');
+            const now = new Date();
+            const timestamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`;
+            const filename = selectedIndices.length === 1 ? `minisheet-sheet-${selectedIndices[0] + 1}_${timestamp}.csv` : `minisheet-export_${timestamp}.csv`;
 
-          // The iOS app bridges file saves to native code (blob downloads and
-          // navigator.share are both unreliable from a file:// WKWebView).
-          if (window.webkit?.messageHandlers?.exportCsv) {
-            window.webkit.messageHandlers.exportCsv.postMessage({ filename, content: csv });
-            URL.revokeObjectURL(url);
-            return;
+            // The iOS app bridges file saves to native code; blob downloads
+            // aren't reliable from a file:// WKWebView.
+            if (window.webkit?.messageHandlers?.exportCsv) {
+              window.webkit.messageHandlers.exportCsv.postMessage({ filename, content: csv });
+              return;
+            }
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            // Revoking the blob immediately after click() can race ahead of
+            // the browser actually reading it for the download.
+            setTimeout(() => URL.revokeObjectURL(url), 30000);
+          } catch (error) {
+            console.error('CSV export failed', error);
+            alert(`Export failed: ${error?.message || error}`);
           }
-
-          // Prefer the native share sheet when files can be shared (works in
-          // Mobile Safari over https).
-          const file = new File([blob], filename, { type: 'text/csv' });
-          if (navigator.canShare?.({ files: [file] })) {
-            navigator.share({ files: [file] }).catch(() => {});
-            URL.revokeObjectURL(url);
-            return;
-          }
-
-          link.download = filename;
-          document.body.appendChild(link);
-          link.click();
-          link.remove();
-          // Revoking the blob immediately after click() can race ahead of
-          // the browser actually reading it for the download.
-          setTimeout(() => URL.revokeObjectURL(url), 30000);
         };
 
         const parseCsvRows = (text) => {
