@@ -35,12 +35,6 @@ sync the copy and rebuild:
 
 ## Before submitting to the App Store
 
-- `icons/icon-1024.png` currently has an alpha channel. App Store Connect
-  requires the 1024x1024 marketing icon to be fully opaque (no transparency).
-  Flatten it onto an opaque background (e.g. in Preview, Photoshop, or
-  `magick icon-1024.png -background white -alpha remove icon-1024-opaque.png`)
-  and swap it into `Assets.xcassets/AppIcon.appiconset/`, or Xcode/App Store
-  Connect validation will reject the build.
 - Set a real bundle identifier and signing team (see step 2 above).
 - Consider whether you want `UISupportedInterfaceOrientations` restricted to
   portrait only, or to also allow landscape — currently set to portrait
