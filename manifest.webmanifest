@@ -1,7 +1,7 @@
 {
-  "name": "MiniSheet",
-  "short_name": "MiniSheet",
-  "description": "MiniSheet calculator with formula-driven rows.",
+  "name": "Formulo Calculator",
+  "short_name": "Formulo",
+  "description": "Formulo calculator with formula-driven rows.",
   "id": "./",
   "start_url": "./",
   "scope": "./",

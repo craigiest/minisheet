@@ -3,15 +3,15 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-    <title>MiniSheet</title>
+    <title>Formulo Calculator</title>
     <meta name="theme-color" content="#305596" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="MiniSheet" />
+    <meta name="apple-mobile-web-app-title" content="Formulo" />
     <link rel="manifest" href="manifest-test.webmanifest" />
     <link rel="icon" href="icons/icon-192.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon-180.png" />
-    <meta property="og:title" content="MiniSheet" />
+    <meta property="og:title" content="Formulo Calculator" />
     <meta property="og:type" content="website" />
     <meta property="og:image" content="https://craigiest.github.io/minisheet/icons/icon-512.png" />
     <style>
@@ -1518,8 +1518,8 @@
     </div>
 
     <section class="settings-panel" aria-label="App info and settings" hidden>
-      <p class="settings-version"><strong>MiniSheet</strong> <span class="version-tag-settings">v0.5.0</span> ©2026 Craig Butz</p>
-      <p>MiniSheet is a formula-driven mini spreadsheet for quick calculations. <a href="manual.html">View the complete manual</a>.</p>
+      <p class="settings-version"><strong>Formulo Calculator</strong> <span class="version-tag-settings">v0.5.0</span> ©2026 Craig Butz</p>
+      <p>Formulo is a formula-driven mini spreadsheet calculator for quick calculations. <a href="manual.html">View the complete manual</a>.</p>
       <p>Type a math problem, like 42+25, into the formula line and tap Result for an answer. Or create a formula like A+B/C and enter numbers in the grid to get multiple results for different sets of values.</p>
       <p>For the best experience, click the share button and add to your homescreen.</p>
       <div class="settings-group">
@@ -1552,7 +1552,7 @@
       </div>
       <div class="settings-group">
         <h3>Import Data</h3>
-        <p class="settings-hint">Import sheets from a MiniSheet CSV export.</p>
+        <p class="settings-hint">Import sheets from a Formulo CSV export.</p>
         <input type="file" accept=".csv,text/csv" id="import-csv-input" hidden />
         <button type="button" class="settings-btn" id="import-csv-btn">Choose CSV File</button>
         <p class="settings-hint import-error" hidden></p>
@@ -4435,7 +4435,7 @@ diameter,height,value3,value4,Result
             if (!sheets.length) { showImportError('No sheets found in that file.'); return; }
             buildImportPicker(sheets);
           } catch (error) {
-            showImportError('Could not read that file as a MiniSheet CSV export.');
+            showImportError('Could not read that file as a Formulo CSV export.');
           }
         });
 
