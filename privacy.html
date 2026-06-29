@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <title>Formulo Calculator Privacy Policy</title>
+    <meta name="theme-color" content="#305596" />
+    <style>
+      :root {
+        --bg: #ececef;
+        --panel: #f3f3f5;
+        --line: #d5d5da;
+        --text: #1d2029;
+        --text-muted: #8a94a8;
+        --active: #305596;
+        --active-text-color: #fff;
+        --nav-h: 36px;
+        --app-font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+      }
+
+      * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+      html,
+      body {
+        margin: 0;
+        font-family: var(--app-font);
+        background: var(--bg);
+        color: var(--text);
+      }
+
+      body {
+        padding-top: calc(env(safe-area-inset-top) + var(--nav-h));
+        padding-bottom: env(safe-area-inset-bottom);
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: env(safe-area-inset-top);
+        background: var(--active);
+        z-index: 61;
+        pointer-events: none;
+      }
+
+      .nav {
+        position: fixed;
+        top: env(safe-area-inset-top);
+        left: 0;
+        right: 0;
+        height: var(--nav-h);
+        background: var(--active);
+        color: var(--active-text-color);
+        display: flex;
+        align-items: center;
+        padding: 2px 8px 14px;
+        z-index: 60;
+        font-weight: 700;
+        font-size: 15px;
+      }
+
+      .nav a {
+        color: var(--active-text-color);
+        text-decoration: none;
+        font-size: 20px;
+        font-weight: 700;
+        width: 34px;
+        flex: 0 0 auto;
+      }
+
+      .nav .nav-title {
+        flex: 1 1 auto;
+        text-align: center;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        padding: 0 6px;
+      }
+
+      .nav .nav-spacer {
+        width: 34px;
+        flex: 0 0 auto;
+      }
+
+      .manual {
+        max-width: 640px;
+        margin: 0 auto;
+        padding: 20px;
+        padding-bottom: calc(32px + env(safe-area-inset-bottom));
+        background: var(--panel);
+      }
+
+      h1 {
+        font-size: 20px;
+        margin: 0 0 4px;
+        color: var(--text);
+      }
+
+      .version {
+        color: var(--text-muted);
+        font-size: 13px;
+        margin: 0 0 16px;
+      }
+
+      h2 {
+        font-size: 16px;
+        margin: 0 0 8px;
+        color: var(--text);
+      }
+
+      p {
+        font-size: 14px;
+        line-height: 1.5;
+        color: var(--text);
+        margin: 0 0 10px;
+      }
+
+      .section {
+        margin-top: 24px;
+        padding-top: 16px;
+        border-top: 1px solid var(--line);
+      }
+
+      .section:first-of-type {
+        margin-top: 16px;
+      }
+
+      ul {
+        margin: 0 0 10px;
+        padding-left: 20px;
+        font-size: 14px;
+        line-height: 1.5;
+        color: var(--text);
+      }
+
+      li {
+        margin-bottom: 4px;
+      }
+
+      a {
+        color: var(--active);
+      }
+
+      .back-link-wrap {
+        margin-top: 28px;
+        padding-top: 16px;
+        border-top: 1px solid var(--line);
+        text-align: center;
+      }
+
+      .back-btn {
+        display: inline-block;
+        appearance: none;
+        border: 0;
+        border-radius: 8px;
+        background: var(--active);
+        color: var(--active-text-color);
+        font-size: 15px;
+        padding: 10px 20px;
+        text-decoration: none;
+      }
+    </style>
+  </head>
+  <body>
+    <nav class="nav">
+      <a href="index.html" aria-label="Back to Formulo">‹</a>
+      <span class="nav-title">Privacy Policy</span>
+      <span class="nav-spacer"></span>
+    </nav>
+
+    <main class="manual">
+      <h1>Formulo Calculator</h1>
+      <p class="version">Privacy Policy &middot; Last updated 2026-06-29</p>
+
+      <div class="section">
+        <h2>Summary</h2>
+        <p>Formulo Calculator does not collect, transmit, sell, or share any personal data. The app works entirely on your device.</p>
+      </div>
+
+      <div class="section">
+        <h2>What Data Formulo Stores</h2>
+        <p>Your sheets, formulas, constants, and settings are saved automatically using your device's local storage (or, in the iOS app, on-device app storage). This data never leaves your device unless you explicitly export it.</p>
+      </div>
+
+      <div class="section">
+        <h2>CSV Export and Import</h2>
+        <p>Exporting a sheet creates a CSV file that you choose where to save (for example, to the Files app). Importing reads a CSV file you select. Both actions happen entirely on-device &mdash; Formulo has no server and does not upload your files anywhere.</p>
+      </div>
+
+      <div class="section">
+        <h2>No Analytics or Tracking</h2>
+        <p>Formulo does not use analytics, advertising, or tracking software of any kind, and does not make network requests to any third party.</p>
+      </div>
+
+      <div class="section">
+        <h2>No Account Required</h2>
+        <p>Formulo does not require sign-in and does not collect your name, email, or any other identifying information.</p>
+      </div>
+
+      <div class="section">
+        <h2>Children's Privacy</h2>
+        <p>Because Formulo collects no data of any kind, it does not knowingly collect personal information from anyone, including children.</p>
+      </div>
+
+      <div class="section">
+        <h2>Changes to This Policy</h2>
+        <p>If this policy ever changes (for example, if a future version adds optional cloud sync), this page will be updated and the "Last updated" date above will change.</p>
+      </div>
+
+      <div class="section">
+        <h2>Contact</h2>
+        <p>Questions about this policy can be sent to <a href="mailto:writinglab@gmail.com">writinglab@gmail.com</a>.</p>
+      </div>
+
+      <div class="back-link-wrap">
+        <a class="back-btn" href="index.html">&larr; Back to Formulo</a>
+      </div>
+    </main>
+  </body>
+</html>
