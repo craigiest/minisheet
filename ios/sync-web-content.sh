@@ -6,6 +6,7 @@ set -e
 cd "$(dirname "$0")/.."
 
 cp index.html ios/MiniSheet/WebContent/index.html
+cp manual.html ios/MiniSheet/WebContent/manual.html
 rm -rf ios/MiniSheet/WebContent/fonts ios/MiniSheet/WebContent/icons
 cp -r fonts ios/MiniSheet/WebContent/fonts
 cp -r icons ios/MiniSheet/WebContent/icons
