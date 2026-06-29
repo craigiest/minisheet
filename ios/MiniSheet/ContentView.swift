@@ -16,6 +16,12 @@ struct WebView: UIViewRepresentable {
     func makeUIView(context: Context) -> WKWebView {
         let configuration = WKWebViewConfiguration()
         configuration.userContentController.add(context.coordinator, name: "exportCsv")
+        // WKWebView blocks JS clipboard access and native "Paste" menu/Cmd+V
+        // events by default; Safari enables these internally but a bare
+        // WKWebView doesn't. Without this, full.html's paste buttons fall
+        // back to a manual prompt and the system Paste menu does nothing.
+        configuration.preferences.setValue(true, forKey: "javaScriptCanAccessClipboard")
+        configuration.preferences.setValue(true, forKey: "DOMPasteAllowed")
 
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.scrollView.bounces = false
