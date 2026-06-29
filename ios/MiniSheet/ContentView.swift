@@ -40,10 +40,12 @@ struct WebView: UIViewRepresentable {
     // click (or navigator.share), neither of which is reliable from a
     // file://-loaded WKWebView. When running in this app, index.html instead
     // posts the CSV content straight to this "exportCsv" message handler,
-    // which writes it to a temp file and hands it to the share sheet. The
-    // WKDownload plumbing below stays as a fallback for any other downloads.
-    final class Coordinator: NSObject, WKNavigationDelegate, WKDownloadDelegate, WKScriptMessageHandler {
+    // which writes it to a temp file and hands it to a "Save to Files"
+    // document picker. The WKDownload plumbing below stays as a fallback
+    // for any other downloads.
+    final class Coordinator: NSObject, WKNavigationDelegate, WKDownloadDelegate, WKScriptMessageHandler, UIDocumentPickerDelegate {
         private var destinations: [ObjectIdentifier: URL] = [:]
+        private var pendingExportURL: URL?
 
         func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
             guard
@@ -58,7 +60,7 @@ struct WebView: UIViewRepresentable {
 
             do {
                 try content.write(to: destination, atomically: true, encoding: .utf8)
-                Coordinator.presentShareSheet(for: destination)
+                presentSaveToFiles(for: destination)
             } catch {
                 NSLog("Failed to write exported CSV: \(error)")
             }
@@ -103,7 +105,7 @@ struct WebView: UIViewRepresentable {
         func downloadDidFinish(_ download: WKDownload) {
             guard let fileURL = destinations.removeValue(forKey: ObjectIdentifier(download)) else { return }
             DispatchQueue.main.async {
-                Coordinator.presentShareSheet(for: fileURL)
+                self.presentSaveToFiles(for: fileURL)
             }
         }
 
@@ -111,7 +113,11 @@ struct WebView: UIViewRepresentable {
             destinations.removeValue(forKey: ObjectIdentifier(download))
         }
 
-        private static func presentShareSheet(for fileURL: URL) {
+        // Goes straight to the "Save to Files" picker instead of the general
+        // share sheet, which on a CSV defaults to unrelated suggestions
+        // (Notes, Reminders, Mail) and buries the actually-useful "Save to
+        // Files" option several scrolls down.
+        private func presentSaveToFiles(for fileURL: URL) {
             guard let rootViewController = UIApplication.shared.connectedScenes
                 .compactMap({ $0 as? UIWindowScene })
                 .flatMap({ $0.windows })
@@ -123,13 +129,24 @@ struct WebView: UIViewRepresentable {
                 presenter = presented
             }
 
-            let activityViewController = UIActivityViewController(activityItems: [fileURL], applicationActivities: nil)
-            if let popover = activityViewController.popoverPresentationController {
-                popover.sourceView = presenter.view
-                popover.sourceRect = CGRect(x: presenter.view.bounds.midX, y: presenter.view.bounds.midY, width: 0, height: 0)
-                popover.permittedArrowDirections = []
-            }
-            presenter.present(activityViewController, animated: true)
+            pendingExportURL = fileURL
+            let documentPicker = UIDocumentPickerViewController(forExporting: [fileURL], asCopy: true)
+            documentPicker.delegate = self
+            presenter.present(documentPicker, animated: true)
+        }
+
+        func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+            cleanUpPendingExport()
+        }
+
+        func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
+            cleanUpPendingExport()
+        }
+
+        private func cleanUpPendingExport() {
+            guard let url = pendingExportURL else { return }
+            pendingExportURL = nil
+            try? FileManager.default.removeItem(at: url)
         }
     }
 
