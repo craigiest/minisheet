@@ -212,7 +212,7 @@
 
     <main class="manual">
       <h1>Formulo</h1>
-      <p class="version">Instruction Manual &middot; v0.5.1</p>
+      <p class="version">Instruction Manual &middot; v0.5.3</p>
       <p>A formula-driven mini spreadsheet for quick calculations.</p>
 
       <div class="section">
@@ -322,6 +322,7 @@
           <li>Tap the <code>&#10697;</code> button next to any sheet in that menu to duplicate it. The copy is inserted right after the original, named &ldquo;&hellip; (copy)&rdquo;, and becomes the current sheet &mdash; a quick way to reuse a formula/constants setup with fresh data.</li>
         </ul>
         <p class="hint">If you clear a sheet completely (back to blank) and then step away from it with the <code>‹</code> <code>›</code> arrows, that blank sheet is automatically deleted &mdash; this keeps clutter from piling up after using a sheet as scratch space. It won't delete your first sheet or your only remaining sheet, and jumping via the sheet menu instead of the arrows never deletes anything.</p>
+        <p class="hint">Formulo Lite is limited to 3 sheets and can't import CSVs (it can still export). Clear or delete a sheet to free up a slot, or switch to the full version for unlimited sheets and import.</p>
       </div>
 
       <div class="section">
@@ -364,5 +365,18 @@
         <a class="back-btn" href="full.html">&larr; Back to Formulo</a>
       </div>
     </main>
+    <script>
+      (function () {
+        var isLite = new URLSearchParams(location.search).get('from') === 'lite';
+        if (!isLite) return;
+        var navBack = document.querySelector('.nav a[href="full.html"]');
+        if (navBack) { navBack.href = 'index.html'; navBack.setAttribute('aria-label', 'Back to Formulo Lite'); }
+        var btnBack = document.querySelector('.back-btn[href="full.html"]');
+        if (btnBack) { btnBack.href = 'index.html'; btnBack.textContent = '← Back to Formulo Lite'; }
+        document.querySelectorAll('a[href="manual.html"], a[href="support.html"], a[href="privacy.html"]').forEach(function (a) {
+          a.href = a.getAttribute('href') + '?from=lite';
+        });
+      })();
+    </script>
   </body>
 </html>

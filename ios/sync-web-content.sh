@@ -7,6 +7,8 @@ cd "$(dirname "$0")/.."
 
 cp full.html ios/MiniSheet/WebContent/full.html
 cp manual.html ios/MiniSheet/WebContent/manual.html
+cp support.html ios/MiniSheet/WebContent/support.html
+cp privacy.html ios/MiniSheet/WebContent/privacy.html
 rm -rf ios/MiniSheet/WebContent/fonts ios/MiniSheet/WebContent/icons
 cp -r fonts ios/MiniSheet/WebContent/fonts
 cp -r icons ios/MiniSheet/WebContent/icons
