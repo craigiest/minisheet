@@ -1437,7 +1437,7 @@
     <header class="nav">
       <button class="arrow" aria-label="Previous sheet">&#9664;</button>
       <div class="title-block">
-        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">New Sheet</span><span class="version-tag">v0.4.21</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/1</button></div>
+        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">New Sheet</span><span class="version-tag">v0.4.22</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/1</button></div>
         <div class="sheet-menu" hidden role="menu" aria-label="Sheet selector"></div>
       </div>
       <button class="arrow" aria-label="Next sheet">&#9654;</button>
@@ -1518,7 +1518,7 @@
     </div>
 
     <section class="settings-panel" aria-label="App info and settings" hidden>
-      <p class="settings-version"><strong>MiniSheet</strong> <span class="version-tag-settings">v0.4.21</span> ©2026 Craig Butz</p>
+      <p class="settings-version"><strong>MiniSheet</strong> <span class="version-tag-settings">v0.4.22</span> ©2026 Craig Butz</p>
       <p>MiniSheet is a formula-driven mini spreadsheet for quick calculations. <a href="manual.html">View the complete manual</a>.</p>
       <p>Type a math problem, like 42+25, into the formula line and tap Result for an answer. Or create a formula like A+B/C and enter numbers in the grid to get multiple results for different sets of values.</p>
       <p>For the best experience, click the share button and add to your homescreen.</p>
@@ -2648,10 +2648,16 @@
           const timestamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`;
           const filename = selectedIndices.length === 1 ? `minisheet-sheet-${selectedIndices[0] + 1}_${timestamp}.csv` : `minisheet-export_${timestamp}.csv`;
 
-          // WKWebView-based wrappers (e.g. the iOS app) don't reliably turn a
-          // blob: anchor-download click into an actual save, so prefer the
-          // native share sheet when files can be shared (also works fine in
-          // Mobile Safari).
+          // The iOS app bridges file saves to native code (blob downloads and
+          // navigator.share are both unreliable from a file:// WKWebView).
+          if (window.webkit?.messageHandlers?.exportCsv) {
+            window.webkit.messageHandlers.exportCsv.postMessage({ filename, content: csv });
+            URL.revokeObjectURL(url);
+            return;
+          }
+
+          // Prefer the native share sheet when files can be shared (works in
+          // Mobile Safari over https).
           const file = new File([blob], filename, { type: 'text/csv' });
           if (navigator.canShare?.({ files: [file] })) {
             navigator.share({ files: [file] }).catch(() => {});

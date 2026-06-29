@@ -27,7 +27,7 @@
         font-family: var(--app-font);
         background: var(--bg);
         color: var(--text);
-        padding-top: env(safe-area-inset-top);
+        padding-top: calc(env(safe-area-inset-top) + var(--nav-h));
         padding-bottom: env(safe-area-inset-bottom);
       }
 
@@ -44,8 +44,8 @@
       }
 
       .nav {
-        position: sticky;
-        top: 0;
+        position: fixed;
+        top: env(safe-area-inset-top);
         left: 0;
         right: 0;
         height: var(--nav-h);
