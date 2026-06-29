@@ -212,7 +212,7 @@
 
     <main class="manual">
       <h1>Formulo</h1>
-      <p class="version">Instruction Manual &middot; v0.5.2</p>
+      <p class="version">Instruction Manual &middot; v0.5.3</p>
       <p>A formula-driven mini spreadsheet for quick calculations.</p>
 
       <div class="section">
@@ -365,5 +365,18 @@
         <a class="back-btn" href="full.html">&larr; Back to Formulo</a>
       </div>
     </main>
+    <script>
+      (function () {
+        var isLite = new URLSearchParams(location.search).get('from') === 'lite';
+        if (!isLite) return;
+        var navBack = document.querySelector('.nav a[href="full.html"]');
+        if (navBack) { navBack.href = 'index.html'; navBack.setAttribute('aria-label', 'Back to Formulo Lite'); }
+        var btnBack = document.querySelector('.back-btn[href="full.html"]');
+        if (btnBack) { btnBack.href = 'index.html'; btnBack.textContent = '← Back to Formulo Lite'; }
+        document.querySelectorAll('a[href="manual.html"], a[href="support.html"], a[href="privacy.html"]').forEach(function (a) {
+          a.href = a.getAttribute('href') + '?from=lite';
+        });
+      })();
+    </script>
   </body>
 </html>
