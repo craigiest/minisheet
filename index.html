@@ -1438,7 +1438,7 @@
     <header class="nav">
       <button class="arrow" aria-label="Previous sheet">&#9664;</button>
       <div class="title-block">
-        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">New Sheet</span><span class="version-tag">v0.4.28</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/1</button></div>
+        <div class="sheet-line"><span class="sheet-title" contenteditable="true" role="textbox" aria-label="Sheet title">New Sheet</span><span class="version-tag">v0.4.29</span><button type="button" class="sheet-index" aria-label="Jump to sheet" aria-haspopup="menu" aria-expanded="false">1/1</button></div>
         <div class="sheet-menu" hidden role="menu" aria-label="Sheet selector"></div>
       </div>
       <button class="arrow" aria-label="Next sheet">&#9654;</button>
@@ -1519,7 +1519,7 @@
     </div>
 
     <section class="settings-panel" aria-label="App info and settings" hidden>
-      <p class="settings-version"><strong>MiniSheet</strong> <span class="version-tag-settings">v0.4.28</span> ©2026 Craig Butz</p>
+      <p class="settings-version"><strong>MiniSheet</strong> <span class="version-tag-settings">v0.4.29</span> ©2026 Craig Butz</p>
       <p>MiniSheet is a formula-driven mini spreadsheet for quick calculations. <a href="manual.html">View the complete manual</a>.</p>
       <p>Type a math problem, like 42+25, into the formula line and tap Result for an answer. Or create a formula like A+B/C and enter numbers in the grid to get multiple results for different sets of values.</p>
       <p>For the best experience, click the share button and add to your homescreen.</p>
@@ -2653,12 +2653,20 @@
               return;
             }
 
-            // iOS standalone (homescreen) WKWebView has no download banner
-            // fallback, so a recognized "text/csv" blob triggers a Quick
-            // Look "Open in..." app picker instead of a plain save. An
-            // unrecognized binary type avoids that picker and saves directly.
-            const blob = new Blob([csv], { type: 'application/octet-stream' });
+            const blob = new Blob([csv], { type: 'text/csv' });
             const url = URL.createObjectURL(blob);
+
+            // The <a download> attribute is ignored in standalone (homescreen)
+            // iOS web apps, which routes the click through a Quick Look
+            // "Open in..." picker. Navigating the page itself to the blob URL
+            // instead surfaces iOS's native save UI with "Save to Files" as a
+            // direct option rather than buried in the full share sheet.
+            if (window.navigator.standalone) {
+              window.location.href = url;
+              setTimeout(() => URL.revokeObjectURL(url), 60000);
+              return;
+            }
+
             const link = document.createElement('a');
             link.href = url;
             link.download = filename;
